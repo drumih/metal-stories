@@ -5,6 +5,7 @@ final class RenderPassSimple {
 
     private let gpu: GPU
     private let imageRenderPSO: MTLRenderPipelineState
+    private let backgroundPSO: MTLRenderPipelineState
 
     init(
         gpu: GPU,
@@ -13,11 +14,14 @@ final class RenderPassSimple {
         self.gpu = gpu
         let bundle = Bundle(for: RenderPassSimple.self)
         let library = try gpu.device.makeDefaultLibrary(bundle: bundle)
-        let imagePSO = try PipelineStateObjects.simpleImagePipeline(
+        self.imageRenderPSO = try PipelineStateObjects.simpleImagePipeline(
             library: library,
             pixelFormat: pixelFormat
         )
-        self.imageRenderPSO = imagePSO
+        self.backgroundPSO = try PipelineStateObjects.simpleBackgroundPipeline(
+            library: library,
+            pixelFormat: pixelFormat
+        )
     }
 }
 
@@ -37,25 +41,65 @@ extension RenderPassSimple: RenderPass {
             return
         }
 
-        drawImage(renderEncoder: renderEncoder, input: input)
+        drawBackground(
+            renderEncoder: renderEncoder,
+            topColor: input.topBackgroundColor,
+            bottomColor: input.bottomBackgroundColor
+        )
+        drawImage(
+            renderEncoder: renderEncoder,
+            texture: input.texture,
+            transform: input.transform
+        )
         
         renderEncoder.endEncoding()
     }
 
     private func drawImage(
         renderEncoder: MTLRenderCommandEncoder,
-        input: RenderPassInput
+        texture: MTLTexture,
+        transform: float4x4
     ) {
         renderEncoder.label = "Draw Image (Simple)"
         renderEncoder.setRenderPipelineState(imageRenderPSO)
 
-        var transform = input.transform
+        var transform = transform
         renderEncoder.setVertexBytes(
             &transform,
             length: MemoryLayout<float4x4>.stride,
             index: 0
         )
-        renderEncoder.setFragmentTexture(input.texture, index: 0)
+        renderEncoder.setFragmentTexture(texture, index: 0)
+        renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+    }
+    
+    private func drawBackground(
+        renderEncoder: MTLRenderCommandEncoder,
+        topColor: SIMD4<Float>,
+        bottomColor: SIMD4<Float>
+    ) {
+        renderEncoder.label = "Draw Background (Simple)"
+        renderEncoder.setRenderPipelineState(backgroundPSO)
+        
+        var transform = matrix_identity_float4x4
+        renderEncoder.setVertexBytes(
+            &transform,
+            length: MemoryLayout<float4x4>.stride,
+            index: 0
+        )
+        var topColor = topColor
+        renderEncoder.setFragmentBytes(
+            &topColor,
+            length: MemoryLayout<SIMD4<Float>>.stride,
+            index: 0
+        )
+        var bottomColor = bottomColor
+        renderEncoder.setFragmentBytes(
+            &bottomColor,
+            length: MemoryLayout<SIMD4<Float>>.stride,
+            index: 1
+        )
+        
         renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
     }
 }

@@ -51,7 +51,7 @@ private extension StoriesGestureHandler {
     
     @objc func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
         guard recognizer.numberOfTouches == 2 else { return }
-        updateAnchorPoint(using: recognizer)
+        updateAnchorPoint(using: recognizer, rebaseTranslation: true)
         
         switch recognizer.state {
         case .began:
@@ -66,7 +66,7 @@ private extension StoriesGestureHandler {
     
     @objc func handleRotation(_ recognizer: UIRotationGestureRecognizer) {
         guard recognizer.numberOfTouches == 2 else { return }
-        updateAnchorPoint(using: recognizer)
+        updateAnchorPoint(using: recognizer, rebaseTranslation: true)
         
         switch recognizer.state {
         case .began:
@@ -81,7 +81,7 @@ private extension StoriesGestureHandler {
     
     @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
         guard recognizer.numberOfTouches == 2 else { return }
-        updateAnchorPoint(using: recognizer)
+        updateAnchorPoint(using: recognizer, rebaseTranslation: false)
         
         let bounds = view.bounds
         guard bounds.width > 0, bounds.height > 0 else { return }
@@ -101,7 +101,7 @@ private extension StoriesGestureHandler {
         }
     }
     
-    func updateAnchorPoint(using recognizer: UIGestureRecognizer) {
+    func updateAnchorPoint(using recognizer: UIGestureRecognizer, rebaseTranslation: Bool) {
         guard recognizer.numberOfTouches == 2 else { return }
         let firstTouch = recognizer.location(ofTouch: 0, in: view)
         let secondTouch = recognizer.location(ofTouch: 1, in: view)
@@ -117,7 +117,44 @@ private extension StoriesGestureHandler {
             Float(midpoint.x / bounds.width),
             Float(1.0 - (midpoint.y / bounds.height)) // convert UIKit coords to Metal-style coords
         )
+        
+        if rebaseTranslation {
+            let canvasSize = SIMD2<Float>(Float(bounds.width), Float(bounds.height))
+            rebaseTranslationForAnchorChange(
+                newAnchor: normalizedAnchor,
+                canvasSize: canvasSize
+            )
+        }
         sceneInput.anchorPoint = normalizedAnchor
+    }
+    
+    func rebaseTranslationForAnchorChange(
+        newAnchor: SIMD2<Float>,
+        canvasSize: SIMD2<Float>
+    ) {
+        let previousAnchor = sceneInput.anchorPoint
+        guard previousAnchor != newAnchor else { return }
+        
+        // Keep current transform stable while switching pivot, so visual translation does not jump.
+        let rotation = sceneInput.rotationRadians
+        let scale = sceneInput.scale
+        let cosR = cos(rotation)
+        let sinR = sin(rotation)
+        
+        let scaleX = scale
+        let scaleY = scale
+        let transformMatrix = float2x2(
+            SIMD2<Float>(cosR * scaleX, sinR * scaleX),
+            SIMD2<Float>(-sinR * scaleY, cosR * scaleY)
+        )
+        let identity = float2x2(diagonal: SIMD2<Float>(1, 1))
+        
+        let anchorDelta = (previousAnchor - newAnchor) * canvasSize
+        let correction = (identity - transformMatrix) * anchorDelta
+        
+        let currentTranslation = (sceneInput.translation - 0.5) * canvasSize
+        let updatedTranslation = currentTranslation + correction
+        sceneInput.translation = (updatedTranslation / canvasSize) + 0.5
     }
 }
 
