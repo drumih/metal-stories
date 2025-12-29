@@ -1,5 +1,5 @@
 //
-//  ViewController.swift
+//  StoriesViewController.swift
 //  MetalStories
 //
 //  Created by Andrey Mikhaylov on 29/12/2025.
@@ -7,13 +7,9 @@
 
 import UIKit
 
-class ViewController: UIViewController {
+class StoriesViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
     }
-
-
 }
-
