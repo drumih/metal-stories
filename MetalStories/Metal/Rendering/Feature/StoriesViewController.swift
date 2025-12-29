@@ -6,6 +6,12 @@ final class StoriesViewController: UIViewController {
     private static let imageOutputSize = CGSize(width: 1080, height: 1920)
     
     private let renderingView: RenderingView
+    private let touchTrackingView: TouchTrackingView = {
+        let view = TouchTrackingView()
+        view.isMultipleTouchEnabled = true
+        view.backgroundColor = .clear
+        return view
+    }()
     private let sceneInput: SceneInput
     private let offscreenRenderer: OffscreenRenderer
     private var gestureHandler: StoriesGestureHandler?
@@ -36,7 +42,7 @@ final class StoriesViewController: UIViewController {
         do {
             try prepareImage()
             setupStoriesUI()
-            setupGestureRecognizers()
+            setupGestureHandler()
         } catch {
             setupFailureUI()
         }
@@ -73,6 +79,9 @@ final class StoriesViewController: UIViewController {
         renderingView.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(renderingView)
         
+        touchTrackingView.translatesAutoresizingMaskIntoConstraints = false
+        renderingView.addSubview(touchTrackingView)
+        
         let aspectRatio = containerView.heightAnchor.constraint(equalTo: containerView.widthAnchor, multiplier: 16.0 / 9.0)
         let preferredWidth = containerView.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor)
         preferredWidth.priority = .defaultHigh
@@ -88,7 +97,12 @@ final class StoriesViewController: UIViewController {
             renderingView.topAnchor.constraint(equalTo: containerView.topAnchor),
             renderingView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
             renderingView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            renderingView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor)
+            renderingView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            
+            touchTrackingView.topAnchor.constraint(equalTo: renderingView.topAnchor),
+            touchTrackingView.bottomAnchor.constraint(equalTo: renderingView.bottomAnchor),
+            touchTrackingView.leadingAnchor.constraint(equalTo: renderingView.leadingAnchor),
+            touchTrackingView.trailingAnchor.constraint(equalTo: renderingView.trailingAnchor),
         ])
         
         let exportButton = UIBarButtonItem(title: "Export", style: .plain, target: self, action: #selector(exportButtonTapped))
@@ -162,13 +176,11 @@ final class StoriesViewController: UIViewController {
         ])
     }
     
-    private func setupGestureRecognizers() {
-        let handler = StoriesGestureHandler(
-            view: renderingView,
+    private func setupGestureHandler() {
+        gestureHandler = StoriesGestureHandler(
+            touchTrackingView: touchTrackingView,
             sceneInput: sceneInput
         )
-        handler.setupGestureRecognizers()
-        gestureHandler = handler
     }
 
 }
