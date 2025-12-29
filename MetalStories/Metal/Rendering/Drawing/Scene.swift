@@ -1,4 +1,5 @@
 import simd
+import Metal
 
 protocol SceneInput {
     func setPreparationResult(_ preparationResult: MetalPreparationResult)
@@ -81,7 +82,14 @@ extension Scene: SceneOutput {
         renderingViewSize: SIMD2<Float>
     ) -> RenderPassInput? {
         guard let preparationResult else { return nil }
-        let transform = getTransform(renderingViewSize: renderingViewSize)
+        let textureSize = SIMD2<Float>(
+            Float(preparationResult.texture.width),
+            Float(preparationResult.texture.height)
+        )
+        let transform = getTransform(
+            textureSize: textureSize,
+            renderingViewSize: renderingViewSize
+        )
         return RenderPassInput(
             texture: preparationResult.texture,
             transform: transform,
@@ -89,12 +97,21 @@ extension Scene: SceneOutput {
             topBackgroundColor: .init(preparationResult.topColor, 1)
         )
     }
-    
-    
-    // full mvp matrix, ortographics projection
+
     private func getTransform(
+        textureSize: SIMD2<Float>,
         renderingViewSize: SIMD2<Float>
     ) -> float4x4 {
-        matrix_identity_float4x4 // TODO: fixit
+        TransformCalculator.getTransform(
+            textureSize: textureSize,
+            canvasSize: renderingViewSize,
+            anchor: anchorPoint,
+            scale: scale,
+            rotation: rotationRadians,
+            translation: translation,
+            flipVertically: false,
+            mirror: false,
+            aspectMode: .default//.default
+        )
     }
 }

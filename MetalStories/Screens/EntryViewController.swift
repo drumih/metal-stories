@@ -83,19 +83,9 @@ final class EntryViewController: UIViewController {
         return imageView
     }()
 
-    private lazy var previousImageLabel: UILabel = {
-        let label = UILabel()
-        label.text = "Previous Image"
-        label.font = .systemFont(ofSize: 15, weight: .medium)
-        label.textColor = .secondaryLabel
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
     private lazy var loadPreviousButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Load Previous Image", for: .normal)
+        button.setTitle("Use Image", for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
         button.backgroundColor = .systemGreen
         button.setTitleColor(.white, for: .normal)
@@ -143,7 +133,6 @@ final class EntryViewController: UIViewController {
 
         previousImageContainerView.addSubview(previewImageView)
         previousImageContainerView.addSubview(deletePreviousButton)
-        previousImageContainerView.addSubview(previousImageLabel)
         previousImageContainerView.addSubview(loadPreviousButton)
 
         view.addSubview(accessStackView)
@@ -183,12 +172,8 @@ final class EntryViewController: UIViewController {
             deletePreviousButton.widthAnchor.constraint(equalToConstant: 30),
             deletePreviousButton.heightAnchor.constraint(equalToConstant: 30),
 
-            // Label
-            previousImageLabel.topAnchor.constraint(equalTo: previewImageView.bottomAnchor, constant: 12),
-            previousImageLabel.centerXAnchor.constraint(equalTo: previousImageContainerView.centerXAnchor),
-
             // Load button
-            loadPreviousButton.topAnchor.constraint(equalTo: previousImageLabel.bottomAnchor, constant: 16),
+            loadPreviousButton.topAnchor.constraint(equalTo: previewImageView.bottomAnchor, constant: 16),
             loadPreviousButton.centerXAnchor.constraint(equalTo: previousImageContainerView.centerXAnchor),
             loadPreviousButton.widthAnchor.constraint(equalToConstant: 200),
             loadPreviousButton.heightAnchor.constraint(equalToConstant: 44),
