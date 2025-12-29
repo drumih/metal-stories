@@ -1,7 +1,7 @@
 import simd
 import Metal
 
-protocol SceneInput {
+protocol SceneInput: AnyObject {
     func setPreparationResult(_ preparationResult: MetalPreparationResult)
     
     var scale: Float { get set } // in range 0.1 ... 3

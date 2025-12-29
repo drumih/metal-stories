@@ -64,8 +64,8 @@ private extension TransformCalculator {
         }
 
         let scaledTextureSize = textureSize * aspectScale
-        let anchorOffset = (anchor - 0.5) * scaledTextureSize
         let targetPosition = (translation - 0.5) * canvasSize
+        let anchorOffset = (anchor - translation) * canvasSize
 
         let flipY: Float = flipVertically ? -1 : 1
         let flipX: Float = mirror ? -1 : 1
@@ -75,7 +75,7 @@ private extension TransformCalculator {
 
         let toAnchor = translationMatrix(anchorOffset)
         let fromAnchor = translationMatrix(-anchorOffset)
-        let toTarget = translationMatrix(targetPosition - anchorOffset)
+        let toTarget = translationMatrix(targetPosition)
 
         return toTarget * toAnchor * rotationMatrix * userScaleMatrix * fromAnchor * baseScaleMatrix
     }

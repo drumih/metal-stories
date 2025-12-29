@@ -8,6 +8,7 @@ final class StoriesViewController: UIViewController {
     private let renderingView: RenderingView
     private let sceneInput: SceneInput
     private let offscreenRenderer: OffscreenRenderer
+    private var gestureHandler: StoriesGestureHandler?
     
     private let imageData: Data
     
@@ -162,7 +163,12 @@ final class StoriesViewController: UIViewController {
     }
     
     private func setupGestureRecognizers() {
-        
+        let handler = StoriesGestureHandler(
+            view: renderingView,
+            sceneInput: sceneInput
+        )
+        handler.setupGestureRecognizers()
+        gestureHandler = handler
     }
 
 }
