@@ -24,6 +24,7 @@ enum StoriesViewControllerFactor {
         renderingView.delegate = renderer
 
         return StoriesViewController(
+            gpu: gpu,
             renderingView: renderingView,
             sceneInput: scene,
             offscreenRenderer: renderer,

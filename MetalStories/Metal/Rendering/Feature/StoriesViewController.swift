@@ -5,6 +5,7 @@ final class StoriesViewController: UIViewController {
     private static let maxImageSize = CGSize(width: 1920, height: 1920)
     private static let imageOutputSize = CGSize(width: 1080, height: 1920)
     
+    private let gpu: GPU
     private let renderingView: RenderingView
     private let touchTrackingView: TouchTrackingView = {
         let view = TouchTrackingView()
@@ -19,11 +20,13 @@ final class StoriesViewController: UIViewController {
     private let imageData: Data
     
     init(
+        gpu: GPU,
         renderingView: RenderingView,
         sceneInput: SceneInput,
         offscreenRenderer: OffscreenRenderer,
         imageData: Data
     ) {
+        self.gpu = gpu
         self.renderingView = renderingView
         self.sceneInput = sceneInput
         self.offscreenRenderer = offscreenRenderer
@@ -54,7 +57,8 @@ final class StoriesViewController: UIViewController {
             maxSize: Self.maxImageSize
         )
         let preparationResult = try CGImageToMetalTexturePreprocessing.prepareCGImage(
-            cgImage: cgImage.0
+            cgImage: cgImage.0,
+            gpu: gpu
         )
         sceneInput.setPreparationResult(preparationResult)
     }
