@@ -1,4 +1,5 @@
 import UIKit
+import QuartzCore
 import simd
 
 // TODO: Improve it
@@ -16,6 +17,10 @@ final class StoriesGestureHandler {
     private struct SingleFingerGestureSnapshot {
         let startPoint: CGPoint
         let initialFilterOffset: Float
+        var lastPoint: CGPoint
+        var lastTimestamp: TimeInterval
+        var lastVelocity: Float
+        var lastAcceleration: Float
     }
     
     let sceneInput: SceneInput
@@ -24,6 +29,16 @@ final class StoriesGestureHandler {
     private var trackedTouches: [UITouch] = []
     private var twoFingerGestureSnapshot: TwoFingerGestureSnapshot?
     private var singleFingerGestureSnapshot: SingleFingerGestureSnapshot?
+    
+    private struct FilterOffsetAnimation {
+        let startValue: Float
+        let targetValue: Float
+        let startTime: CFTimeInterval
+        let duration: CFTimeInterval
+    }
+    
+    private var filterOffsetAnimation: FilterOffsetAnimation?
+    private var filterOffsetDisplayLink: CADisplayLink?
     
     init(
         touchTrackingView: TouchTrackingView,
@@ -41,6 +56,7 @@ private extension StoriesGestureHandler {
     func startTwoFingerGesture(in overlay: UIView) {
         guard trackedTouches.count == 2 else { return }
         guard let firstTouch = trackedTouches.first, let secondTouch = trackedTouches.last else { return }
+        cancelFilterOffsetAnimation()
         
         let bounds = overlay.bounds
         guard bounds.width > 0, bounds.height > 0 else { return }
@@ -102,9 +118,15 @@ private extension StoriesGestureHandler {
     func startSingleFingerGesture(in overlay: UIView) {
         guard trackedTouches.count == 1 else { return }
         guard let touch = trackedTouches.first else { return }
+        cancelFilterOffsetAnimation()
+        let startPoint = touch.location(in: overlay)
         singleFingerGestureSnapshot = SingleFingerGestureSnapshot(
-            startPoint: touch.location(in: overlay),
-            initialFilterOffset: sceneInput.filterOffset
+            startPoint: startPoint,
+            initialFilterOffset: sceneInput.filterOffset,
+            lastPoint: startPoint,
+            lastTimestamp: touch.timestamp,
+            lastVelocity: 0,
+            lastAcceleration: 0
         )
     }
     
@@ -114,7 +136,8 @@ private extension StoriesGestureHandler {
         if singleFingerGestureSnapshot == nil {
             startSingleFingerGesture(in: overlay)
         }
-        guard let snapshot = singleFingerGestureSnapshot else { return }
+        guard var snapshot = singleFingerGestureSnapshot else { return }
+        cancelFilterOffsetAnimation()
         
         let bounds = overlay.bounds
         guard bounds.width > 0 else { return }
@@ -122,6 +145,46 @@ private extension StoriesGestureHandler {
         let currentPoint = touch.location(in: overlay)
         let deltaX = Float((currentPoint.x - snapshot.startPoint.x) / bounds.width)
         sceneInput.filterOffset = snapshot.initialFilterOffset + deltaX
+        
+        let currentTime = touch.timestamp
+        let dt = currentTime - snapshot.lastTimestamp
+        if dt > 0 {
+            let velocity = Float((currentPoint.x - snapshot.lastPoint.x) / bounds.width) / Float(dt)
+            let acceleration = (velocity - snapshot.lastVelocity) / Float(dt)
+            snapshot.lastAcceleration = acceleration
+            snapshot.lastVelocity = velocity
+        }
+        snapshot.lastPoint = currentPoint
+        snapshot.lastTimestamp = currentTime
+        singleFingerGestureSnapshot = snapshot
+    }
+
+    func snapSingleFingerOffsetIfNeeded() {
+        guard let snapshot = singleFingerGestureSnapshot else { return }
+        let currentOffset = sceneInput.filterOffset
+        let velocity = snapshot.lastVelocity
+        let acceleration = snapshot.lastAcceleration
+        
+        let lower = floor(currentOffset)
+        let upper = lower + 1
+        let midpoint = lower + 0.5
+        
+        let projectedOffset = currentOffset
+            + velocity * 0.25 // increased inertia so smaller swipes can cross midpoint
+            + acceleration * 0.07 // acceleration nudges the snap direction
+
+        // Snap strictly to the nearest neighbor; inertia only influences which side of the midpoint we land on.
+        var targetOffset: Float
+        if projectedOffset == lower || projectedOffset == upper {
+            targetOffset = projectedOffset
+        } else {
+            targetOffset = projectedOffset < midpoint ? lower : upper
+        }
+        
+        startFilterOffsetAnimation(
+            to: targetOffset,
+            initialVelocity: velocity
+        )
     }
     
     func resetSnapshots() {
@@ -176,6 +239,66 @@ private extension StoriesGestureHandler {
         let updatedTranslation = currentTranslation + correction
         sceneInput.translation = (updatedTranslation / canvasSize) + 0.5
     }
+    
+    func cancelFilterOffsetAnimation() {
+        filterOffsetDisplayLink?.invalidate()
+        filterOffsetDisplayLink = nil
+        filterOffsetAnimation = nil
+    }
+    
+    func startFilterOffsetAnimation(
+        to targetOffset: Float,
+        initialVelocity: Float
+    ) {
+        let startOffset = sceneInput.filterOffset
+        let distance = abs(targetOffset - startOffset)
+        
+        if distance < 0.0001 {
+            sceneInput.filterOffset = targetOffset
+            cancelFilterOffsetAnimation()
+            return
+        }
+        
+        // Duration scales with distance and velocity to feel smooth.
+        let velocityComponent = max(0.1, min(1.0, Double(abs(initialVelocity)) * 0.5))
+        let baseDuration = 0.16 + 0.18 * velocityComponent
+        let distanceComponent = Double(distance) * 0.25
+        let clampedDuration = max(0.16, min(0.45, baseDuration + distanceComponent))
+        
+        filterOffsetAnimation = FilterOffsetAnimation(
+            startValue: startOffset,
+            targetValue: targetOffset,
+            startTime: CACurrentMediaTime(),
+            duration: clampedDuration
+        )
+        
+        filterOffsetDisplayLink?.invalidate()
+        let displayLink = CADisplayLink(target: self, selector: #selector(handleFilterOffsetAnimation))
+        filterOffsetDisplayLink = displayLink
+        displayLink.add(to: .main, forMode: .common)
+    }
+    
+    @objc
+    func handleFilterOffsetAnimation() {
+        guard let animation = filterOffsetAnimation else {
+            cancelFilterOffsetAnimation()
+            return
+        }
+        let now = CACurrentMediaTime()
+        let elapsed = now - animation.startTime
+        let progress = min(1.0, elapsed / animation.duration)
+        
+        // Ease-out cubic for a smooth finish.
+        let eased = 1.0 - pow(1.0 - progress, 3)
+        let newOffset = animation.startValue + Float(eased) * (animation.targetValue - animation.startValue)
+        sceneInput.filterOffset = newOffset
+        
+        if progress >= 1.0 {
+            sceneInput.filterOffset = animation.targetValue
+            cancelFilterOffsetAnimation()
+            return
+        }
+    }
 }
 
 extension StoriesGestureHandler: TouchTrackingViewDelegate {
@@ -222,11 +345,17 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
         with event: UIEvent?
     ) {
         guard !trackedTouches.isEmpty else { return }
+        let wasSingleFingerGesture = trackedTouches.count == 1 && singleFingerGestureSnapshot != nil
         trackedTouches.removeAll { touch in
             touches.contains(where: { $0 === touch })
         }
         
-        switch trackedTouches.count {
+        let remainingTouches = trackedTouches.count
+        if wasSingleFingerGesture && remainingTouches == 0 {
+            snapSingleFingerOffsetIfNeeded()
+        }
+        
+        switch remainingTouches {
         case 0:
             resetSnapshots()
         case 1:
@@ -244,8 +373,7 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
         touchesCancelled touches: Set<UITouch>,
         with event: UIEvent?
     ) {
-        resetSnapshots()
-        trackedTouches.removeAll()
+        touchView(view, touchesEnded: touches, with: event)
     }
 }
 
