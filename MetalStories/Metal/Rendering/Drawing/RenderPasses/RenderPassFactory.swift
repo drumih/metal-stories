@@ -2,6 +2,7 @@ import Metal
 
 enum RenderPassType {
     case simple
+    case withIntermediateTexture
 }
 
 enum RenderPassFactory {
@@ -12,7 +13,15 @@ enum RenderPassFactory {
     ) throws -> any RenderPass {
         switch renderPassType {
         case .simple:
-            return try RenderPassSimple(gpu: gpu, pixelFormat: pixelFormat)
+            try RenderPassSimple(
+                gpu: gpu,
+                pixelFormat: pixelFormat
+            )
+        case .withIntermediateTexture:
+            try RenderPassWithRegularIntermediateTexture(
+                gpu: gpu,
+                pixelFormat: pixelFormat
+            )
         }
     }
 }

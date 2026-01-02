@@ -94,7 +94,8 @@ extension Scene: SceneOutput {
             texture: preparationResult.texture,
             transform: transform,
             bottomBackgroundColor: .init(preparationResult.bottomColor, 1),
-            topBackgroundColor: .init(preparationResult.topColor, 1)
+            topBackgroundColor: .init(preparationResult.topColor, 1),
+            offset: 0 // TODO: fixit!
         )
     }
 
@@ -111,7 +112,7 @@ extension Scene: SceneOutput {
             translation: translation,
             flipVertically: false,
             mirror: false,
-            aspectMode: .default//.default
+            aspectMode: .automatic(threshold: 4.0 / 5.0)
         )
     }
 }

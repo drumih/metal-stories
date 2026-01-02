@@ -1,7 +1,7 @@
 import Metal
 
-enum PipelineStateObjects {
-    static func simpleImagePipeline(
+enum PipelineStateObjectsSimple {
+    static func imagePipeline(
         library: MTLLibrary,
         pixelFormat: MTLPixelFormat
     ) throws -> MTLRenderPipelineState {
@@ -24,7 +24,7 @@ enum PipelineStateObjects {
         return try library.device.makeRenderPipelineState(descriptor: descriptor)
     }
     
-    static func simpleBackgroundPipeline(
+    static func backgroundPipeline(
         library: MTLLibrary,
         pixelFormat: MTLPixelFormat
     ) throws -> MTLRenderPipelineState {

@@ -28,6 +28,10 @@ enum TransformCalculator {
         
         return projectionTransform * viewTransform * modelTransform
     }
+    
+    static func getFlippedVerticallyTransform() -> float4x4 {
+        scaleMatrix(.init(x: 1, y: -1))
+    }
 }
 
 private extension TransformCalculator {

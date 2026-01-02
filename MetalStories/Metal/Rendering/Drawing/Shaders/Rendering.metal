@@ -18,7 +18,7 @@ vertex VertexOut vertex_general(uint vid [[vertex_id]],
         case 2: position = float4(-1.f,  1.f, 0.f, 1.f); uv = float2(0.f, 1.f); break;
         case 3: position = float4( 1.f,  1.f, 0.f, 1.f); uv = float2(1.f, 1.f); break;
     }
-    
+
     VertexOut out {
         .position = transform * position,
         .uv = uv
@@ -40,4 +40,14 @@ fragment float4 fragment_background(VertexOut in [[ stage_in ]],
                                     ) {
     const auto background_color = mix(top_color, bottom_color, in.uv.y);
     return background_color;
+}
+
+fragment float4 fragment_post_processing(VertexOut in [[ stage_in ]],
+                                         texture2d<float, access::sample> texture [[ texture(0) ]],
+                                         constant float& offset [[ buffer(0) ]]
+                                        ) {
+    constexpr sampler textureSampler(filter::linear,
+                                     address::repeat);
+    const auto color = texture.sample(textureSampler, in.uv);
+    return color;
 }

@@ -14,11 +14,11 @@ final class RenderPassSimple {
         self.gpu = gpu
         let bundle = Bundle(for: RenderPassSimple.self)
         let library = try gpu.device.makeDefaultLibrary(bundle: bundle)
-        self.imageRenderPSO = try PipelineStateObjects.simpleImagePipeline(
+        self.imageRenderPSO = try PipelineStateObjectsSimple.imagePipeline(
             library: library,
             pixelFormat: pixelFormat
         )
-        self.backgroundPSO = try PipelineStateObjects.simpleBackgroundPipeline(
+        self.backgroundPSO = try PipelineStateObjectsSimple.backgroundPipeline(
             library: library,
             pixelFormat: pixelFormat
         )
@@ -32,7 +32,7 @@ extension RenderPassSimple: RenderPass {
 
     func draw(
         commandBuffer: MTLCommandBuffer,
-        descriptor: MTLRenderPassDescriptor,
+        descriptor: MTLRenderPassDescriptor, // TODO: rename to RenderPassDescriptor
         input: RenderPassInput
     ) {
         guard

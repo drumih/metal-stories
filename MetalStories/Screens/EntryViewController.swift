@@ -63,6 +63,19 @@ final class EntryViewController: UIViewController {
         return button
     }()
 
+    private lazy var renderPassSegmentedControl: UISegmentedControl = {
+        let control = UISegmentedControl(items: ["Simple", "Intermediate"])
+        control.addTarget(self, action: #selector(renderPassTypeChanged), for: .valueChanged)
+        control.translatesAutoresizingMaskIntoConstraints = false
+        return control
+    }()
+
+    private var selectedRenderPassType: RenderPassType = .withIntermediateTexture {
+        didSet {
+            renderPassSegmentedControl.selectedSegmentIndex = selectedRenderPassType == .simple ? 0 : 1
+        }
+    }
+
     // MARK: - Previous Image UI Elements
 
     private lazy var previousImageContainerView: UIView = {
@@ -127,6 +140,7 @@ final class EntryViewController: UIViewController {
 
     private func setupUI() {
         view.backgroundColor = .systemBackground
+        renderPassSegmentedControl.selectedSegmentIndex = selectedRenderPassType == .simple ? 0 : 1
 
         accessStackView.addArrangedSubview(accessLabel)
         accessStackView.addArrangedSubview(accessSwitch)
@@ -139,6 +153,7 @@ final class EntryViewController: UIViewController {
         view.addSubview(selectPhotoButton)
         view.addSubview(openSettingsButton)
         view.addSubview(previousImageContainerView)
+        view.addSubview(renderPassSegmentedControl)
 
         NSLayoutConstraint.activate([
             accessStackView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -154,11 +169,14 @@ final class EntryViewController: UIViewController {
             openSettingsButton.widthAnchor.constraint(equalToConstant: 200),
             openSettingsButton.heightAnchor.constraint(equalToConstant: 50),
 
+            renderPassSegmentedControl.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            renderPassSegmentedControl.bottomAnchor.constraint(equalTo: selectPhotoButton.topAnchor, constant: -16),
+
             // Previous image container
             previousImageContainerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             previousImageContainerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 40),
             previousImageContainerView.widthAnchor.constraint(equalToConstant: 320),
-            previousImageContainerView.bottomAnchor.constraint(lessThanOrEqualTo: selectPhotoButton.topAnchor, constant: -20),
+            previousImageContainerView.bottomAnchor.constraint(lessThanOrEqualTo: renderPassSegmentedControl.topAnchor, constant: -20),
 
             // Preview image - bigger
             previewImageView.topAnchor.constraint(equalTo: previousImageContainerView.topAnchor),
@@ -197,17 +215,20 @@ final class EntryViewController: UIViewController {
                 self.accessStackView.isHidden = true
                 self.selectPhotoButton.isHidden = false
                 self.openSettingsButton.isHidden = true
+                self.renderPassSegmentedControl.isHidden = false
 
             case .denied, .restricted:
                 self.accessStackView.isHidden = true
                 self.selectPhotoButton.isHidden = true
                 self.openSettingsButton.isHidden = false
+                self.renderPassSegmentedControl.isHidden = true
 
             case .notDetermined:
                 self.accessStackView.isHidden = false
                 self.accessSwitch.isOn = false
                 self.selectPhotoButton.isHidden = true
                 self.openSettingsButton.isHidden = true
+                self.renderPassSegmentedControl.isHidden = true
 
             @unknown default:
                 break
@@ -318,6 +339,10 @@ final class EntryViewController: UIViewController {
         }
     }
 
+    @objc private func renderPassTypeChanged(_ sender: UISegmentedControl) {
+        selectedRenderPassType = sender.selectedSegmentIndex == 0 ? .simple : .withIntermediateTexture
+    }
+
     @objc private func loadPreviousImageTapped() {
         guard let imageData = loadSavedImageData() else {
             showErrorAlert(message: "No saved image found.")
@@ -361,7 +386,7 @@ extension EntryViewController: PHPickerViewControllerDelegate {
         do {
             let storiesViewController = try StoriesViewControllerFactor.getViewController(
                 imageData: imageData,
-                renderPassType: .simple
+                renderPassType: selectedRenderPassType
             )
             let navigationController = UINavigationController(rootViewController: storiesViewController)
             navigationController.modalPresentationStyle = .fullScreen
