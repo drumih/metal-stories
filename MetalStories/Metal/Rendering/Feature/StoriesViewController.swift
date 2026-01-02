@@ -114,17 +114,19 @@ final class StoriesViewController: UIViewController {
     }
     
     @objc private func exportButtonTapped() {
-        let size = Self.imageOutputSize.asFloat2
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         
         do {
             let cgImage = try offscreenRenderer.renderImageToOffscreenTexture(
-                size: size,
-                colorSpace: colorSpace,
-                flipped: false
+                size: Self.imageOutputSize,
+                colorSpace: colorSpace
             )
             
-            ImageSaver.saveImage(cgImage, originalData: imageData) { [weak self] result in
+            ImageSaver.saveImage(
+                cgImage,
+                newOrientation: .up,
+                originalData: imageData
+            ) { [weak self] result in
                 DispatchQueue.main.async {
                     switch result {
                     case .success:

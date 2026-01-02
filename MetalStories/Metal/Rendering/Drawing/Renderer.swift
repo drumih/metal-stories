@@ -2,9 +2,8 @@ import MetalKit
 
 protocol OffscreenRenderer: AnyObject {
     func renderImageToOffscreenTexture(
-        size: SIMD2<Float>,
-        colorSpace: CGColorSpace,
-        flipped: Bool
+        size: CGSize,
+        colorSpace: CGColorSpace
     ) throws -> CGImage
 }
 
@@ -26,12 +25,57 @@ final class Renderer {
 }
 
 extension Renderer: OffscreenRenderer {
+    
+    // TODO: clean up this code later
     func renderImageToOffscreenTexture(
-        size: SIMD2<Float>,
-        colorSpace: CGColorSpace,
-        flipped: Bool
+        size: CGSize,
+        colorSpace: CGColorSpace
     ) throws -> CGImage {
-        fatalError("not implemented yet")
+        let targetPixelFormat = MTLPixelFormat.bgra8Unorm
+        guard
+            let input = scene.getRenderPassInput(renderingViewSize: size.asFloat2)
+        else {
+            throw NSError() // TODO: throw normal error
+        }
+        
+        let offscreenRenderPass = try renderPass.copy()
+        offscreenRenderPass.resize(size: size)
+        let offscreenTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: targetPixelFormat,
+            width: Int(size.width),
+            height: Int(size.height),
+            mipmapped: false
+        )
+        offscreenTextureDescriptor.usage = [.renderTarget, .shaderRead]
+        offscreenTextureDescriptor.storageMode = .shared
+        
+        guard let offscreenTexture = gpu.device.makeTexture(descriptor: offscreenTextureDescriptor) else {
+            throw NSError() // TODO: throw normal error
+        }
+    
+        guard let commandBuffer = gpu.processingCommandQueue.makeCommandBuffer() else {
+            throw NSError()
+        }
+        
+        let renderPassDescriptor = MTLRenderPassDescriptor()
+        renderPassDescriptor.colorAttachments[0].texture = offscreenTexture
+        renderPassDescriptor.colorAttachments[0].loadAction = .dontCare
+        renderPassDescriptor.colorAttachments[0].storeAction = .store
+        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
+        
+        offscreenRenderPass.draw(
+            commandBuffer: commandBuffer,
+            descriptor: renderPassDescriptor,
+            input: input
+        )
+
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+
+        return try CGImageFromMetalTexture.getCGImage(
+            from: offscreenTexture,
+            colorSpace: colorSpace
+        )
     }
 }
 

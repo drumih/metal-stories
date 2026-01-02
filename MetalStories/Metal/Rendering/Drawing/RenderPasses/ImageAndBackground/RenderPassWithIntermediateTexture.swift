@@ -67,6 +67,11 @@ final class RenderPassWithRegularIntermediateTexture {
 }
 
 extension RenderPassWithRegularIntermediateTexture: RenderPass {
+
+    func copy() throws -> any RenderPass {
+        try Self(gpu: gpu, pixelFormat: pixelFormat)
+    }
+    
     func resize(size: CGSize) {
         updateIntermediateTexture(forSize: size)
     }

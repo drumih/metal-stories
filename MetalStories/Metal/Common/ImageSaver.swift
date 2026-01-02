@@ -7,10 +7,11 @@ import UniformTypeIdentifiers
 enum ImageSaver {
     static func saveImage(
         _ cgImage: CGImage,
+        newOrientation: CGImagePropertyOrientation,
         originalData: Data?,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
-        let metadata: [CFString: Any]
+        var metadata: [CFString: Any]
         if
             let originalData,
             let source = CGImageSourceCreateWithData(originalData as CFData, nil),
@@ -20,6 +21,7 @@ enum ImageSaver {
         } else {
             metadata = [:]
         }
+        metadata[kCGImagePropertyOrientation] = newOrientation.rawValue
 
         let imageData = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(

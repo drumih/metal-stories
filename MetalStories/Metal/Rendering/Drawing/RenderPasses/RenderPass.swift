@@ -7,4 +7,6 @@ protocol RenderPass: AnyObject {
         descriptor: MTLRenderPassDescriptor,
         input: RenderPassInput
     )
+
+    func copy() throws -> any RenderPass
 }

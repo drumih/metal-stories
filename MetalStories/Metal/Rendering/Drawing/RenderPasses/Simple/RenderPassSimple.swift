@@ -4,6 +4,8 @@ import simd
 final class RenderPassSimple {
 
     private let gpu: GPU
+    private let pixelFormat: MTLPixelFormat
+
     private let imageRenderPSO: MTLRenderPipelineState
     private let backgroundPSO: MTLRenderPipelineState
 
@@ -12,6 +14,7 @@ final class RenderPassSimple {
         pixelFormat: MTLPixelFormat
     ) throws {
         self.gpu = gpu
+        self.pixelFormat = pixelFormat
         let bundle = Bundle(for: RenderPassSimple.self)
         let library = try gpu.device.makeDefaultLibrary(bundle: bundle)
         self.imageRenderPSO = try PipelineStateObjectsSimple.imagePipeline(
@@ -26,6 +29,11 @@ final class RenderPassSimple {
 }
 
 extension RenderPassSimple: RenderPass {
+    
+    func copy() throws -> any RenderPass {
+        try RenderPassSimple(gpu: gpu, pixelFormat: self.pixelFormat)
+    }
+    
     func resize(size: CGSize) {
 
     }
