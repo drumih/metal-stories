@@ -8,8 +8,6 @@ enum TransformCalculator {
         scale: Float,
         rotation: Float,
         translation: SIMD2<Float>,
-        flipVertically: Bool, // remove later?
-        mirror: Bool, // remove later?
         aspectMode: ImageAspectMode
     ) -> float4x4 {
         let modelTransform = getModelTransform(
@@ -19,8 +17,6 @@ enum TransformCalculator {
             scale: scale,
             rotation: rotation,
             translation: translation,
-            flipVertically: flipVertically,
-            mirror: mirror,
             aspectMode: aspectMode
         )
         let viewTransform = getViewTransform()
@@ -42,8 +38,6 @@ private extension TransformCalculator {
         scale: Float,
         rotation: Float,
         translation: SIMD2<Float>,
-        flipVertically: Bool,
-        mirror: Bool,
         aspectMode: ImageAspectMode
     ) -> float4x4 {
         let textureAspect = textureSize.x / textureSize.y
@@ -71,9 +65,7 @@ private extension TransformCalculator {
         let targetPosition = (translation - 0.5) * canvasSize
         let anchorOffset = (anchor - translation) * canvasSize
 
-        let flipY: Float = flipVertically ? -1 : 1
-        let flipX: Float = mirror ? -1 : 1
-        let userScaleMatrix = scaleMatrix(.init(scale * flipX, scale * flipY))
+        let userScaleMatrix = scaleMatrix(.init(scale, scale))
         let baseScaleMatrix = scaleMatrix(scaledTextureSize / 2.0)
         let rotationMatrix = rotationMatrixZ(rotation)
 

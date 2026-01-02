@@ -42,6 +42,21 @@ fragment float4 fragment_background(VertexOut in [[ stage_in ]],
     return background_color;
 }
 
+METAL_FUNC float3 black_and_white(float3 rgb) {
+    const auto rec_709_coeff = float3(0.2126f, 0.7152f, 0.0722f);
+    const auto blackAndWhite = dot(rec_709_coeff, rgb);
+    return saturate(blackAndWhite);
+}
+
+METAL_FUNC float3 filter_rgb(float3 rgb, short mode) {
+    switch (mode) {
+    case 0: return rgb;
+    case 1: return black_and_white(rgb);
+    default: return rgb;
+    }
+}
+
+constant float filterCountF = 2.f;
 fragment float4 fragment_post_processing(VertexOut in [[ stage_in ]],
                                          texture2d<float, access::sample> texture [[ texture(0) ]],
                                          constant float& offset [[ buffer(0) ]]
@@ -49,5 +64,13 @@ fragment float4 fragment_post_processing(VertexOut in [[ stage_in ]],
     constexpr sampler textureSampler(filter::linear,
                                      address::repeat);
     const auto color = texture.sample(textureSampler, in.uv);
-    return color;
+
+    // TODO: refactor this piece of code a bit
+    const auto wrapped = offset - filterCountF * floor(offset / filterCountF);
+    const auto mode = short(floor(wrapped));
+    const auto next_mode = (mode + 1) % short(filterCountF);
+    const auto target_mode = in.uv.x > fract(wrapped) ? mode : next_mode;
+    const auto filtered_color = filter_rgb(color.rgb, target_mode);
+
+    return float4(saturate(filtered_color), color.a);
 }

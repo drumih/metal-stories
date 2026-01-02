@@ -4,7 +4,7 @@ import simd
 // TODO: Improve it
 final class StoriesGestureHandler {
     
-    private struct GestureSnapshot {
+    private struct TwoFingerGestureSnapshot {
         let startMidpoint: SIMD2<Float>
         let startAngle: CGFloat
         let startDistance: CGFloat
@@ -13,11 +13,17 @@ final class StoriesGestureHandler {
         let initialTranslation: SIMD2<Float>
     }
     
+    private struct SingleFingerGestureSnapshot {
+        let startPoint: CGPoint
+        let initialFilterOffset: Float
+    }
+    
     let sceneInput: SceneInput
     
     private weak var touchOverlay: TouchTrackingView?
     private var trackedTouches: [UITouch] = []
-    private var gestureSnapshot: GestureSnapshot?
+    private var twoFingerGestureSnapshot: TwoFingerGestureSnapshot?
+    private var singleFingerGestureSnapshot: SingleFingerGestureSnapshot?
     
     init(
         touchTrackingView: TouchTrackingView,
@@ -32,7 +38,7 @@ final class StoriesGestureHandler {
 
 private extension StoriesGestureHandler {
     
-    func startGesture(in overlay: UIView) {
+    func startTwoFingerGesture(in overlay: UIView) {
         guard trackedTouches.count == 2 else { return }
         guard let firstTouch = trackedTouches.first, let secondTouch = trackedTouches.last else { return }
         
@@ -51,7 +57,7 @@ private extension StoriesGestureHandler {
         )
         sceneInput.anchorPoint = newAnchor
         
-        gestureSnapshot = GestureSnapshot(
+        twoFingerGestureSnapshot = TwoFingerGestureSnapshot(
             startMidpoint: newAnchor,
             startAngle: angle(firstPoint, secondPoint),
             startDistance: distance(firstPoint, secondPoint),
@@ -61,13 +67,13 @@ private extension StoriesGestureHandler {
         )
     }
     
-    func updateGesture(in overlay: UIView) {
+    func updateTwoFingerGesture(in overlay: UIView) {
         guard trackedTouches.count == 2 else { return }
         guard let firstTouch = trackedTouches.first, let secondTouch = trackedTouches.last else { return }
-        if gestureSnapshot == nil {
-            startGesture(in: overlay)
+        if twoFingerGestureSnapshot == nil {
+            startTwoFingerGesture(in: overlay)
         }
-        guard let snapshot = gestureSnapshot else { return }
+        guard let snapshot = twoFingerGestureSnapshot else { return }
         
         let bounds = overlay.bounds
         guard bounds.width > 0, bounds.height > 0 else { return }
@@ -93,9 +99,34 @@ private extension StoriesGestureHandler {
         sceneInput.anchorPoint = currentAnchor
     }
     
-    func resetGesture() {
-        gestureSnapshot = nil
-        trackedTouches.removeAll()
+    func startSingleFingerGesture(in overlay: UIView) {
+        guard trackedTouches.count == 1 else { return }
+        guard let touch = trackedTouches.first else { return }
+        singleFingerGestureSnapshot = SingleFingerGestureSnapshot(
+            startPoint: touch.location(in: overlay),
+            initialFilterOffset: sceneInput.filterOffset
+        )
+    }
+    
+    func updateSingleFingerGesture(in overlay: UIView) {
+        guard trackedTouches.count == 1 else { return }
+        guard let touch = trackedTouches.first else { return }
+        if singleFingerGestureSnapshot == nil {
+            startSingleFingerGesture(in: overlay)
+        }
+        guard let snapshot = singleFingerGestureSnapshot else { return }
+        
+        let bounds = overlay.bounds
+        guard bounds.width > 0 else { return }
+        
+        let currentPoint = touch.location(in: overlay)
+        let deltaX = Float((currentPoint.x - snapshot.startPoint.x) / bounds.width)
+        sceneInput.filterOffset = snapshot.initialFilterOffset + deltaX
+    }
+    
+    func resetSnapshots() {
+        twoFingerGestureSnapshot = nil
+        singleFingerGestureSnapshot = nil
     }
     
     func normalizedAnchor(for point: CGPoint, bounds: CGRect) -> SIMD2<Float> {
@@ -158,8 +189,15 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
             trackedTouches.append(touch)
         }
         
-        if trackedTouches.count == 2, gestureSnapshot == nil {
-            startGesture(in: view)
+        switch trackedTouches.count {
+        case 1:
+            twoFingerGestureSnapshot = nil
+            startSingleFingerGesture(in: view)
+        case 2:
+            singleFingerGestureSnapshot = nil
+            startTwoFingerGesture(in: view)
+        default:
+            break
         }
     }
     
@@ -168,8 +206,14 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
         touchesMoved touches: Set<UITouch>,
         with event: UIEvent?
     ) {
-        guard trackedTouches.count == 2 else { return }
-        updateGesture(in: view)
+        switch trackedTouches.count {
+        case 1:
+            updateSingleFingerGesture(in: view)
+        case 2:
+            updateTwoFingerGesture(in: view)
+        default:
+            break
+        }
     }
     
     func touchView(
@@ -182,8 +226,16 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
             touches.contains(where: { $0 === touch })
         }
         
-        if trackedTouches.count < 2 {
-            resetGesture()
+        switch trackedTouches.count {
+        case 0:
+            resetSnapshots()
+        case 1:
+            twoFingerGestureSnapshot = nil
+            singleFingerGestureSnapshot = nil
+        case 2:
+            singleFingerGestureSnapshot = nil
+        default:
+            break
         }
     }
     
@@ -192,7 +244,8 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
         touchesCancelled touches: Set<UITouch>,
         with event: UIEvent?
     ) {
-        touchView(view, touchesEnded: touches, with: event)
+        resetSnapshots()
+        trackedTouches.removeAll()
     }
 }
 

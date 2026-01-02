@@ -4,10 +4,14 @@ import Metal
 protocol SceneInput: AnyObject {
     func setPreparationResult(_ preparationResult: MetalPreparationResult)
     
+    // MARK: - image transform
     var scale: Float { get set } // in range 0.1 ... 3
     var rotationRadians: Float { get set } // no limits, but must be normalized on set
     var translation: SIMD2<Float> { get set } // -1...2
     var anchorPoint: SIMD2<Float> { get set } // in range 0...1
+    
+    // MARK: - filter selection
+    var filterOffset: Float { get set }
 }
 
 protocol SceneOutput {
@@ -17,6 +21,8 @@ protocol SceneOutput {
 final class Scene {
     
     private var preparationResult: MetalPreparationResult?
+
+    private var _filterOffset: Float = 0 // TODO: fixit
 
     private var _scale: Float = 1
     private var _rotationRadians: Float = 0
@@ -43,7 +49,7 @@ extension Scene: SceneInput {
             return _rotationRadians
         }
         set {
-            // Normalize to 0...2π
+            // Normalize to 0...2 * Float.pi
             let twoPi = Float.pi * 2.0
             _rotationRadians = newValue.truncatingRemainder(dividingBy: twoPi)
             if _rotationRadians < 0 {
@@ -75,6 +81,15 @@ extension Scene: SceneInput {
             )
         }
     }
+
+    var filterOffset: Float {
+        get {
+            _filterOffset
+        }
+        set {
+            _filterOffset = newValue
+        }
+    }
 }
 
 extension Scene: SceneOutput {
@@ -95,7 +110,7 @@ extension Scene: SceneOutput {
             transform: transform,
             bottomBackgroundColor: .init(preparationResult.bottomColor, 1),
             topBackgroundColor: .init(preparationResult.topColor, 1),
-            offset: 0 // TODO: fixit!
+            offset: _filterOffset
         )
     }
 
@@ -106,12 +121,10 @@ extension Scene: SceneOutput {
         TransformCalculator.getTransform(
             textureSize: textureSize,
             canvasSize: renderingViewSize,
-            anchor: anchorPoint,
-            scale: scale,
-            rotation: rotationRadians,
-            translation: translation,
-            flipVertically: false,
-            mirror: false,
+            anchor: _anchorPoint,
+            scale: _scale,
+            rotation: _rotationRadians,
+            translation: _translation,
             aspectMode: .automatic(threshold: 4.0 / 5.0)
         )
     }
