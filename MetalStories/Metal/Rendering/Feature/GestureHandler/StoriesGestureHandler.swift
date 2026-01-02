@@ -2,19 +2,12 @@ import UIKit
 import QuartzCore
 import simd
 
-// TODO: Improve it
-final class StoriesGestureHandler {
+// TODO: more responsive swipe for single gesture
+// TODO: finish single gesture the moment two fingers gesture started
+
+private final class SingleFingerGestureHandler {
     
-    private struct TwoFingerGestureSnapshot {
-        let startMidpoint: SIMD2<Float>
-        let startAngle: CGFloat
-        let startDistance: CGFloat
-        let initialScale: Float
-        let initialRotation: Float
-        let initialTranslation: SIMD2<Float>
-    }
-    
-    private struct SingleFingerGestureSnapshot {
+    private struct Snapshot {
         let startPoint: CGPoint
         let initialFilterOffset: Float
         var lastPoint: CGPoint
@@ -23,13 +16,6 @@ final class StoriesGestureHandler {
         var lastAcceleration: Float
     }
     
-    let sceneInput: SceneInput
-    
-    private weak var touchOverlay: TouchTrackingView?
-    private var trackedTouches: [UITouch] = []
-    private var twoFingerGestureSnapshot: TwoFingerGestureSnapshot?
-    private var singleFingerGestureSnapshot: SingleFingerGestureSnapshot?
-    
     private struct FilterOffsetAnimation {
         let startValue: Float
         let targetValue: Float
@@ -37,90 +23,30 @@ final class StoriesGestureHandler {
         let duration: CFTimeInterval
     }
     
+    private let sceneInput: SceneInput
+    private var snapshot: Snapshot?
     private var filterOffsetAnimation: FilterOffsetAnimation?
     private var filterOffsetDisplayLink: CADisplayLink?
     
-    init(
-        touchTrackingView: TouchTrackingView,
-        sceneInput: SceneInput
-    ) {
-        self.touchOverlay = touchTrackingView
+    init(sceneInput: SceneInput) {
         self.sceneInput = sceneInput
-
-        touchTrackingView.touchDelegate = self
     }
-}
-
-private extension StoriesGestureHandler {
     
-    func startTwoFingerGesture(in overlay: UIView) {
-        guard trackedTouches.count == 2 else { return }
-        guard let firstTouch = trackedTouches.first, let secondTouch = trackedTouches.last else { return }
+    var isGestureActive: Bool {
+        snapshot != nil
+    }
+    
+    deinit {
         cancelFilterOffsetAnimation()
-        
-        let bounds = overlay.bounds
-        guard bounds.width > 0, bounds.height > 0 else { return }
-        
-        let firstPoint = firstTouch.location(in: overlay)
-        let secondPoint = secondTouch.location(in: overlay)
-        let midpoint = midpoint(firstPoint, secondPoint)
-        let newAnchor = normalizedAnchor(for: midpoint, bounds: bounds)
-        let canvasSize = SIMD2<Float>(Float(bounds.width), Float(bounds.height))
-        
-        rebaseTranslationForAnchorChange(
-            newAnchor: newAnchor,
-            canvasSize: canvasSize
-        )
-        sceneInput.anchorPoint = newAnchor
-        
-        twoFingerGestureSnapshot = TwoFingerGestureSnapshot(
-            startMidpoint: newAnchor,
-            startAngle: angle(firstPoint, secondPoint),
-            startDistance: distance(firstPoint, secondPoint),
-            initialScale: sceneInput.scale,
-            initialRotation: sceneInput.rotationRadians,
-            initialTranslation: sceneInput.translation
-        )
     }
     
-    func updateTwoFingerGesture(in overlay: UIView) {
-        guard trackedTouches.count == 2 else { return }
-        guard let firstTouch = trackedTouches.first, let secondTouch = trackedTouches.last else { return }
-        if twoFingerGestureSnapshot == nil {
-            startTwoFingerGesture(in: overlay)
-        }
-        guard let snapshot = twoFingerGestureSnapshot else { return }
-        
-        let bounds = overlay.bounds
-        guard bounds.width > 0, bounds.height > 0 else { return }
-        
-        let firstPoint = firstTouch.location(in: overlay)
-        let secondPoint = secondTouch.location(in: overlay)
-        let midpoint = midpoint(firstPoint, secondPoint)
-        let currentAnchor = normalizedAnchor(for: midpoint, bounds: bounds)
-        
-        let translationDelta = currentAnchor - snapshot.startMidpoint
-        sceneInput.translation = snapshot.initialTranslation + translationDelta
-        
-        let currentDistance = distance(firstPoint, secondPoint)
-        if currentDistance > .ulpOfOne, snapshot.startDistance > .ulpOfOne {
-            let scaleRatio = Float(currentDistance / snapshot.startDistance)
-            sceneInput.scale = snapshot.initialScale * scaleRatio
-        }
-        
-        let currentAngle = angle(firstPoint, secondPoint)
-        let deltaAngle = Float(currentAngle - snapshot.startAngle)
-        sceneInput.rotationRadians = snapshot.initialRotation - deltaAngle
-        
-        sceneInput.anchorPoint = currentAnchor
-    }
-    
-    func startSingleFingerGesture(in overlay: UIView) {
-        guard trackedTouches.count == 1 else { return }
-        guard let touch = trackedTouches.first else { return }
+    func startGesture(
+        with touch: UITouch,
+        in overlay: UIView
+    ) {
         cancelFilterOffsetAnimation()
         let startPoint = touch.location(in: overlay)
-        singleFingerGestureSnapshot = SingleFingerGestureSnapshot(
+        snapshot = Snapshot(
             startPoint: startPoint,
             initialFilterOffset: sceneInput.filterOffset,
             lastPoint: startPoint,
@@ -130,13 +56,14 @@ private extension StoriesGestureHandler {
         )
     }
     
-    func updateSingleFingerGesture(in overlay: UIView) {
-        guard trackedTouches.count == 1 else { return }
-        guard let touch = trackedTouches.first else { return }
-        if singleFingerGestureSnapshot == nil {
-            startSingleFingerGesture(in: overlay)
+    func updateGesture(
+        with touch: UITouch,
+        in overlay: UIView
+    ) {
+        if snapshot == nil {
+            startGesture(with: touch, in: overlay)
         }
-        guard var snapshot = singleFingerGestureSnapshot else { return }
+        guard var snapshot = snapshot else { return }
         cancelFilterOffsetAnimation()
         
         let bounds = overlay.bounds
@@ -156,11 +83,11 @@ private extension StoriesGestureHandler {
         }
         snapshot.lastPoint = currentPoint
         snapshot.lastTimestamp = currentTime
-        singleFingerGestureSnapshot = snapshot
+        self.snapshot = snapshot
     }
-
-    func snapSingleFingerOffsetIfNeeded() {
-        guard let snapshot = singleFingerGestureSnapshot else { return }
+    
+    func snapOffsetIfNeeded() {
+        guard let snapshot else { return }
         let currentOffset = sceneInput.filterOffset
         let velocity = snapshot.lastVelocity
         let acceleration = snapshot.lastAcceleration
@@ -172,9 +99,9 @@ private extension StoriesGestureHandler {
         let projectedOffset = currentOffset
             + velocity * 0.25 // increased inertia so smaller swipes can cross midpoint
             + acceleration * 0.07 // acceleration nudges the snap direction
-
+        
         // Snap strictly to the nearest neighbor; inertia only influences which side of the midpoint we land on.
-        var targetOffset: Float
+        let targetOffset: Float
         if projectedOffset == lower || projectedOffset == upper {
             targetOffset = projectedOffset
         } else {
@@ -187,59 +114,16 @@ private extension StoriesGestureHandler {
         )
     }
     
-    func resetSnapshots() {
-        twoFingerGestureSnapshot = nil
-        singleFingerGestureSnapshot = nil
+    func resetTracking() {
+        snapshot = nil
     }
     
-    func normalizedAnchor(for point: CGPoint, bounds: CGRect) -> SIMD2<Float> {
-        SIMD2<Float>(
-            Float(point.x / bounds.width),
-            Float(1.0 - (point.y / bounds.height))
-        )
+    func cancelAnimations() {
+        cancelFilterOffsetAnimation()
     }
-    
-    func midpoint(_ p1: CGPoint, _ p2: CGPoint) -> CGPoint {
-        CGPoint(
-            x: (p1.x + p2.x) / 2.0,
-            y: (p1.y + p2.y) / 2.0
-        )
-    }
-    
-    func distance(_ p1: CGPoint, _ p2: CGPoint) -> CGFloat {
-        hypot(p2.x - p1.x, p2.y - p1.y)
-    }
-    
-    func angle(_ p1: CGPoint, _ p2: CGPoint) -> CGFloat {
-        atan2(p2.y - p1.y, p2.x - p1.x)
-    }
-    
-    func rebaseTranslationForAnchorChange(
-        newAnchor: SIMD2<Float>,
-        canvasSize: SIMD2<Float>
-    ) {
-        let previousAnchor = sceneInput.anchorPoint
-        guard previousAnchor != newAnchor else { return }
-        
-        let rotation = sceneInput.rotationRadians
-        let scale = sceneInput.scale
-        let cosR = cos(rotation)
-        let sinR = sin(rotation)
-        
-        let transformMatrix = float2x2(
-            SIMD2<Float>(cosR * scale, sinR * scale),
-            SIMD2<Float>(-sinR * scale, cosR * scale)
-        )
-        let identity = float2x2(diagonal: SIMD2<Float>(1, 1))
-        
-        let anchorDelta = (previousAnchor - newAnchor) * canvasSize
-        let correction = (identity - transformMatrix) * anchorDelta
-        
-        let currentTranslation = (sceneInput.translation - 0.5) * canvasSize
-        let updatedTranslation = currentTranslation + correction
-        sceneInput.translation = (updatedTranslation / canvasSize) + 0.5
-    }
-    
+}
+
+private extension SingleFingerGestureHandler {
     func cancelFilterOffsetAnimation() {
         filterOffsetDisplayLink?.invalidate()
         filterOffsetDisplayLink = nil
@@ -301,6 +185,167 @@ private extension StoriesGestureHandler {
     }
 }
 
+private final class TwoFingerGestureHandler {
+    
+    private struct Snapshot {
+        let startMidpoint: SIMD2<Float>
+        let startAngle: CGFloat
+        let startDistance: CGFloat
+        let initialScale: Float
+        let initialRotation: Float
+        let initialTranslation: SIMD2<Float>
+    }
+    
+    private let sceneInput: SceneInput
+    private var snapshot: Snapshot?
+    
+    init(sceneInput: SceneInput) {
+        self.sceneInput = sceneInput
+    }
+    
+    func startGesture(
+        with touches: [UITouch],
+        in overlay: UIView
+    ) {
+        guard touches.count == 2 else { return }
+        guard let firstTouch = touches.first, let secondTouch = touches.last else { return }
+        
+        let bounds = overlay.bounds
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        
+        let firstPoint = firstTouch.location(in: overlay)
+        let secondPoint = secondTouch.location(in: overlay)
+        let midpoint = midpoint(firstPoint, secondPoint)
+        let newAnchor = normalizedAnchor(for: midpoint, bounds: bounds)
+        let canvasSize = SIMD2<Float>(Float(bounds.width), Float(bounds.height))
+        
+        rebaseTranslationForAnchorChange(
+            newAnchor: newAnchor,
+            canvasSize: canvasSize
+        )
+        sceneInput.anchorPoint = newAnchor
+        
+        snapshot = Snapshot(
+            startMidpoint: newAnchor,
+            startAngle: angle(firstPoint, secondPoint),
+            startDistance: distance(firstPoint, secondPoint),
+            initialScale: sceneInput.scale,
+            initialRotation: sceneInput.rotationRadians,
+            initialTranslation: sceneInput.translation
+        )
+    }
+    
+    func updateGesture(
+        with touches: [UITouch],
+        in overlay: UIView
+    ) {
+        guard touches.count == 2 else { return }
+        if snapshot == nil {
+            startGesture(with: touches, in: overlay)
+        }
+        guard let snapshot = snapshot else { return }
+        
+        let bounds = overlay.bounds
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        
+        let firstTouch = touches[0]
+        let secondTouch = touches[1]
+        let firstPoint = firstTouch.location(in: overlay)
+        let secondPoint = secondTouch.location(in: overlay)
+        let midpoint = midpoint(firstPoint, secondPoint)
+        let currentAnchor = normalizedAnchor(for: midpoint, bounds: bounds)
+        
+        let translationDelta = currentAnchor - snapshot.startMidpoint
+        sceneInput.translation = snapshot.initialTranslation + translationDelta
+        
+        let currentDistance = distance(firstPoint, secondPoint)
+        if currentDistance > .ulpOfOne, snapshot.startDistance > .ulpOfOne {
+            let scaleRatio = Float(currentDistance / snapshot.startDistance)
+            sceneInput.scale = snapshot.initialScale * scaleRatio
+        }
+        
+        let currentAngle = angle(firstPoint, secondPoint)
+        let deltaAngle = Float(currentAngle - snapshot.startAngle)
+        sceneInput.rotationRadians = snapshot.initialRotation - deltaAngle
+        
+        sceneInput.anchorPoint = currentAnchor
+    }
+    
+    func resetTracking() {
+        snapshot = nil
+    }
+}
+
+private extension TwoFingerGestureHandler {
+    func normalizedAnchor(for point: CGPoint, bounds: CGRect) -> SIMD2<Float> {
+        SIMD2<Float>(
+            Float(point.x / bounds.width),
+            Float(1.0 - (point.y / bounds.height))
+        )
+    }
+    
+    func midpoint(_ p1: CGPoint, _ p2: CGPoint) -> CGPoint {
+        CGPoint(
+            x: (p1.x + p2.x) / 2.0,
+            y: (p1.y + p2.y) / 2.0
+        )
+    }
+    
+    func distance(_ p1: CGPoint, _ p2: CGPoint) -> CGFloat {
+        hypot(p2.x - p1.x, p2.y - p1.y)
+    }
+    
+    func angle(_ p1: CGPoint, _ p2: CGPoint) -> CGFloat {
+        atan2(p2.y - p1.y, p2.x - p1.x)
+    }
+    
+    func rebaseTranslationForAnchorChange(
+        newAnchor: SIMD2<Float>,
+        canvasSize: SIMD2<Float>
+    ) {
+        let previousAnchor = sceneInput.anchorPoint
+        guard previousAnchor != newAnchor else { return }
+        
+        let rotation = sceneInput.rotationRadians
+        let scale = sceneInput.scale
+        let cosR = cos(rotation)
+        let sinR = sin(rotation)
+        
+        let transformMatrix = float2x2(
+            SIMD2<Float>(cosR * scale, sinR * scale),
+            SIMD2<Float>(-sinR * scale, cosR * scale)
+        )
+        let identity = float2x2(diagonal: SIMD2<Float>(1, 1))
+        
+        let anchorDelta = (previousAnchor - newAnchor) * canvasSize
+        let correction = (identity - transformMatrix) * anchorDelta
+        
+        let currentTranslation = (sceneInput.translation - 0.5) * canvasSize
+        let updatedTranslation = currentTranslation + correction
+        sceneInput.translation = (updatedTranslation / canvasSize) + 0.5
+    }
+}
+
+// TODO: Improve it
+final class StoriesGestureHandler {
+    
+    let sceneInput: SceneInput
+    private var trackedTouches: [UITouch] = []
+    private let singleFingerHandler: SingleFingerGestureHandler
+    private let twoFingerHandler: TwoFingerGestureHandler
+    
+    init(
+        touchTrackingView: TouchTrackingView,
+        sceneInput: SceneInput
+    ) {
+        self.sceneInput = sceneInput
+        self.singleFingerHandler = SingleFingerGestureHandler(sceneInput: sceneInput)
+        self.twoFingerHandler = TwoFingerGestureHandler(sceneInput: sceneInput)
+        
+        touchTrackingView.touchDelegate = self
+    }
+}
+
 extension StoriesGestureHandler: TouchTrackingViewDelegate {
     func touchView(
         _ view: UIView,
@@ -314,11 +359,13 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
         
         switch trackedTouches.count {
         case 1:
-            twoFingerGestureSnapshot = nil
-            startSingleFingerGesture(in: view)
+            twoFingerHandler.resetTracking()
+            guard let touch = trackedTouches.first else { return }
+            singleFingerHandler.startGesture(with: touch, in: view)
         case 2:
-            singleFingerGestureSnapshot = nil
-            startTwoFingerGesture(in: view)
+            singleFingerHandler.resetTracking()
+            singleFingerHandler.cancelAnimations()
+            twoFingerHandler.startGesture(with: trackedTouches, in: view)
         default:
             break
         }
@@ -331,9 +378,10 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
     ) {
         switch trackedTouches.count {
         case 1:
-            updateSingleFingerGesture(in: view)
+            guard let touch = trackedTouches.first else { return }
+            singleFingerHandler.updateGesture(with: touch, in: view)
         case 2:
-            updateTwoFingerGesture(in: view)
+            twoFingerHandler.updateGesture(with: trackedTouches, in: view)
         default:
             break
         }
@@ -345,24 +393,25 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
         with event: UIEvent?
     ) {
         guard !trackedTouches.isEmpty else { return }
-        let wasSingleFingerGesture = trackedTouches.count == 1 && singleFingerGestureSnapshot != nil
+        let wasSingleFingerGesture = trackedTouches.count == 1 && singleFingerHandler.isGestureActive
         trackedTouches.removeAll { touch in
             touches.contains(where: { $0 === touch })
         }
         
         let remainingTouches = trackedTouches.count
         if wasSingleFingerGesture && remainingTouches == 0 {
-            snapSingleFingerOffsetIfNeeded()
+            singleFingerHandler.snapOffsetIfNeeded()
         }
         
         switch remainingTouches {
         case 0:
-            resetSnapshots()
+            twoFingerHandler.resetTracking()
+            singleFingerHandler.resetTracking()
         case 1:
-            twoFingerGestureSnapshot = nil
-            singleFingerGestureSnapshot = nil
+            twoFingerHandler.resetTracking()
+            singleFingerHandler.resetTracking()
         case 2:
-            singleFingerGestureSnapshot = nil
+            singleFingerHandler.resetTracking()
         default:
             break
         }
