@@ -1,9 +1,10 @@
 import UIKit
 
-enum EntryFactory {
-    static func getEntryViewController() -> UIViewController {
-        let viewController = EntryViewController()
-        let presenter = EntryPresenter(view: viewController)
+enum PhotoSelectionFactory {
+    static func getPhotoSelectionViewController() -> UIViewController {
+        
+        let viewController = PhotoSelectionViewController()
+        let presenter = PhotoSelectionPresenter(view: viewController)
         viewController.presenter = presenter
         return viewController
     }

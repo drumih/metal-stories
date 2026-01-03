@@ -1,7 +1,7 @@
 import UIKit
 import PhotosUI
 
-final class EntryViewController: UIViewController {
+final class PhotoSelectionViewController: UIViewController {
 
     private lazy var accessStackView: UIStackView = {
         let stack = UIStackView()
@@ -101,7 +101,7 @@ final class EntryViewController: UIViewController {
         return button
     }()
 
-    var presenter: EntryPresenter!
+    var presenter: PhotoSelectionPresenter!
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -219,9 +219,9 @@ final class EntryViewController: UIViewController {
     }
 }
 
-extension EntryViewController: EntryViewProtocol {
+extension PhotoSelectionViewController: PhotoSelectionView {
 
-    func updateState(_ state: EntryViewState) {
+    func updateState(_ state: PhotoSelectionViewState) {
         switch state {
         case .authorized(let previewImage):
             accessStackView.isHidden = true
@@ -279,7 +279,7 @@ extension EntryViewController: EntryViewProtocol {
     }
 }
 
-extension EntryViewController: PHPickerViewControllerDelegate {
+extension PhotoSelectionViewController: PHPickerViewControllerDelegate {
 
     func picker(
         _ picker: PHPickerViewController,

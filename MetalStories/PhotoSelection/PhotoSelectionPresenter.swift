@@ -3,30 +3,30 @@ import Photos
 import PhotosUI
 import UniformTypeIdentifiers
 
-enum EntryViewState {
+enum PhotoSelectionViewState {
     case authorized(previewImage: UIImage?)
     case denied
     case notDetermined
 }
 
-protocol EntryViewProtocol: AnyObject {
-    func updateState(_ state: EntryViewState)
+protocol PhotoSelectionView: AnyObject {
+    func updateState(_ state: PhotoSelectionViewState)
     func presentStoriesEditor(imageData: Data, renderPassType: RenderPassType)
     func showErrorAlert(message: String)
 }
 
-final class EntryPresenter {
+final class PhotoSelectionPresenter {
 
     private enum Constants {
         static let cachedImageFileName = "cached_image.dat"
         static let previewMaxDimensionSize: CGFloat = 1080
     }
 
-    private weak var view: EntryViewProtocol?
+    private weak var view: PhotoSelectionView?
     private(set) var selectedRenderPassType: RenderPassType = .tileMemory
     private var previewImage: UIImage?
 
-    init(view: EntryViewProtocol) {
+    init(view: PhotoSelectionView) {
         self.view = view
     }
 
