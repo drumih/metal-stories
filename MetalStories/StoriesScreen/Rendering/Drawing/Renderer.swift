@@ -33,10 +33,18 @@ final class Renderer {
 
 }
 
+// MARK: - RendererError
+
+enum RendererError: Error {
+    case failedToGetRenderPassInput
+    case failedToCreateOffscreenTexture
+}
+
 // MARK: OffscreenRenderer
 
 extension Renderer: OffscreenRenderer {
 
+    // TODO: do I need three texture here to reuse?
     // TODO: clean up this code later
     func renderImageToOffscreenTexture(
         size: CGSize,
@@ -47,7 +55,7 @@ extension Renderer: OffscreenRenderer {
         guard
             let input = scene.getRenderPassInput(renderingViewSize: renderingViewSize)
         else {
-            throw NSError() // TODO: throw normal error
+            throw RendererError.failedToGetRenderPassInput
         }
 
         let offscreenRenderPass = try renderPass.copy()
@@ -62,7 +70,7 @@ extension Renderer: OffscreenRenderer {
         offscreenTextureDescriptor.storageMode = .shared
 
         guard let offscreenTexture = gpu.device.makeTexture(descriptor: offscreenTextureDescriptor) else {
-            throw NSError() // TODO: throw normal error
+            throw RendererError.failedToCreateOffscreenTexture
         }
 
         guard let commandBuffer = gpu.processingCommandQueue.makeCommandBuffer() else {

@@ -4,36 +4,47 @@ import ImageIO
 import Photos
 import UniformTypeIdentifiers
 
-// MARK: - ImageSaver
-
 enum ImageSaver {
+    
+    // MARK: - ImageSaverError
+
+    enum ImageSaverError: Error {
+        case failedToCreateImageDestination
+        case failedToFinalizeImageDestination
+        case failedToSaveImage
+    }
+    
     static func saveImage(
         _ cgImage: CGImage,
         newOrientation: CGImagePropertyOrientation,
         originalData: Data?,
         completion: @escaping (Result<Void, Error>) -> Void,
     ) {
-        var metadata: [CFString: Any] =
-            if
-                let originalData,
-                let source = CGImageSourceCreateWithData(originalData as CFData, nil),
-                let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
-            {
-                properties
+        
+        let imageSource = makeImageSource(from: originalData)
+
+        let metadata = getMetadata(
+            from: imageSource,
+            newOrientation: newOrientation
+        )
+
+        let destinationTypeIdentifier: CFString = {
+            if let imageSource, let type = CGImageSourceGetType(imageSource) {
+                return type
             } else {
-                [:]
+                return UTType.heic.identifier as CFString
             }
-        metadata[kCGImagePropertyOrientation] = newOrientation.rawValue
+        }()
 
         let imageData = NSMutableData()
-        guard
-            let destination = CGImageDestinationCreateWithData(
-                imageData as CFMutableData,
-                UTType.heic.identifier as CFString,
-                1,
-                nil,
-            )
-        else {
+        let destination = CGImageDestinationCreateWithData(
+            imageData as CFMutableData,
+            destinationTypeIdentifier,
+            1,
+            nil,
+        )
+
+        guard let destination else {
             completion(.failure(ImageSaverError.failedToCreateImageDestination))
             return
         }
@@ -46,7 +57,7 @@ enum ImageSaver {
 
         PHPhotoLibrary.shared().performChanges {
             let options = PHAssetResourceCreationOptions()
-            options.uniformTypeIdentifier = UTType.heic.identifier
+            options.uniformTypeIdentifier = destinationTypeIdentifier as String
             PHAssetCreationRequest.forAsset().addResource(with: .photo, data: imageData as Data, options: options)
         } completionHandler: { success, error in
             if success {
@@ -56,12 +67,22 @@ enum ImageSaver {
             }
         }
     }
-}
 
-// MARK: - ImageSaverError
+    private static func getMetadata(
+        from imageSource: CGImageSource?,
+        newOrientation: CGImagePropertyOrientation,
+    ) -> CFDictionary {
+        var metadata: [CFString: Any] = [:]
+        if let imageSource, let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any] {
+            metadata = properties
+        }
+        metadata[kCGImagePropertyOrientation] = newOrientation.rawValue
+        
+        return metadata as CFDictionary
+    }
 
-enum ImageSaverError: Error {
-    case failedToCreateImageDestination
-    case failedToFinalizeImageDestination
-    case failedToSaveImage
+    private static func makeImageSource(from data: Data?) -> CGImageSource? {
+        guard let data else { return nil }
+        return CGImageSourceCreateWithData(data as CFData, nil)
+    }
 }

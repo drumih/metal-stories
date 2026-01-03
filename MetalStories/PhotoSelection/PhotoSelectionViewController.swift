@@ -1,6 +1,8 @@
 import PhotosUI
 import UIKit
 
+// TODO: fix UI
+
 // MARK: - PhotoSelectionViewController
 
 final class PhotoSelectionViewController: UIViewController {
@@ -154,7 +156,6 @@ final class PhotoSelectionViewController: UIViewController {
             renderPassSegmentedControl.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             renderPassSegmentedControl.bottomAnchor.constraint(equalTo: selectPhotoButton.topAnchor, constant: -16),
 
-            // Previous image container
             previousImageContainerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             previousImageContainerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 40),
             previousImageContainerView.widthAnchor.constraint(equalToConstant: 320),
@@ -163,7 +164,6 @@ final class PhotoSelectionViewController: UIViewController {
                 constant: -20,
             ),
 
-            // Preview image
             previewImageView.topAnchor.constraint(equalTo: previousImageContainerView.topAnchor),
             previewImageView.centerXAnchor.constraint(equalTo: previousImageContainerView.centerXAnchor),
             previewImageView.widthAnchor.constraint(equalToConstant: 300),
@@ -271,9 +271,8 @@ extension PhotoSelectionViewController: PhotoSelectionView {
                 imageData: imageData,
                 renderPassType: renderPassType,
             )
-            let navigationController = UINavigationController(rootViewController: storiesViewController)
-            navigationController.modalPresentationStyle = .fullScreen
-            present(navigationController, animated: true)
+            storiesViewController.modalPresentationStyle = .fullScreen
+            present(storiesViewController, animated: true)
         } catch {
             showErrorAlert(message: "Failed to create stories editor. Please try again.")
         }

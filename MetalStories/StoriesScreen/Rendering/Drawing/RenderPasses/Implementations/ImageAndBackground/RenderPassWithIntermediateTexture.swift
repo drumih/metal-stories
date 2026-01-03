@@ -89,7 +89,7 @@ extension RenderPassWithRegularIntermediateTexture: RenderPass {
 
     func draw(
         commandBuffer: MTLCommandBuffer,
-        renderPassDescriptor rpd: MTLRenderPassDescriptor, // TODO: rename to RenderPassDescriptor
+        renderPassDescriptor rpd: MTLRenderPassDescriptor,
         input: RenderPassInput,
     ) {
         guard let intermediateTexture else {
@@ -108,15 +108,20 @@ extension RenderPassWithRegularIntermediateTexture: RenderPass {
             return
         }
 
-        drawBackground(
+        RenderPassHelper.drawBackground(
             renderEncoder: intermediateRenderEncoder,
+            backgroundPSO: backgroundPSO,
+            label: "Draw Background (intermediate texture)",
             topColor: input.topBackgroundColor,
-            bottomColor: input.bottomBackgroundColor,
+            bottomColor: input.bottomBackgroundColor
         )
-        drawImage(
+
+        RenderPassHelper.drawImage(
             renderEncoder: intermediateRenderEncoder,
+            imageRenderPSO: imageRenderPSO,
+            label: "Draw Image (intermediate texture)",
             texture: input.imageTexture,
-            transform: input.transform,
+            transform: input.transform
         )
 
         intermediateRenderEncoder.endEncoding()
@@ -125,90 +130,16 @@ extension RenderPassWithRegularIntermediateTexture: RenderPass {
             return
         }
 
-        drawPostProcessing(
+        // pay attention on transform
+        RenderPassHelper.drawPostProcessing(
             renderEncoder: renderEncoder,
-            offset: input.filterPositionOffset,
+            postProcessingPSO: postProcessingPSO,
+            label: "Post Processing (intermediate texture)",
+            texture: intermediateTexture,
+            transform: TransformCalculator.getFlippedVerticallyTransform(),
+            offset: input.filterPositionOffset
         )
 
         renderEncoder.endEncoding()
-    }
-
-    // MARK: Private
-
-    private func drawPostProcessing(
-        renderEncoder: MTLRenderCommandEncoder,
-        offset: Float,
-    ) {
-        renderEncoder.label = "Post Processing (with intermediate texture)"
-        renderEncoder.setRenderPipelineState(postProcessingPSO)
-
-        // TODO: explain this transform
-        var transform = TransformCalculator.getFlippedVerticallyTransform()
-        renderEncoder.setVertexBytes(
-            &transform,
-            length: MemoryLayout<float4x4>.stride,
-            index: 0,
-        )
-        renderEncoder.setFragmentTexture(
-            intermediateTexture,
-            index: 0,
-        )
-        var offset = offset
-        renderEncoder.setFragmentBytes(
-            &offset,
-            length: MemoryLayout<Float>.stride,
-            index: 0,
-        )
-        renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
-    }
-
-    // TODO: reuse from RenderPassSimple.swift
-    private func drawImage(
-        renderEncoder: MTLRenderCommandEncoder,
-        texture: MTLTexture,
-        transform: float4x4,
-    ) {
-        renderEncoder.label = "Draw Image (with intermediate texture)"
-        renderEncoder.setRenderPipelineState(imageRenderPSO)
-
-        var transform = transform
-        renderEncoder.setVertexBytes(
-            &transform,
-            length: MemoryLayout<float4x4>.stride,
-            index: 0,
-        )
-        renderEncoder.setFragmentTexture(texture, index: 0)
-        renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
-    }
-
-    // TODO: reuse from RenderPassSimple.swift
-    private func drawBackground(
-        renderEncoder: MTLRenderCommandEncoder,
-        topColor: SIMD4<Float>,
-        bottomColor: SIMD4<Float>,
-    ) {
-        renderEncoder.label = "Draw Background (with intermediate texture)"
-        renderEncoder.setRenderPipelineState(backgroundPSO)
-
-        var transform = TransformCalculator.getIdentityTransform()
-        renderEncoder.setVertexBytes(
-            &transform,
-            length: MemoryLayout<float4x4>.stride,
-            index: 0,
-        )
-        var topColor = topColor
-        renderEncoder.setFragmentBytes(
-            &topColor,
-            length: MemoryLayout<SIMD4<Float>>.stride,
-            index: 0,
-        )
-        var bottomColor = bottomColor
-        renderEncoder.setFragmentBytes(
-            &bottomColor,
-            length: MemoryLayout<SIMD4<Float>>.stride,
-            index: 1,
-        )
-
-        renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
     }
 }

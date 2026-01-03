@@ -151,96 +151,36 @@ extension RenderPassTileMemory: RenderPass {
 
         renderEncoder.setDepthStencilState(depthStencilState)
 
-        // pay attention to the order
-        drawImage(
+        // pay attention to the order of image-background
+
+        RenderPassHelper.drawImage(
             renderEncoder: renderEncoder,
+            imageRenderPSO: imageRenderPSO,
+            label: "Draw Image (Tile Memory)",
             texture: input.imageTexture,
-            transform: input.transform,
+            transform: input.transform
         )
-        drawBackground(
+        
+        RenderPassHelper.drawBackground(
             renderEncoder: renderEncoder,
+            backgroundPSO: backgroundPSO,
+            label: "Draw Background (Tile Memory)",
             topColor: input.topBackgroundColor,
-            bottomColor: input.bottomBackgroundColor,
+            bottomColor: input.bottomBackgroundColor
         )
 
         renderEncoder.setDepthStencilState(postProcessingDepthStencilState)
-        drawPostProcessing(
+        
+        // pay attention on transform
+        RenderPassHelper.drawPostProcessing(
             renderEncoder: renderEncoder,
-            offset: input.filterPositionOffset,
+            postProcessingPSO: postProcessingPSO,
+            label: "Post Processing (Tile Memory)",
+            texture: nil,
+            transform: TransformCalculator.getIdentityTransform(),
+            offset: input.filterPositionOffset
         )
 
         renderEncoder.endEncoding()
-    }
-
-    // MARK: Private
-
-    private func drawPostProcessing(
-        renderEncoder: MTLRenderCommandEncoder,
-        offset: Float,
-    ) {
-        renderEncoder.label = "Post Processing (Tile Memory)"
-        renderEncoder.setRenderPipelineState(postProcessingPSO)
-
-        var transform = TransformCalculator.getIdentityTransform()
-        renderEncoder.setVertexBytes(
-            &transform,
-            length: MemoryLayout<float4x4>.stride,
-            index: 0,
-        )
-        var offset = offset
-        renderEncoder.setFragmentBytes(
-            &offset,
-            length: MemoryLayout<Float>.stride,
-            index: 0,
-        )
-        renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
-    }
-
-    private func drawImage(
-        renderEncoder: MTLRenderCommandEncoder,
-        texture: MTLTexture,
-        transform: float4x4,
-    ) {
-        renderEncoder.label = "Draw Image (Tile Memory)"
-        renderEncoder.setRenderPipelineState(imageRenderPSO)
-
-        var transform = transform
-        renderEncoder.setVertexBytes(
-            &transform,
-            length: MemoryLayout<float4x4>.stride,
-            index: 0,
-        )
-        renderEncoder.setFragmentTexture(texture, index: 0)
-        renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
-    }
-
-    private func drawBackground(
-        renderEncoder: MTLRenderCommandEncoder,
-        topColor: SIMD4<Float>,
-        bottomColor: SIMD4<Float>,
-    ) {
-        renderEncoder.label = "Draw Background (Tile Memory)"
-        renderEncoder.setRenderPipelineState(backgroundPSO)
-
-        // TODO: check, if translation needed here
-        var transform = TransformCalculator.getIdentityTransform()
-        renderEncoder.setVertexBytes(
-            &transform,
-            length: MemoryLayout<float4x4>.stride,
-            index: 0,
-        )
-        var topColor = topColor
-        renderEncoder.setFragmentBytes(
-            &topColor,
-            length: MemoryLayout<SIMD4<Float>>.stride,
-            index: 0,
-        )
-        var bottomColor = bottomColor
-        renderEncoder.setFragmentBytes(
-            &bottomColor,
-            length: MemoryLayout<SIMD4<Float>>.stride,
-            index: 1,
-        )
-        renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
     }
 }

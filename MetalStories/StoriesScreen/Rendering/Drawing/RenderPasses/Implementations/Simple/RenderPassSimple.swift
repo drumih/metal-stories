@@ -60,67 +60,22 @@ extension RenderPassSimple: RenderPass {
             return
         }
 
-        drawBackground(
+        RenderPassHelper.drawBackground(
             renderEncoder: renderEncoder,
+            backgroundPSO: backgroundPSO,
+            label: "Draw Background (Simple)",
             topColor: input.topBackgroundColor,
-            bottomColor: input.bottomBackgroundColor,
+            bottomColor: input.bottomBackgroundColor
         )
-        drawImage(
+
+        RenderPassHelper.drawImage(
             renderEncoder: renderEncoder,
+            imageRenderPSO: imageRenderPSO,
+            label: "Draw Image (Simple)",
             texture: input.imageTexture,
-            transform: input.transform,
+            transform: input.transform
         )
 
         renderEncoder.endEncoding()
-    }
-
-    // MARK: Private
-
-    private func drawImage(
-        renderEncoder: MTLRenderCommandEncoder,
-        texture: MTLTexture,
-        transform: float4x4,
-    ) {
-        renderEncoder.label = "Draw Image (Simple)"
-        renderEncoder.setRenderPipelineState(imageRenderPSO)
-
-        var transform = transform
-        renderEncoder.setVertexBytes(
-            &transform,
-            length: MemoryLayout<float4x4>.stride,
-            index: 0,
-        )
-        renderEncoder.setFragmentTexture(texture, index: 0)
-        renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
-    }
-
-    private func drawBackground(
-        renderEncoder: MTLRenderCommandEncoder,
-        topColor: SIMD4<Float>,
-        bottomColor: SIMD4<Float>,
-    ) {
-        renderEncoder.label = "Draw Background (Simple)"
-        renderEncoder.setRenderPipelineState(backgroundPSO)
-
-        var transform = TransformCalculator.getIdentityTransform()
-        renderEncoder.setVertexBytes(
-            &transform,
-            length: MemoryLayout<float4x4>.stride,
-            index: 0,
-        )
-        var topColor = topColor
-        renderEncoder.setFragmentBytes(
-            &topColor,
-            length: MemoryLayout<SIMD4<Float>>.stride,
-            index: 0,
-        )
-        var bottomColor = bottomColor
-        renderEncoder.setFragmentBytes(
-            &bottomColor,
-            length: MemoryLayout<SIMD4<Float>>.stride,
-            index: 1,
-        )
-
-        renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
     }
 }

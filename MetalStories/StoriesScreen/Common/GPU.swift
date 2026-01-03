@@ -25,5 +25,4 @@ final class GPU {
     let device: MTLDevice
     let renderingCommandQueue: MTLCommandQueue
     let processingCommandQueue: MTLCommandQueue
-
 }

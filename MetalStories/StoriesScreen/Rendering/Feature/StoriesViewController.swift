@@ -1,6 +1,5 @@
 import UIKit
 
-// TODO: add title
 final class StoriesViewController: UIViewController {
 
     // MARK: Lifecycle
@@ -11,12 +10,14 @@ final class StoriesViewController: UIViewController {
         sceneInput: SceneInput,
         offscreenRenderer: OffscreenRenderer,
         imageData: Data,
+        title: String,
     ) {
         self.gpu = gpu
         self.renderingView = renderingView
         self.sceneInput = sceneInput
         self.offscreenRenderer = offscreenRenderer
         self.imageData = imageData
+        self.titleString = title
 
         super.init(nibName: nil, bundle: nil)
     }
@@ -52,12 +53,19 @@ final class StoriesViewController: UIViewController {
         view.backgroundColor = .clear
         return view
     }()
+    private let topContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = .clear
+        return view
+    }()
 
     private let sceneInput: SceneInput
     private let offscreenRenderer: OffscreenRenderer
     private var gestureHandler: StoriesGestureHandler?
 
     private let imageData: Data
+
+    private let titleString: String
 
     private func prepareImage() throws {
         let cgImage = try DataToCGImagePreprocessing.loadCGImage(
@@ -72,8 +80,59 @@ final class StoriesViewController: UIViewController {
     }
 
     private func setupCommonUI() {
-        let closeButton = UIBarButtonItem(title: "Close", style: .plain, target: self, action: #selector(closeButtonTapped))
-        navigationItem.leftBarButtonItem = closeButton
+        let safeArea = view.safeAreaLayoutGuide
+
+        topContainer.translatesAutoresizingMaskIntoConstraints = false
+        topContainer.layer.zPosition = 1
+        view.addSubview(topContainer)
+
+        let closeButton = UIButton(type: .system)
+        closeButton.setImage(UIImage(systemName: "xmark"), for: .normal)
+        closeButton.tintColor = .white
+        closeButton.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        closeButton.layer.cornerRadius = 20
+        closeButton.clipsToBounds = true
+        closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
+        topContainer.addSubview(closeButton)
+
+        let saveButton = UIButton(type: .system)
+        saveButton.setImage(UIImage(systemName: "arrowshape.down.circle"), for: .normal)
+        saveButton.tintColor = .white
+        saveButton.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+        saveButton.translatesAutoresizingMaskIntoConstraints = false
+        saveButton.layer.cornerRadius = 20
+        saveButton.clipsToBounds = true
+        saveButton.addTarget(self, action: #selector(exportButtonTapped), for: .touchUpInside)
+        topContainer.addSubview(saveButton)
+
+        let titleLabel = UILabel()
+        titleLabel.text = titleString
+        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
+        titleLabel.textColor = .white
+        titleLabel.textAlignment = .center
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        topContainer.addSubview(titleLabel)
+
+        NSLayoutConstraint.activate([
+            topContainer.topAnchor.constraint(equalTo: safeArea.topAnchor),
+            topContainer.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor),
+            topContainer.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor),
+
+            titleLabel.topAnchor.constraint(equalTo: topContainer.topAnchor, constant: 12),
+            titleLabel.centerXAnchor.constraint(equalTo: topContainer.centerXAnchor),
+            titleLabel.bottomAnchor.constraint(equalTo: topContainer.bottomAnchor, constant: -12),
+
+            closeButton.leadingAnchor.constraint(equalTo: topContainer.leadingAnchor, constant: 16),
+            closeButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
+            closeButton.heightAnchor.constraint(equalToConstant: 40),
+            closeButton.widthAnchor.constraint(equalTo: closeButton.heightAnchor),
+
+            saveButton.trailingAnchor.constraint(equalTo: topContainer.trailingAnchor, constant: -16),
+            saveButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
+            saveButton.heightAnchor.constraint(equalToConstant: 40),
+            saveButton.widthAnchor.constraint(equalTo: saveButton.heightAnchor),
+        ])
     }
 
     @objc
@@ -100,11 +159,12 @@ final class StoriesViewController: UIViewController {
         preferredWidth.priority = .defaultHigh
 
         NSLayoutConstraint.activate([
+            containerView.topAnchor.constraint(equalTo: topContainer.bottomAnchor, constant: 12),
             containerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            containerView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             containerView.widthAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.widthAnchor),
             preferredWidth,
             containerView.heightAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.heightAnchor),
+            containerView.bottomAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor),
             aspectRatio,
 
             renderingView.topAnchor.constraint(equalTo: containerView.topAnchor),
@@ -117,9 +177,6 @@ final class StoriesViewController: UIViewController {
             touchTrackingView.leadingAnchor.constraint(equalTo: renderingView.leadingAnchor),
             touchTrackingView.trailingAnchor.constraint(equalTo: renderingView.trailingAnchor),
         ])
-
-        let exportButton = UIBarButtonItem(title: "Export", style: .plain, target: self, action: #selector(exportButtonTapped))
-        navigationItem.rightBarButtonItem = exportButton
     }
 
     @objc
@@ -140,31 +197,21 @@ final class StoriesViewController: UIViewController {
                 DispatchQueue.main.async {
                     switch result {
                     case .success:
-                        self?.showSuccessAlert()
+                        self?.showAlert(title: "Success", message: "Image saved to photo library")
                     case .failure:
-                        self?.showExportErrorAlert()
+                        self?.showAlert(title: "Error", message: "Failed to SAVE image")
                     }
                 }
             }
         } catch {
-            showExportErrorAlert()
+            showAlert(title: "Error", message: "Failed to export image")
         }
     }
 
-    private func showSuccessAlert() {
+    private func showAlert(title: String, message: String) {
         let alert = UIAlertController(
-            title: "Success",
-            message: "Image saved to photo library",
-            preferredStyle: .alert,
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
-    }
-
-    private func showExportErrorAlert() {
-        let alert = UIAlertController(
-            title: "Error",
-            message: "Failed to export image",
+            title: title,
+            message: message,
             preferredStyle: .alert,
         )
         alert.addAction(UIAlertAction(title: "OK", style: .default))
@@ -199,3 +246,4 @@ final class StoriesViewController: UIViewController {
         )
     }
 }
+

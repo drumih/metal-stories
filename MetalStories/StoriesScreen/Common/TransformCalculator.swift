@@ -5,7 +5,11 @@ import simd
 enum ImageAspectMode {
     case scaleAspectFit
     case scaleAspectFill
+}
+
+enum ImageAspectModeType {
     case automatic(threshold: Float)
+    case specific(aspectMode: ImageAspectMode)
 }
 
 // MARK: - TransformCalculator
@@ -18,8 +22,9 @@ enum TransformCalculator {
         scale: Float,
         rotation: Float,
         translation: SIMD2<Float>,
-        aspectMode: ImageAspectMode,
+        aspectModeType: ImageAspectModeType,
     ) -> float4x4 {
+        let aspectMode = targetAspectMode(for: aspectModeType, textureSize: textureSize)
         let modelTransform = getModelTransform(
             textureSize: textureSize,
             canvasSize: canvasSize,
@@ -55,25 +60,15 @@ extension TransformCalculator {
         translation: SIMD2<Float>,
         aspectMode: ImageAspectMode,
     ) -> float4x4 {
-        let textureAspect = textureSize.x / textureSize.y
-        let resolvedAspectMode: ImageAspectMode =
-            switch aspectMode {
-            case .automatic(let threshold):
-                textureAspect < threshold ? .scaleAspectFill : .scaleAspectFit
-            default:
-                aspectMode
-            }
 
         let scaleToCanvasX = canvasSize.x / textureSize.x
         let scaleToCanvasY = canvasSize.y / textureSize.y
         let aspectScale: Float =
-            switch resolvedAspectMode {
+            switch aspectMode {
             case .scaleAspectFit:
                 min(scaleToCanvasX, scaleToCanvasY)
             case .scaleAspectFill:
                 max(scaleToCanvasX, scaleToCanvasY)
-            case .automatic:
-                min(scaleToCanvasX, scaleToCanvasY)
             }
 
         let scaledTextureSize = textureSize * aspectScale
@@ -106,6 +101,19 @@ extension TransformCalculator {
             near: 0,
             far: 1,
         )
+    }
+    
+    fileprivate static func targetAspectMode(
+        for aspectModeType: ImageAspectModeType,
+        textureSize: SIMD2<Float>
+    ) -> ImageAspectMode {
+        let textureAspect = textureSize.x / textureSize.y
+        switch aspectModeType {
+        case .automatic(let threshold):
+            return textureAspect < threshold ? .scaleAspectFill : .scaleAspectFit
+        case .specific(let aspectMode):
+            return aspectMode
+        }
     }
 }
 

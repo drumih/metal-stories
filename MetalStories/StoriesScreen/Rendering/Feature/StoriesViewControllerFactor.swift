@@ -22,12 +22,25 @@ enum StoriesViewControllerFactor {
         )
         renderingView.delegate = renderer
 
+        let title = titleForRenderPassType(renderPassType)
         return StoriesViewController(
             gpu: gpu,
             renderingView: renderingView,
             sceneInput: scene,
             offscreenRenderer: renderer,
             imageData: imageData,
+            title: title,
         )
+    }
+
+    private static func titleForRenderPassType(_ type: RenderPassType) -> String {
+        switch type {
+        case .simple:
+            return "Simple"
+        case .withIntermediateTexture:
+            return "Intermediate"
+        case .tileMemory:
+            return "Tile"
+        }
     }
 }
