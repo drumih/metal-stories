@@ -12,6 +12,7 @@ enum CGImageToMetalTexturePreprocessing {
     
     private static let histogramBins = 128
     private static let histogramTextureSize = 128
+
     private static let defaultTopColor = SIMD3<Float>(0.7, 0.7, 0.7)
     private static let defaultBottomColor = SIMD3<Float>(0.4, 0.4, 0.4)
     

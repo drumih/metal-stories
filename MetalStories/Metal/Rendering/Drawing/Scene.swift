@@ -2,19 +2,20 @@ import simd
 import Metal
 
 protocol SceneInput: AnyObject {
+    // input image and background colors
     func setPreparationResult(_ preparationResult: MetalPreparationResult)
     
-    // MARK: - image transform
+    // transforms
     var scale: Float { get set } // in range 0.1 ... 3
     var rotationRadians: Float { get set } // no limits, but must be normalized on set
     var translation: SIMD2<Float> { get set } // -1...2
     var anchorPoint: SIMD2<Float> { get set } // in range 0...1
     
-    // MARK: - filter selection
+    // filter selection
     var filterOffset: Float { get set }
 }
 
-protocol SceneOutput {
+protocol SceneOutput: AnyObject {
     func getRenderPassInput(renderingViewSize: SIMD2<Float>) -> RenderPassInput?
 }
 
@@ -36,12 +37,8 @@ extension Scene: SceneInput {
     }
     
     var scale: Float {
-        get {
-            return _scale
-        }
-        set {
-            _scale = max(0.1, min(3.0, newValue))
-        }
+        get { _scale }
+        set { _scale = max(0.1, min(3.0, newValue)) }
     }
     
     var rotationRadians: Float {
@@ -59,11 +56,9 @@ extension Scene: SceneInput {
     }
     
     var translation: SIMD2<Float> {
-        get {
-            return _translation
-        }
+        get { _translation }
         set {
-            _translation = SIMD2<Float>(
+            _translation = .init(
                 max(-1.0, min(2.0, newValue.x)),
                 max(-1.0, min(2.0, newValue.y))
             )
@@ -75,7 +70,7 @@ extension Scene: SceneInput {
             return _anchorPoint
         }
         set {
-            _anchorPoint = SIMD2<Float>(
+            _anchorPoint = .init(
                 max(0.0, min(1.0, newValue.x)),
                 max(0.0, min(1.0, newValue.y))
             )
@@ -83,12 +78,8 @@ extension Scene: SceneInput {
     }
 
     var filterOffset: Float {
-        get {
-            _filterOffset
-        }
-        set {
-            _filterOffset = newValue
-        }
+        get { _filterOffset }
+        set { _filterOffset = newValue }
     }
 }
 

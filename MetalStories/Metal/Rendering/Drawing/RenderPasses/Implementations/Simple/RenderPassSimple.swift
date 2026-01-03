@@ -35,16 +35,16 @@ extension RenderPassSimple: RenderPass {
     }
     
     func resize(size: CGSize) {
-
+        // --
     }
 
     func draw(
         commandBuffer: MTLCommandBuffer,
-        descriptor: MTLRenderPassDescriptor, // TODO: rename to RenderPassDescriptor
+        renderPassDescriptor rpd: MTLRenderPassDescriptor,
         input: RenderPassInput
     ) {
         guard
-            let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor)
+            let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: rpd)
         else {
             return
         }

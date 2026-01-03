@@ -189,5 +189,4 @@ final class StoriesViewController: UIViewController {
             sceneInput: sceneInput
         )
     }
-
 }

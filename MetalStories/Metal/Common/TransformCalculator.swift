@@ -1,5 +1,11 @@
 import simd
 
+enum ImageAspectMode {
+    case scaleAspectFit
+    case scaleAspectFill
+    case automatic(threshold: Float)
+}
+
 enum TransformCalculator {
     static func getTransform(
         textureSize: SIMD2<Float>,
@@ -10,6 +16,7 @@ enum TransformCalculator {
         translation: SIMD2<Float>,
         aspectMode: ImageAspectMode
     ) -> float4x4 {
+
         let modelTransform = getModelTransform(
             textureSize: textureSize,
             canvasSize: canvasSize,
@@ -34,6 +41,7 @@ enum TransformCalculator {
     }
 }
 
+// TODO: make it clear
 private extension TransformCalculator {
     static func getModelTransform(
         textureSize: SIMD2<Float>,
@@ -44,6 +52,7 @@ private extension TransformCalculator {
         translation: SIMD2<Float>,
         aspectMode: ImageAspectMode
     ) -> float4x4 {
+    
         let textureAspect = textureSize.x / textureSize.y
         let resolvedAspectMode: ImageAspectMode
         switch aspectMode {
@@ -100,6 +109,8 @@ private extension TransformCalculator {
 
 private extension TransformCalculator {
     
+    // projection
+
     static func orthographicProjection(
         left: Float,
         right: Float,
@@ -122,8 +133,9 @@ private extension TransformCalculator {
             SIMD4<Float>(tx, ty, tz, 1)
         )
     }
-
     
+    // rotation
+
     static func rotationMatrixX(_ radians: Float) -> float4x4 {
         let s = sin(radians)
         let c = cos(radians)
@@ -160,6 +172,8 @@ private extension TransformCalculator {
         )
     }
     
+    // scale
+    
     static func scaleMatrix(_ scale: SIMD2<Float>) -> float4x4 {
         .init(
             .init(scale.x, 0, 0, 0),
@@ -168,6 +182,8 @@ private extension TransformCalculator {
             .init(0, 0, 0, 1)
         )
     }
+    
+    // translation
     
     static func translationMatrix(_ translation: SIMD2<Float>) -> float4x4 {
         .init(
