@@ -1,21 +1,7 @@
 import UIKit
-import Photos
 import PhotosUI
-import UniformTypeIdentifiers
-
-
-// TODO: refactor it, make it more clear. refactor to view and presenter
 
 final class EntryViewController: UIViewController {
-
-    // MARK: - Constants
-
-    private enum Constants {
-        static let savedImageFileName = "saved_image.dat"
-        static let previewMaxSize = CGSize(width: 1080, height: 1080)
-    }
-
-    // MARK: - UI Elements
 
     private lazy var accessStackView: UIStackView = {
         let stack = UIStackView()
@@ -73,14 +59,6 @@ final class EntryViewController: UIViewController {
         return control
     }()
 
-    private var selectedRenderPassType: RenderPassType = .tileMemory {
-        didSet {
-            renderPassSegmentedControl.selectedSegmentIndex = segmentIndex(for: selectedRenderPassType)
-        }
-    }
-
-    // MARK: - Previous Image UI Elements
-
     private lazy var previousImageContainerView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -93,8 +71,7 @@ final class EntryViewController: UIViewController {
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         imageView.layer.cornerRadius = 12
-        imageView.layer.borderWidth = 2
-        imageView.layer.borderColor = UIColor.systemGray4.cgColor
+        imageView.layer.cornerCurve = .continuous
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
     }()
@@ -124,27 +101,22 @@ final class EntryViewController: UIViewController {
         return button
     }()
 
-    // MARK: - Lifecycle
+    var presenter: EntryPresenter!
 
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        checkGalleryAccess()
-        loadSavedImagePreview()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        checkGalleryAccess()
-        loadSavedImagePreview()
+        presenter.viewWillAppear()
     }
-
-    // MARK: - Setup
 
     private func setupUI() {
         view.backgroundColor = .systemBackground
-        
-        renderPassSegmentedControl.selectedSegmentIndex = segmentIndex(for: selectedRenderPassType)
+
+        renderPassSegmentedControl.selectedSegmentIndex = presenter.selectedRenderPassType.rawValue
 
         accessStackView.addArrangedSubview(accessLabel)
         accessStackView.addArrangedSubview(accessSwitch)
@@ -182,19 +154,17 @@ final class EntryViewController: UIViewController {
             previousImageContainerView.widthAnchor.constraint(equalToConstant: 320),
             previousImageContainerView.bottomAnchor.constraint(lessThanOrEqualTo: renderPassSegmentedControl.topAnchor, constant: -20),
 
-            // Preview image - bigger
+            // Preview image
             previewImageView.topAnchor.constraint(equalTo: previousImageContainerView.topAnchor),
             previewImageView.centerXAnchor.constraint(equalTo: previousImageContainerView.centerXAnchor),
             previewImageView.widthAnchor.constraint(equalToConstant: 300),
             previewImageView.heightAnchor.constraint(equalToConstant: 300),
 
-            // Delete button - top right of preview (positioned slightly outside)
             deletePreviousButton.topAnchor.constraint(equalTo: previewImageView.topAnchor, constant: -5),
             deletePreviousButton.trailingAnchor.constraint(equalTo: previewImageView.trailingAnchor, constant: 5),
             deletePreviousButton.widthAnchor.constraint(equalToConstant: 30),
             deletePreviousButton.heightAnchor.constraint(equalToConstant: 30),
 
-            // Load button
             loadPreviousButton.topAnchor.constraint(equalTo: previewImageView.bottomAnchor, constant: 16),
             loadPreviousButton.centerXAnchor.constraint(equalTo: previousImageContainerView.centerXAnchor),
             loadPreviousButton.widthAnchor.constraint(equalToConstant: 200),
@@ -203,130 +173,15 @@ final class EntryViewController: UIViewController {
         ])
     }
 
-    // MARK: - Gallery Access
-
-    private func checkGalleryAccess() {
-        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-        updateUI(for: status)
-    }
-
-    private func updateUI(for status: PHAuthorizationStatus) {
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-
-            switch status {
-            case .authorized, .limited:
-                self.accessStackView.isHidden = true
-                self.selectPhotoButton.isHidden = false
-                self.openSettingsButton.isHidden = true
-                self.renderPassSegmentedControl.isHidden = false
-
-            case .denied, .restricted:
-                self.accessStackView.isHidden = true
-                self.selectPhotoButton.isHidden = true
-                self.openSettingsButton.isHidden = false
-                self.renderPassSegmentedControl.isHidden = true
-
-            case .notDetermined:
-                self.accessStackView.isHidden = false
-                self.accessSwitch.isOn = false
-                self.selectPhotoButton.isHidden = true
-                self.openSettingsButton.isHidden = true
-                self.renderPassSegmentedControl.isHidden = true
-
-            @unknown default:
-                break
-            }
-        }
-    }
-
-    private func requestGalleryAccess() {
-        PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] status in
-            self?.updateUI(for: status)
-        }
-    }
-
-    // MARK: - Image Persistence
-
-    private func getSavedImageURL() -> URL? {
-        guard let documentsDirectory = FileManager.default.urls(
-            for: .documentDirectory,
-            in: .userDomainMask
-        ).first else {
-            return nil
-        }
-        return documentsDirectory.appendingPathComponent(Constants.savedImageFileName)
-    }
-
-    private func saveImageData(_ data: Data) {
-        guard let fileURL = getSavedImageURL() else { return }
-        do {
-            try data.write(to: fileURL)
-            loadSavedImagePreview()
-        } catch {
-            print("Failed to save image data: \(error)")
-        }
-    }
-
-    private func loadSavedImageData() -> Data? {
-        guard let fileURL = getSavedImageURL(),
-              FileManager.default.fileExists(atPath: fileURL.path) else {
-            return nil
-        }
-        return try? Data(contentsOf: fileURL)
-    }
-
-    private func deleteSavedImage() {
-        guard let fileURL = getSavedImageURL(),
-              FileManager.default.fileExists(atPath: fileURL.path) else {
-            return
-        }
-        do {
-            try FileManager.default.removeItem(at: fileURL)
-            updatePreviousImageUI(hasImage: false)
-        } catch {
-            print("Failed to delete saved image: \(error)")
-        }
-    }
-
-    private func loadSavedImagePreview() {
-        guard let imageData = loadSavedImageData() else {
-            updatePreviousImageUI(hasImage: false)
-            return
-        }
-
-        do {
-            let (cgImage, _) = try DataToCGImagePreprocessing.loadCGImage(
-                from: imageData,
-                maxSize: Constants.previewMaxSize
-            )
-            let previewImage = UIImage(cgImage: cgImage)
-            DispatchQueue.main.async { [weak self] in
-                self?.previewImageView.image = previewImage
-                self?.updatePreviousImageUI(hasImage: true)
-            }
-        } catch {
-            print("Failed to create preview: \(error)")
-            updatePreviousImageUI(hasImage: false)
-        }
-    }
-
-    private func updatePreviousImageUI(hasImage: Bool) {
-        DispatchQueue.main.async { [weak self] in
-            self?.previousImageContainerView.isHidden = !hasImage
-            self?.previewImageView.image = hasImage ? self?.previewImageView.image : nil
-        }
-    }
-
-    // MARK: - Actions
-
-    @objc private func accessSwitchChanged(_ sender: UISwitch) {
+    @objc
+    private func accessSwitchChanged(_ sender: UISwitch) {
         if sender.isOn {
-            requestGalleryAccess()
+            presenter.requestGalleryAccess()
         }
     }
 
-    @objc private func selectPhotoTapped() {
+    @objc
+    private func selectPhotoTapped() {
         var configuration = PHPickerConfiguration(photoLibrary: .shared())
         configuration.filter = .images
         configuration.selectionLimit = 1
@@ -336,88 +191,74 @@ final class EntryViewController: UIViewController {
         present(picker, animated: true)
     }
 
-    @objc private func openSettingsTapped() {
+    @objc
+    private func openSettingsTapped() {
         guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
         if UIApplication.shared.canOpenURL(settingsURL) {
             UIApplication.shared.open(settingsURL)
         }
     }
 
-    @objc private func renderPassTypeChanged(_ sender: UISegmentedControl) {
-        selectedRenderPassType = renderPassType(for: sender.selectedSegmentIndex)
-    }
-    
-    // MARK: - Render Pass Type Helpers
-    
-    private func segmentIndex(for renderPassType: RenderPassType) -> Int {
-        switch renderPassType {
-        case .simple:
-            return 0
-        case .withIntermediateTexture:
-            return 1
-        case .tileMemory:
-            return 2
-        }
-    }
-    
-    private func renderPassType(for segmentIndex: Int) -> RenderPassType {
-        switch segmentIndex {
-        case 0:
-            return .simple
-        case 1:
-            return .withIntermediateTexture
-        case 2:
-            return .tileMemory
-        default:
+    @objc
+    private func renderPassTypeChanged(_ sender: UISegmentedControl) {
+        guard let renderPassType = RenderPassType(rawValue: sender.selectedSegmentIndex) else {
             assertionFailure()
-            return .withIntermediateTexture
-        }
-    }
-
-    @objc private func loadPreviousImageTapped() {
-        guard let imageData = loadSavedImageData() else {
-            showErrorAlert(message: "No saved image found.")
             return
         }
-        presentStoriesEditor(withImageData: imageData)
+        presenter.updateRenderPassType(renderPassType)
     }
 
-    @objc private func deletePreviousImageTapped() {
-        deleteSavedImage()
+    @objc
+    private func loadPreviousImageTapped() {
+        presenter.loadPreviousImage()
+    }
+
+    @objc
+    private func deletePreviousImageTapped() {
+        presenter.deleteSavedImage()
     }
 }
 
-// MARK: - PHPickerViewControllerDelegate
+extension EntryViewController: EntryViewProtocol {
 
-extension EntryViewController: PHPickerViewControllerDelegate {
+    func updateState(_ state: EntryViewState) {
+        switch state {
+        case .authorized(let previewImage):
+            accessStackView.isHidden = true
+            selectPhotoButton.isHidden = false
+            openSettingsButton.isHidden = true
+            renderPassSegmentedControl.isHidden = false
 
-    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        picker.dismiss(animated: true)
-
-        guard let result = results.first else { return }
-
-        result.itemProvider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { [weak self] data, error in
-            guard let data = data, error == nil else {
-                DispatchQueue.main.async {
-                    self?.showErrorAlert(message: "Failed to load image. Please try again.")
-                }
-                return
+            if let previewImage = previewImage {
+                previewImageView.image = previewImage
+                previousImageContainerView.isHidden = false
+            } else {
+                previewImageView.image = nil
+                previousImageContainerView.isHidden = true
             }
-            
-            // Save image data to disk for future use
-            self?.saveImageData(data)
-            
-            DispatchQueue.main.async {
-                self?.presentStoriesEditor(withImageData: data)
-            }
+
+        case .denied:
+            accessStackView.isHidden = true
+            selectPhotoButton.isHidden = true
+            openSettingsButton.isHidden = false
+            renderPassSegmentedControl.isHidden = true
+            previousImageContainerView.isHidden = true
+
+        case .notDetermined:
+            accessStackView.isHidden = false
+            accessSwitch.isOn = false
+            selectPhotoButton.isHidden = true
+            openSettingsButton.isHidden = true
+            renderPassSegmentedControl.isHidden = true
+            previousImageContainerView.isHidden = true
         }
     }
 
-    private func presentStoriesEditor(withImageData imageData: Data) {
+    func presentStoriesEditor(imageData: Data, renderPassType: RenderPassType) {
         do {
             let storiesViewController = try StoriesViewControllerFactor.getViewController(
                 imageData: imageData,
-                renderPassType: selectedRenderPassType
+                renderPassType: renderPassType
             )
             let navigationController = UINavigationController(rootViewController: storiesViewController)
             navigationController.modalPresentationStyle = .fullScreen
@@ -426,8 +267,8 @@ extension EntryViewController: PHPickerViewControllerDelegate {
             showErrorAlert(message: "Failed to create stories editor. Please try again.")
         }
     }
-    
-    private func showErrorAlert(message: String) {
+
+    func showErrorAlert(message: String) {
         let alert = UIAlertController(
             title: "Error",
             message: message,
@@ -435,5 +276,17 @@ extension EntryViewController: PHPickerViewControllerDelegate {
         )
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
+    }
+}
+
+extension EntryViewController: PHPickerViewControllerDelegate {
+
+    func picker(
+        _ picker: PHPickerViewController,
+        didFinishPicking results: [PHPickerResult]
+    ) {
+        picker.dismiss(animated: true)
+        guard let result = results.first else { return }
+        presenter.didSelectImage(result)
     }
 }

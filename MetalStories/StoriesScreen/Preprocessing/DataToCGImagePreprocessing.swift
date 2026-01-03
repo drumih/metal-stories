@@ -5,13 +5,12 @@ import CoreGraphics
 enum DataToCGImagePreprocessing {
     static func loadCGImage(
         from data: Data,
-        maxSize: CGSize
+        maxPixelSize: CGFloat
     ) throws -> (CGImage, CGImagePropertyOrientation) {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
             throw ImagePreprocessingError.failedToCreateImageSource
         }
         
-        // Extract orientation from image properties
         let orientation: CGImagePropertyOrientation
         if let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
            let orientationValue = properties[kCGImagePropertyOrientation] as? UInt32 {
@@ -20,10 +19,6 @@ enum DataToCGImagePreprocessing {
             orientation = .up
         }
         
-        // Calculate max pixel size
-        let maxPixelSize = max(maxSize.width, maxSize.height)
-        
-        // Create thumbnail options
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,

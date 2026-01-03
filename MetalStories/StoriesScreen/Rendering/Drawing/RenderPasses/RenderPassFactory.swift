@@ -1,6 +1,6 @@
 import Metal
 
-enum RenderPassType {
+enum RenderPassType: Int {
     case simple
     case withIntermediateTexture
     case tileMemory

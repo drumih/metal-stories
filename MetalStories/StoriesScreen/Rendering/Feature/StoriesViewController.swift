@@ -3,7 +3,7 @@ import UIKit
 // TODO: add title
 final class StoriesViewController: UIViewController {
     
-    private static let maxImageSize = CGSize(width: 1920, height: 1920)
+    private static let maxImageSize: CGFloat = 1920
     private static let imageOutputSize = CGSize(width: 1080, height: 1920)
     
     private let gpu: GPU
@@ -55,7 +55,7 @@ final class StoriesViewController: UIViewController {
     private func prepareImage() throws {
         let cgImage = try DataToCGImagePreprocessing.loadCGImage(
             from: imageData,
-            maxSize: Self.maxImageSize
+            maxPixelSize: Self.maxImageSize
         )
         let preparationResult = try CGImageToMetalTexturePreprocessing.prepareCGImage(
             cgImage: cgImage.0,
