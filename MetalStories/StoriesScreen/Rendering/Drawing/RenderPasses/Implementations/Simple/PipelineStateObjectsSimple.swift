@@ -3,14 +3,13 @@ import Metal
 enum PipelineStateObjectsSimple {
     static func imagePipeline(
         library: MTLLibrary,
-        pixelFormat: MTLPixelFormat
+        pixelFormat: MTLPixelFormat,
     ) throws -> MTLRenderPipelineState {
-
         guard
             let vertexFunction = library.makeFunction(name: "vertex_general"),
             let fragmentFunction = library.makeFunction(name: "fragment_image")
         else {
-            throw NSError()// TODO: throw normal error
+            throw NSError() // TODO: throw normal error
         }
 
         let descriptor = MTLRenderPipelineDescriptor()
@@ -23,17 +22,16 @@ enum PipelineStateObjectsSimple {
 
         return try library.device.makeRenderPipelineState(descriptor: descriptor)
     }
-    
+
     static func backgroundPipeline(
         library: MTLLibrary,
-        pixelFormat: MTLPixelFormat
+        pixelFormat: MTLPixelFormat,
     ) throws -> MTLRenderPipelineState {
-
         guard
             let vertexFunction = library.makeFunction(name: "vertex_general"),
             let fragmentFunction = library.makeFunction(name: "fragment_background")
         else {
-            throw NSError()// TODO: throw normal error
+            throw NSError() // TODO: throw normal error
         }
 
         let descriptor = MTLRenderPipelineDescriptor()

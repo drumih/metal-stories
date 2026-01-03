@@ -1,52 +1,58 @@
 import Metal
 import simd
 
+// MARK: - RenderPassTileMemory
+
 final class RenderPassTileMemory {
+
+    // MARK: Lifecycle
+
+    init(
+        gpu: GPU,
+        pixelFormat: MTLPixelFormat,
+    ) throws {
+        self.gpu = gpu
+        self.pixelFormat = pixelFormat
+        intermediateTexturePixelFormat = pixelFormat
+        depthTexturePixelFormat = .depth32Float
+        let bundle = Bundle(for: RenderPassSimple.self)
+        let library = try gpu.device.makeDefaultLibrary(bundle: bundle)
+        imageRenderPSO = try PipelineStateObjectsTileMemory.imagePipeline(
+            library: library,
+            pixelFormat: pixelFormat,
+            memorylessTexturePixelFormat: pixelFormat,
+        )
+        backgroundPSO = try PipelineStateObjectsTileMemory.backgroundPipeline(
+            library: library,
+            pixelFormat: pixelFormat,
+            memorylessTexturePixelFormat: pixelFormat,
+        )
+        postProcessingPSO = try PipelineStateObjectsTileMemory.postProcessingPipeline(
+            library: library,
+            pixelFormat: pixelFormat,
+            memorylessTexturePixelFormat: pixelFormat,
+        )
+
+        depthStencilState = try Self.makeDepthStencilState(device: gpu.device)
+        postProcessingDepthStencilState = try Self.makePostProcessingDepthStencilState(device: gpu.device)
+    }
+
+    // MARK: Private
 
     private let gpu: GPU
     private let pixelFormat: MTLPixelFormat
     private let intermediateTexturePixelFormat: MTLPixelFormat
     private let depthTexturePixelFormat: MTLPixelFormat
-    
+
     private let imageRenderPSO: MTLRenderPipelineState
     private let backgroundPSO: MTLRenderPipelineState
     private let postProcessingPSO: MTLRenderPipelineState
-    
+
     private let depthStencilState: MTLDepthStencilState
     private let postProcessingDepthStencilState: MTLDepthStencilState
 
     private var intermediateTexture: MTLTexture?
     private var depthTexture: MTLTexture?
-
-    init(
-        gpu: GPU,
-        pixelFormat: MTLPixelFormat
-    ) throws {
-        self.gpu = gpu
-        self.pixelFormat = pixelFormat
-        self.intermediateTexturePixelFormat = pixelFormat
-        self.depthTexturePixelFormat = .depth32Float
-        let bundle = Bundle(for: RenderPassSimple.self)
-        let library = try gpu.device.makeDefaultLibrary(bundle: bundle)
-        self.imageRenderPSO = try PipelineStateObjectsTileMemory.imagePipeline(
-            library: library,
-            pixelFormat: pixelFormat,
-            memorylessTexturePixelFormat: pixelFormat
-        )
-        self.backgroundPSO = try PipelineStateObjectsTileMemory.backgroundPipeline(
-            library: library,
-            pixelFormat: pixelFormat,
-            memorylessTexturePixelFormat: pixelFormat
-        )
-        self.postProcessingPSO = try PipelineStateObjectsTileMemory.postProcessingPipeline(
-            library: library,
-            pixelFormat: pixelFormat,
-            memorylessTexturePixelFormat: pixelFormat
-        )
-
-        self.depthStencilState = try Self.makeDepthStencilState(device: gpu.device)
-        self.postProcessingDepthStencilState = try Self.makePostProcessingDepthStencilState(device: gpu.device)
-    }
 
     private static func makeDepthStencilState(device: MTLDevice) throws -> MTLDepthStencilState {
         let descriptor = MTLDepthStencilDescriptor()
@@ -68,51 +74,56 @@ final class RenderPassTileMemory {
         return stencilState
     }
 
-    private func updateIntermediateTexture(forSize size: CGSize) {
-        let texture = Self.makeTexture(
-            device: gpu.device,
-            pixelFormat: self.pixelFormat,
-            width: Int(size.width),
-            height: Int(size.height)
-        )
-        let depthTexture = Self.makeTexture(
-            device: gpu.device,
-            pixelFormat: .depth32Float,
-            width: Int(size.width),
-            height: Int(size.height)
-        )
-        guard let texture, let depthTexture else {
-            assertionFailure()
-            return
-        }
-        self.intermediateTexture = texture
-        self.depthTexture = depthTexture
-    }
-
     private static func makeTexture(
         device: MTLDevice,
         pixelFormat: MTLPixelFormat,
         width: Int,
-        height: Int
+        height: Int,
     ) -> MTLTexture? {
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(
             pixelFormat: pixelFormat,
             width: width,
             height: height,
-            mipmapped: false
+            mipmapped: false,
         )
         descriptor.storageMode = .memoryless
         descriptor.usage = [.shaderRead, .renderTarget]
         return device.makeTexture(descriptor: descriptor)
     }
+
+    private func updateIntermediateTexture(forSize size: CGSize) {
+        let texture = Self.makeTexture(
+            device: gpu.device,
+            pixelFormat: pixelFormat,
+            width: Int(size.width),
+            height: Int(size.height),
+        )
+        let depthTexture = Self.makeTexture(
+            device: gpu.device,
+            pixelFormat: .depth32Float,
+            width: Int(size.width),
+            height: Int(size.height),
+        )
+        guard let texture, let depthTexture else {
+            assertionFailure()
+            return
+        }
+        intermediateTexture = texture
+        self.depthTexture = depthTexture
+    }
+
 }
 
+// MARK: RenderPass
+
 extension RenderPassTileMemory: RenderPass {
+
+    // MARK: Internal
 
     func copy() throws -> any RenderPass {
         try Self(gpu: gpu, pixelFormat: pixelFormat)
     }
-    
+
     func resize(size: CGSize) {
         updateIntermediateTexture(forSize: size)
     }
@@ -120,7 +131,7 @@ extension RenderPassTileMemory: RenderPass {
     func draw(
         commandBuffer: MTLCommandBuffer,
         renderPassDescriptor rpd: MTLRenderPassDescriptor,
-        input: RenderPassInput
+        input: RenderPassInput,
     ) {
         guard let intermediateTexture, let depthTexture else {
             assertionFailure()
@@ -130,7 +141,7 @@ extension RenderPassTileMemory: RenderPass {
         rpd.colorAttachments[1]?.texture = intermediateTexture
         rpd.colorAttachments[1]?.loadAction = .dontCare
         rpd.colorAttachments[1]?.storeAction = .dontCare
-        
+
         rpd.depthAttachment.texture = depthTexture
         rpd.depthAttachment.storeAction = .dontCare
 
@@ -139,31 +150,33 @@ extension RenderPassTileMemory: RenderPass {
         }
 
         renderEncoder.setDepthStencilState(depthStencilState)
-        
+
         // pay attention to the order
         drawImage(
             renderEncoder: renderEncoder,
             texture: input.imageTexture,
-            transform: input.transform
+            transform: input.transform,
         )
         drawBackground(
             renderEncoder: renderEncoder,
             topColor: input.topBackgroundColor,
-            bottomColor: input.bottomBackgroundColor
+            bottomColor: input.bottomBackgroundColor,
         )
 
         renderEncoder.setDepthStencilState(postProcessingDepthStencilState)
         drawPostProcessing(
             renderEncoder: renderEncoder,
-            offset: input.filterPositionOffset
+            offset: input.filterPositionOffset,
         )
-        
+
         renderEncoder.endEncoding()
     }
-    
+
+    // MARK: Private
+
     private func drawPostProcessing(
         renderEncoder: MTLRenderCommandEncoder,
-        offset: Float
+        offset: Float,
     ) {
         renderEncoder.label = "Post Processing (Tile Memory)"
         renderEncoder.setRenderPipelineState(postProcessingPSO)
@@ -172,21 +185,21 @@ extension RenderPassTileMemory: RenderPass {
         renderEncoder.setVertexBytes(
             &transform,
             length: MemoryLayout<float4x4>.stride,
-            index: 0
+            index: 0,
         )
         var offset = offset
         renderEncoder.setFragmentBytes(
             &offset,
             length: MemoryLayout<Float>.stride,
-            index: 0
+            index: 0,
         )
         renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
     }
-    
+
     private func drawImage(
         renderEncoder: MTLRenderCommandEncoder,
         texture: MTLTexture,
-        transform: float4x4
+        transform: float4x4,
     ) {
         renderEncoder.label = "Draw Image (Tile Memory)"
         renderEncoder.setRenderPipelineState(imageRenderPSO)
@@ -195,7 +208,7 @@ extension RenderPassTileMemory: RenderPass {
         renderEncoder.setVertexBytes(
             &transform,
             length: MemoryLayout<float4x4>.stride,
-            index: 0
+            index: 0,
         )
         renderEncoder.setFragmentTexture(texture, index: 0)
         renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
@@ -204,7 +217,7 @@ extension RenderPassTileMemory: RenderPass {
     private func drawBackground(
         renderEncoder: MTLRenderCommandEncoder,
         topColor: SIMD4<Float>,
-        bottomColor: SIMD4<Float>
+        bottomColor: SIMD4<Float>,
     ) {
         renderEncoder.label = "Draw Background (Tile Memory)"
         renderEncoder.setRenderPipelineState(backgroundPSO)
@@ -214,19 +227,19 @@ extension RenderPassTileMemory: RenderPass {
         renderEncoder.setVertexBytes(
             &transform,
             length: MemoryLayout<float4x4>.stride,
-            index: 0
+            index: 0,
         )
         var topColor = topColor
         renderEncoder.setFragmentBytes(
             &topColor,
             length: MemoryLayout<SIMD4<Float>>.stride,
-            index: 0
+            index: 0,
         )
         var bottomColor = bottomColor
         renderEncoder.setFragmentBytes(
             &bottomColor,
             length: MemoryLayout<SIMD4<Float>>.stride,
-            index: 1
+            index: 1,
         )
         renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
     }

@@ -5,13 +5,13 @@ enum PipelineStateObjectsWithIntermediateTexture {
 
     static func postProcessingPipeline(
         library: MTLLibrary,
-        pixelFormat: MTLPixelFormat
+        pixelFormat: MTLPixelFormat,
     ) throws -> MTLRenderPipelineState {
         guard
             let vertexFunction = library.makeFunction(name: "vertex_general"),
             let fragmentFunction = library.makeFunction(name: "fragment_post_processing")
         else {
-            throw NSError()// TODO: throw normal error
+            throw NSError() // TODO: throw normal error
         }
 
         let descriptor = MTLRenderPipelineDescriptor()

@@ -2,13 +2,9 @@ import Metal
 import MetalKit
 
 final class GPU {
-    
-    static var `default`: GPU = GPU()!
-    
-    let device: MTLDevice
-    let renderingCommandQueue: MTLCommandQueue
-    let processingCommandQueue: MTLCommandQueue
-    
+
+    // MARK: Lifecycle
+
     init?() {
         guard
             let device = MTLCreateSystemDefaultDevice(),
@@ -21,4 +17,13 @@ final class GPU {
         self.renderingCommandQueue = renderingCommandQueue
         self.processingCommandQueue = processingCommandQueue
     }
+
+    // MARK: Internal
+
+    static var `default` = GPU()!
+
+    let device: MTLDevice
+    let renderingCommandQueue: MTLCommandQueue
+    let processingCommandQueue: MTLCommandQueue
+
 }

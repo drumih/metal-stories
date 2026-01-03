@@ -1,7 +1,25 @@
-import UIKit
 import PhotosUI
+import UIKit
+
+// MARK: - PhotoSelectionViewController
 
 final class PhotoSelectionViewController: UIViewController {
+
+    // MARK: Internal
+
+    var presenter: PhotoSelectionPresenter!
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        setupUI()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        presenter.viewWillAppear()
+    }
+
+    // MARK: Private
 
     private lazy var accessStackView: UIStackView = {
         let stack = UIStackView()
@@ -101,18 +119,6 @@ final class PhotoSelectionViewController: UIViewController {
         return button
     }()
 
-    var presenter: PhotoSelectionPresenter!
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        setupUI()
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        presenter.viewWillAppear()
-    }
-
     private func setupUI() {
         view.backgroundColor = .systemBackground
 
@@ -152,7 +158,10 @@ final class PhotoSelectionViewController: UIViewController {
             previousImageContainerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             previousImageContainerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 40),
             previousImageContainerView.widthAnchor.constraint(equalToConstant: 320),
-            previousImageContainerView.bottomAnchor.constraint(lessThanOrEqualTo: renderPassSegmentedControl.topAnchor, constant: -20),
+            previousImageContainerView.bottomAnchor.constraint(
+                lessThanOrEqualTo: renderPassSegmentedControl.topAnchor,
+                constant: -20,
+            ),
 
             // Preview image
             previewImageView.topAnchor.constraint(equalTo: previousImageContainerView.topAnchor),
@@ -169,7 +178,7 @@ final class PhotoSelectionViewController: UIViewController {
             loadPreviousButton.centerXAnchor.constraint(equalTo: previousImageContainerView.centerXAnchor),
             loadPreviousButton.widthAnchor.constraint(equalToConstant: 200),
             loadPreviousButton.heightAnchor.constraint(equalToConstant: 44),
-            loadPreviousButton.bottomAnchor.constraint(equalTo: previousImageContainerView.bottomAnchor)
+            loadPreviousButton.bottomAnchor.constraint(equalTo: previousImageContainerView.bottomAnchor),
         ])
     }
 
@@ -219,6 +228,8 @@ final class PhotoSelectionViewController: UIViewController {
     }
 }
 
+// MARK: PhotoSelectionView
+
 extension PhotoSelectionViewController: PhotoSelectionView {
 
     func updateState(_ state: PhotoSelectionViewState) {
@@ -229,7 +240,7 @@ extension PhotoSelectionViewController: PhotoSelectionView {
             openSettingsButton.isHidden = true
             renderPassSegmentedControl.isHidden = false
 
-            if let previewImage = previewImage {
+            if let previewImage {
                 previewImageView.image = previewImage
                 previousImageContainerView.isHidden = false
             } else {
@@ -258,7 +269,7 @@ extension PhotoSelectionViewController: PhotoSelectionView {
         do {
             let storiesViewController = try StoriesViewControllerFactor.getViewController(
                 imageData: imageData,
-                renderPassType: renderPassType
+                renderPassType: renderPassType,
             )
             let navigationController = UINavigationController(rootViewController: storiesViewController)
             navigationController.modalPresentationStyle = .fullScreen
@@ -272,18 +283,20 @@ extension PhotoSelectionViewController: PhotoSelectionView {
         let alert = UIAlertController(
             title: "Error",
             message: message,
-            preferredStyle: .alert
+            preferredStyle: .alert,
         )
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
 }
 
+// MARK: PHPickerViewControllerDelegate
+
 extension PhotoSelectionViewController: PHPickerViewControllerDelegate {
 
     func picker(
         _ picker: PHPickerViewController,
-        didFinishPicking results: [PHPickerResult]
+        didFinishPicking results: [PHPickerResult],
     ) {
         picker.dismiss(animated: true)
         guard let result = results.first else { return }

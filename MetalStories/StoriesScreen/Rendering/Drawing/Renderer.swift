@@ -1,35 +1,46 @@
 import MetalKit
 
+// MARK: - OffscreenRenderer
+
 protocol OffscreenRenderer: AnyObject {
     func renderImageToOffscreenTexture(
         size: CGSize,
-        colorSpace: CGColorSpace
+        colorSpace: CGColorSpace,
     ) throws -> CGImage
 }
 
+// MARK: - Renderer
+
 final class Renderer {
 
-    private let gpu: GPU
-    private let scene: any SceneOutput
-    private let renderPass: any RenderPass
+    // MARK: Lifecycle
 
     init(
         gpu: GPU,
         scene: any SceneOutput,
-        renderPass: any RenderPass
+        renderPass: any RenderPass,
     ) {
         self.gpu = gpu
         self.scene = scene
         self.renderPass = renderPass
     }
+
+    // MARK: Private
+
+    private let gpu: GPU
+    private let scene: any SceneOutput
+    private let renderPass: any RenderPass
+
 }
 
+// MARK: OffscreenRenderer
+
 extension Renderer: OffscreenRenderer {
-    
+
     // TODO: clean up this code later
     func renderImageToOffscreenTexture(
         size: CGSize,
-        colorSpace: CGColorSpace
+        colorSpace: CGColorSpace,
     ) throws -> CGImage {
         let targetPixelFormat = MTLPixelFormat.bgra8Unorm
         let renderingViewSize = SIMD2<Float>(Float(size.width), Float(size.height))
@@ -45,7 +56,7 @@ extension Renderer: OffscreenRenderer {
             pixelFormat: targetPixelFormat,
             width: Int(size.width),
             height: Int(size.height),
-            mipmapped: false
+            mipmapped: false,
         )
         offscreenTextureDescriptor.usage = [.renderTarget, .shaderRead]
         offscreenTextureDescriptor.storageMode = .shared
@@ -66,7 +77,7 @@ extension Renderer: OffscreenRenderer {
         offscreenRenderPass.draw(
             commandBuffer: commandBuffer,
             renderPassDescriptor: renderPassDescriptor,
-            input: input
+            input: input,
         )
 
         commandBuffer.commit()
@@ -74,21 +85,23 @@ extension Renderer: OffscreenRenderer {
 
         return try CGImageFromMetalTexture.getCGImage(
             from: offscreenTexture,
-            colorSpace: colorSpace
+            colorSpace: colorSpace,
         )
     }
 }
 
+// MARK: RenderingViewDelegate
+
 extension Renderer: RenderingViewDelegate {
 
-    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
+    func mtkView(_: MTKView, drawableSizeWillChange size: CGSize) {
         renderPass.resize(size: size)
     }
 
     func draw(in view: MTKView) {
         let drawableSize = SIMD2<Float>(
             Float(view.drawableSize.width),
-            Float(view.drawableSize.height)
+            Float(view.drawableSize.height),
         )
 
         guard
@@ -102,7 +115,7 @@ extension Renderer: RenderingViewDelegate {
         renderPass.draw(
             commandBuffer: commandBuffer,
             renderPassDescriptor: descriptor,
-            input: input
+            input: input,
         )
 
         guard let drawable = view.currentDrawable else { return }
@@ -110,4 +123,3 @@ extension Renderer: RenderingViewDelegate {
         commandBuffer.commit()
     }
 }
-

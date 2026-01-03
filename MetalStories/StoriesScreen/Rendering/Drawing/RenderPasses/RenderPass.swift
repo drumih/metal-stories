@@ -5,7 +5,7 @@ protocol RenderPass: AnyObject {
     func draw(
         commandBuffer: MTLCommandBuffer,
         renderPassDescriptor rpd: MTLRenderPassDescriptor,
-        input: RenderPassInput
+        input: RenderPassInput,
     )
 
     // TODO: fix it somehow and use better api

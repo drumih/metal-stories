@@ -1,49 +1,54 @@
-import simd
 import Metal
+import simd
+
+// MARK: - SceneInput
 
 protocol SceneInput: AnyObject {
-    // input image and background colors
-    func setPreparationResult(_ preparationResult: MetalPreparationResult)
-    
     // transforms
     var scale: Float { get set } // in range 0.1 ... 3
     var rotationRadians: Float { get set } // no limits, but must be normalized on set
     var translation: SIMD2<Float> { get set } // -1...2
     var anchorPoint: SIMD2<Float> { get set } // in range 0...1
-    
-    // filter selection
+
+    /// filter selection
     var filterOffset: Float { get set }
+
+    /// input image and background colors
+    func setPreparationResult(_ preparationResult: MetalPreparationResult)
+
 }
+
+// MARK: - SceneOutput
 
 protocol SceneOutput: AnyObject {
     func getRenderPassInput(renderingViewSize: SIMD2<Float>) -> RenderPassInput?
 }
 
+// MARK: - Scene
+
 final class Scene {
-    
+
     private var preparationResult: MetalPreparationResult?
 
     private var _filterOffset: Float = 0 // TODO: fixit
 
     private var _scale: Float = 1
     private var _rotationRadians: Float = 0
-    private var _translation: SIMD2<Float> = .init(0.5, 0.5)
-    private var _anchorPoint: SIMD2<Float> = .init(0.5, 0.5)
+    private var _translation = SIMD2<Float>(0.5, 0.5)
+    private var _anchorPoint = SIMD2<Float>(0.5, 0.5)
 }
 
+// MARK: SceneInput
+
 extension Scene: SceneInput {
-    func setPreparationResult(_ preparationResult: MetalPreparationResult) {
-        self.preparationResult = preparationResult
-    }
-    
     var scale: Float {
         get { _scale }
         set { _scale = max(0.1, min(3.0, newValue)) }
     }
-    
+
     var rotationRadians: Float {
         get {
-            return _rotationRadians
+            _rotationRadians
         }
         set {
             // Normalize to 0...2 * Float.pi
@@ -54,25 +59,25 @@ extension Scene: SceneInput {
             }
         }
     }
-    
+
     var translation: SIMD2<Float> {
         get { _translation }
         set {
             _translation = .init(
                 max(-1.0, min(2.0, newValue.x)),
-                max(-1.0, min(2.0, newValue.y))
+                max(-1.0, min(2.0, newValue.y)),
             )
         }
     }
-    
+
     var anchorPoint: SIMD2<Float> {
         get {
-            return _anchorPoint
+            _anchorPoint
         }
         set {
             _anchorPoint = .init(
                 max(0.0, min(1.0, newValue.x)),
-                max(0.0, min(1.0, newValue.y))
+                max(0.0, min(1.0, newValue.y)),
             )
         }
     }
@@ -81,33 +86,45 @@ extension Scene: SceneInput {
         get { _filterOffset }
         set { _filterOffset = newValue }
     }
+
+    func setPreparationResult(_ preparationResult: MetalPreparationResult) {
+        self.preparationResult = preparationResult
+    }
+
 }
 
+// MARK: SceneOutput
+
 extension Scene: SceneOutput {
+
+    // MARK: Internal
+
     func getRenderPassInput(
         renderingViewSize: SIMD2<Float>
     ) -> RenderPassInput? {
         guard let preparationResult else { return nil }
         let textureSize = SIMD2<Float>(
             Float(preparationResult.texture.width),
-            Float(preparationResult.texture.height)
+            Float(preparationResult.texture.height),
         )
         let transform = getTransform(
             textureSize: textureSize,
-            renderingViewSize: renderingViewSize
+            renderingViewSize: renderingViewSize,
         )
         return RenderPassInput(
             imageTexture: preparationResult.texture,
             transform: transform,
             bottomBackgroundColor: .init(preparationResult.bottomColor, 1),
             topBackgroundColor: .init(preparationResult.topColor, 1),
-            filterPositionOffset: _filterOffset
+            filterPositionOffset: _filterOffset,
         )
     }
 
+    // MARK: Private
+
     private func getTransform(
         textureSize: SIMD2<Float>,
-        renderingViewSize: SIMD2<Float>
+        renderingViewSize: SIMD2<Float>,
     ) -> float4x4 {
         TransformCalculator.getTransform(
             textureSize: textureSize,
@@ -116,7 +133,7 @@ extension Scene: SceneOutput {
             scale: _scale,
             rotation: _rotationRadians,
             translation: _translation,
-            aspectMode: .automatic(threshold: 4.0 / 5.0)
+            aspectMode: .automatic(threshold: 4.0 / 5.0),
         )
     }
 }

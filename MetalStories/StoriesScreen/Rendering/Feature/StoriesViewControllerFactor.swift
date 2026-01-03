@@ -6,20 +6,19 @@ enum StoriesViewControllerFactor {
         imageData: Data,
         renderPassType: RenderPassType,
     ) throws -> UIViewController {
-
         let gpu = GPU.default
 
         let renderingView = RenderingView(device: gpu.device)
         let renderPass = try RenderPassFactory.getRenderPass(
             gpu: gpu,
             pixelFormat: renderingView.pixelFormat,
-            forRenderPassType: renderPassType
+            forRenderPassType: renderPassType,
         )
         let scene = Scene()
         let renderer = Renderer(
             gpu: gpu,
             scene: scene,
-            renderPass: renderPass
+            renderPass: renderPass,
         )
         renderingView.delegate = renderer
 
@@ -28,7 +27,7 @@ enum StoriesViewControllerFactor {
             renderingView: renderingView,
             sceneInput: scene,
             offscreenRenderer: renderer,
-            imageData: imageData
+            imageData: imageData,
         )
     }
 }
