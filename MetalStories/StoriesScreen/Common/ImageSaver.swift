@@ -28,13 +28,7 @@ enum ImageSaver {
             newOrientation: newOrientation
         )
 
-        let destinationTypeIdentifier: CFString = {
-            if let imageSource, let type = CGImageSourceGetType(imageSource) {
-                return type
-            } else {
-                return UTType.heic.identifier as CFString
-            }
-        }()
+        let destinationTypeIdentifier = getDestinationTypeIdentifier(from: imageSource)
 
         let imageData = NSMutableData()
         let destination = CGImageDestinationCreateWithData(
@@ -79,6 +73,16 @@ enum ImageSaver {
         metadata[kCGImagePropertyOrientation] = newOrientation.rawValue
         
         return metadata as CFDictionary
+    }
+
+    private static func getDestinationTypeIdentifier(from imageSource: CGImageSource?) -> CFString {
+        if let imageSource, let type = CGImageSourceGetType(imageSource) {
+            let heicIdentifier = UTType.heic.identifier as CFString
+            if type == heicIdentifier {
+                return heicIdentifier
+            }
+        }
+        return UTType.jpeg.identifier as CFString
     }
 
     private static func makeImageSource(from data: Data?) -> CGImageSource? {

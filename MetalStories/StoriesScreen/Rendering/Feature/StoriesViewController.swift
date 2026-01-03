@@ -36,7 +36,7 @@ final class StoriesViewController: UIViewController {
             setupStoriesUI()
             setupGestureHandler()
         } catch {
-            setupFailureUI()
+            setupFailureUI(error: error)
         }
     }
 
@@ -80,6 +80,8 @@ final class StoriesViewController: UIViewController {
     }
 
     private func setupCommonUI() {
+        view.backgroundColor = .black
+        
         let safeArea = view.safeAreaLayoutGuide
 
         topContainer.translatesAutoresizingMaskIntoConstraints = false
@@ -95,6 +97,16 @@ final class StoriesViewController: UIViewController {
         closeButton.clipsToBounds = true
         closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
         topContainer.addSubview(closeButton)
+
+        let resetButton = UIButton(type: .system)
+        resetButton.setImage(UIImage(systemName: "arrow.circlepath"), for: .normal)
+        resetButton.tintColor = .white
+        resetButton.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+        resetButton.translatesAutoresizingMaskIntoConstraints = false
+        resetButton.layer.cornerRadius = 20
+        resetButton.clipsToBounds = true
+        resetButton.addTarget(self, action: #selector(resetButtonTapped), for: .touchUpInside)
+        topContainer.addSubview(resetButton)
 
         let saveButton = UIButton(type: .system)
         saveButton.setImage(UIImage(systemName: "arrowshape.down.circle"), for: .normal)
@@ -128,6 +140,11 @@ final class StoriesViewController: UIViewController {
             closeButton.heightAnchor.constraint(equalToConstant: 40),
             closeButton.widthAnchor.constraint(equalTo: closeButton.heightAnchor),
 
+            resetButton.trailingAnchor.constraint(equalTo: saveButton.leadingAnchor, constant: -12),
+            resetButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
+            resetButton.heightAnchor.constraint(equalToConstant: 40),
+            resetButton.widthAnchor.constraint(equalTo: resetButton.heightAnchor),
+
             saveButton.trailingAnchor.constraint(equalTo: topContainer.trailingAnchor, constant: -16),
             saveButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
             saveButton.heightAnchor.constraint(equalToConstant: 40),
@@ -140,9 +157,14 @@ final class StoriesViewController: UIViewController {
         dismiss(animated: true)
     }
 
+    @objc
+    private func resetButtonTapped() {
+        gestureHandler?.resetTracking()
+        sceneInput.reset()
+    }
+
     // TODO: fix layout errors
     private func setupStoriesUI() {
-        view.backgroundColor = .black
 
         let containerView = UIView()
         containerView.translatesAutoresizingMaskIntoConstraints = false
@@ -199,7 +221,7 @@ final class StoriesViewController: UIViewController {
                     case .success:
                         self?.showAlert(title: "Success", message: "Image saved to photo library")
                     case .failure:
-                        self?.showAlert(title: "Error", message: "Failed to SAVE image")
+                        self?.showAlert(title: "Error", message: "Failed to save image")
                     }
                 }
             }
@@ -218,14 +240,14 @@ final class StoriesViewController: UIViewController {
         present(alert, animated: true)
     }
 
-    private func setupFailureUI() {
-        view.backgroundColor = .systemBackground
+    private func setupFailureUI(error: Error) {
+        view.backgroundColor = .black
 
         let failureLabel = UILabel()
-        failureLabel.text = "Can't load image, try another image"
+        failureLabel.text = "Can't load image, try another image:\n`\(error.localizedDescription)`"
         failureLabel.textAlignment = .center
         failureLabel.font = .systemFont(ofSize: 17, weight: .medium)
-        failureLabel.textColor = .label
+        failureLabel.textColor = .white
         failureLabel.numberOfLines = 0
         failureLabel.translatesAutoresizingMaskIntoConstraints = false
 
@@ -246,4 +268,3 @@ final class StoriesViewController: UIViewController {
         )
     }
 }
-

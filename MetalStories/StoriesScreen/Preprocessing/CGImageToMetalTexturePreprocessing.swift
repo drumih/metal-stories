@@ -109,6 +109,7 @@ enum CGImageToMetalTexturePreprocessing {
         )
     }
 
+    // TODO: simplify
     private static func medianColor(from buffer: MTLBuffer) -> SIMD3<Float> {
         let histogramData = buffer.contents().bindMemory(
             to: UInt32.self,
@@ -154,7 +155,8 @@ enum CGImageToMetalTexturePreprocessing {
     ) throws -> MTLTexture {
         let textureLoader = MTKTextureLoader(device: device)
 
-        return try textureLoader.newTexture(
+        // TODO: fix some images loading!
+        let texture = try textureLoader.newTexture(
             cgImage: cgImage,
             options: [
                 .SRGB: NSNumber(false),
@@ -163,6 +165,32 @@ enum CGImageToMetalTexturePreprocessing {
                 .origin: MTKTextureLoader.Origin.flippedVertically.rawValue as NSString,
             ],
         )
+        
+        // textureLoader bugfix
+        guard cgImage.alphaInfo == .noneSkipFirst else {
+            return texture
+        }
+        
+        let swizzle = MTLTextureSwizzleChannels(
+            red:   .green,
+            green: .red,
+            blue:  .alpha,
+            alpha: .one
+        )
+
+        let swizzledTexture = texture.makeTextureView(
+            pixelFormat: .bgra8Unorm,
+            textureType: texture.textureType,
+            levels: 0..<texture.mipmapLevelCount,
+            slices: 0..<texture.arrayLength,
+            swizzle: swizzle
+        )
+
+        guard let swizzledTexture else {
+            throw NSError() // TODO: throw something normal
+        }
+
+        return swizzledTexture
     }
 
     private static func getHistogramTexture(

@@ -4,18 +4,15 @@ import simd
 // MARK: - SceneInput
 
 protocol SceneInput: AnyObject {
-    // transforms
 
     var scale: Float { get set } // in range 0.1 ... 3
     var rotationRadians: Float { get set } // no limits, but must be normalized on set
     var translation: SIMD2<Float> { get set } // -1...2
     var anchorPoint: SIMD2<Float> { get set } // in range 0...1
 
-    // filter selection
-
     var filterOffset: Float { get set }
-
-    // input image and background colors
+    
+    func reset()
 
     func setPreparationResult(_ preparationResult: MetalPreparationResult)
 }
@@ -87,6 +84,14 @@ extension Scene: SceneInput {
     var filterOffset: Float {
         get { _filterOffset }
         set { _filterOffset = newValue }
+    }
+
+    func reset() {
+        _anchorPoint = .init(0.5, 0.5)
+        _translation = .init(0.5, 0.5)
+        _rotationRadians = 0
+        _scale = 1
+        self.filterOffset = 0
     }
 
     func setPreparationResult(_ preparationResult: MetalPreparationResult) {

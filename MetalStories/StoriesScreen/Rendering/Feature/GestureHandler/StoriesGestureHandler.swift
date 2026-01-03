@@ -371,6 +371,13 @@ final class StoriesGestureHandler {
 
     let sceneInput: SceneInput
 
+    func resetTracking() {
+        trackedTouches.removeAll()
+        singleFingerHandler.cancelAnimations()
+        singleFingerHandler.resetTracking()
+        twoFingerHandler.resetTracking()
+    }
+
     // MARK: Private
 
     private var trackedTouches = [UITouch]()
