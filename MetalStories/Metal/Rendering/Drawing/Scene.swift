@@ -106,11 +106,11 @@ extension Scene: SceneOutput {
             renderingViewSize: renderingViewSize
         )
         return RenderPassInput(
-            texture: preparationResult.texture,
+            imageTexture: preparationResult.texture,
             transform: transform,
             bottomBackgroundColor: .init(preparationResult.bottomColor, 1),
             topBackgroundColor: .init(preparationResult.topColor, 1),
-            offset: _filterOffset
+            filterPositionOffset: _filterOffset
         )
     }
 

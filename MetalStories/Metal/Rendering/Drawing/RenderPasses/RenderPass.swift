@@ -8,5 +8,6 @@ protocol RenderPass: AnyObject {
         input: RenderPassInput
     )
 
+    // TODO: fix it somehow and use better api
     func copy() throws -> any RenderPass
 }

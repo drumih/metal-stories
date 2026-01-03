@@ -28,6 +28,10 @@ enum TransformCalculator {
     static func getFlippedVerticallyTransform() -> float4x4 {
         scaleMatrix(.init(x: 1, y: -1))
     }
+
+    static func getIdentityTransform() -> float4x4 {
+        matrix_identity_float4x4
+    }
 }
 
 private extension TransformCalculator {

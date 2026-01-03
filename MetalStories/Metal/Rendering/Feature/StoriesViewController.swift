@@ -1,5 +1,6 @@
 import UIKit
 
+// TODO: add title
 final class StoriesViewController: UIViewController {
     
     private static let maxImageSize = CGSize(width: 1920, height: 1920)

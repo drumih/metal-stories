@@ -3,6 +3,9 @@ import Photos
 import PhotosUI
 import UniformTypeIdentifiers
 
+
+// TODO: refactor it, make it more clear. refactor to view and presenter
+
 final class EntryViewController: UIViewController {
 
     // MARK: - Constants
@@ -64,15 +67,15 @@ final class EntryViewController: UIViewController {
     }()
 
     private lazy var renderPassSegmentedControl: UISegmentedControl = {
-        let control = UISegmentedControl(items: ["Simple", "Intermediate"])
+        let control = UISegmentedControl(items: ["Simple", "Intermediate", "Tiled"])
         control.addTarget(self, action: #selector(renderPassTypeChanged), for: .valueChanged)
         control.translatesAutoresizingMaskIntoConstraints = false
         return control
     }()
 
-    private var selectedRenderPassType: RenderPassType = .withIntermediateTexture {
+    private var selectedRenderPassType: RenderPassType = .tiled {
         didSet {
-            renderPassSegmentedControl.selectedSegmentIndex = selectedRenderPassType == .simple ? 0 : 1
+            renderPassSegmentedControl.selectedSegmentIndex = segmentIndex(for: selectedRenderPassType)
         }
     }
 
@@ -140,7 +143,8 @@ final class EntryViewController: UIViewController {
 
     private func setupUI() {
         view.backgroundColor = .systemBackground
-        renderPassSegmentedControl.selectedSegmentIndex = selectedRenderPassType == .simple ? 0 : 1
+        
+        renderPassSegmentedControl.selectedSegmentIndex = segmentIndex(for: selectedRenderPassType)
 
         accessStackView.addArrangedSubview(accessLabel)
         accessStackView.addArrangedSubview(accessSwitch)
@@ -340,7 +344,34 @@ final class EntryViewController: UIViewController {
     }
 
     @objc private func renderPassTypeChanged(_ sender: UISegmentedControl) {
-        selectedRenderPassType = sender.selectedSegmentIndex == 0 ? .simple : .withIntermediateTexture
+        selectedRenderPassType = renderPassType(for: sender.selectedSegmentIndex)
+    }
+    
+    // MARK: - Render Pass Type Helpers
+    
+    private func segmentIndex(for renderPassType: RenderPassType) -> Int {
+        switch renderPassType {
+        case .simple:
+            return 0
+        case .withIntermediateTexture:
+            return 1
+        case .tiled:
+            return 2
+        }
+    }
+    
+    private func renderPassType(for segmentIndex: Int) -> RenderPassType {
+        switch segmentIndex {
+        case 0:
+            return .simple
+        case 1:
+            return .withIntermediateTexture
+        case 2:
+            return .tiled
+        default:
+            assertionFailure()
+            return .withIntermediateTexture
+        }
     }
 
     @objc private func loadPreviousImageTapped() {

@@ -56,7 +56,7 @@ extension RenderPassSimple: RenderPass {
         )
         drawImage(
             renderEncoder: renderEncoder,
-            texture: input.texture,
+            texture: input.imageTexture,
             transform: input.transform
         )
         
@@ -89,7 +89,7 @@ extension RenderPassSimple: RenderPass {
         renderEncoder.label = "Draw Background (Simple)"
         renderEncoder.setRenderPipelineState(backgroundPSO)
         
-        var transform = matrix_identity_float4x4
+        var transform = TransformCalculator.getIdentityTransform()
         renderEncoder.setVertexBytes(
             &transform,
             length: MemoryLayout<float4x4>.stride,

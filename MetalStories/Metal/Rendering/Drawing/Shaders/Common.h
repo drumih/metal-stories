@@ -5,14 +5,16 @@
 using namespace metal;
 
 
-// Vertex Out
+// MARK: - Vertex Out
 struct VertexOut {
     float4 position [[position]];
     float2 uv;
 };
 
-// Fragment Out
+// MARK: - Fragment Out
 
-// TODO: implement
+struct FragmentOut {
+    float4 color [[color(1)]];
+};
 
 #endif // !Common_h
