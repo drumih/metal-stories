@@ -67,13 +67,13 @@ final class EntryViewController: UIViewController {
     }()
 
     private lazy var renderPassSegmentedControl: UISegmentedControl = {
-        let control = UISegmentedControl(items: ["Simple", "Intermediate", "Tiled"])
+        let control = UISegmentedControl(items: ["Simple", "Intermediate", "Tile"])
         control.addTarget(self, action: #selector(renderPassTypeChanged), for: .valueChanged)
         control.translatesAutoresizingMaskIntoConstraints = false
         return control
     }()
 
-    private var selectedRenderPassType: RenderPassType = .tiled {
+    private var selectedRenderPassType: RenderPassType = .tileMemory {
         didSet {
             renderPassSegmentedControl.selectedSegmentIndex = segmentIndex(for: selectedRenderPassType)
         }
@@ -355,7 +355,7 @@ final class EntryViewController: UIViewController {
             return 0
         case .withIntermediateTexture:
             return 1
-        case .tiled:
+        case .tileMemory:
             return 2
         }
     }
@@ -367,7 +367,7 @@ final class EntryViewController: UIViewController {
         case 1:
             return .withIntermediateTexture
         case 2:
-            return .tiled
+            return .tileMemory
         default:
             assertionFailure()
             return .withIntermediateTexture

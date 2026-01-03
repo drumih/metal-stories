@@ -41,7 +41,7 @@ float4 fragment_post_processing(VertexOut in [[ stage_in ]],
 }
 
 fragment
-float4 fragment_post_processing_tiled(VertexOut vertexIn [[ stage_in ]],
+float4 fragment_post_processing_tile_memory(VertexOut vertexIn [[ stage_in ]],
                                       FragmentOut fragmentIn,
                                       constant float& offset [[ buffer(0) ]]
                                       ) {

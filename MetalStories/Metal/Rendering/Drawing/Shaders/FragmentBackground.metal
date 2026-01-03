@@ -14,7 +14,7 @@ float4 fragment_background(VertexOut in [[ stage_in ]],
 }
 
 fragment
-FragmentOut fragment_background_tiled(VertexOut in [[ stage_in ]],
+FragmentOut fragment_background_tile_memory(VertexOut in [[ stage_in ]],
                                       constant float4& top_color [[ buffer(0) ]],
                                       constant float4& bottom_color [[ buffer(1) ]]
                                       ) {

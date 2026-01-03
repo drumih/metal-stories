@@ -1,6 +1,6 @@
 import Metal
 
-enum PipelineStateObjectsTiled {
+enum PipelineStateObjectsTileMemory {
     static func imagePipeline(
         library: MTLLibrary,
         pixelFormat: MTLPixelFormat,
@@ -9,7 +9,7 @@ enum PipelineStateObjectsTiled {
 
         guard
             let vertexFunction = library.makeFunction(name: "vertex_general"),
-            let fragmentFunction = library.makeFunction(name: "fragment_image_tiled")
+            let fragmentFunction = library.makeFunction(name: "fragment_image_tile_memory")
         else {
             throw NSError()// TODO: throw normal error
         }
@@ -36,7 +36,7 @@ enum PipelineStateObjectsTiled {
 
         guard
             let vertexFunction = library.makeFunction(name: "vertex_general"),
-            let fragmentFunction = library.makeFunction(name: "fragment_background_tiled")
+            let fragmentFunction = library.makeFunction(name: "fragment_background_tile_memory")
         else {
             throw NSError()// TODO: throw normal error
         }
@@ -64,7 +64,7 @@ enum PipelineStateObjectsTiled {
     ) throws -> MTLRenderPipelineState {
         guard
             let vertexFunction = library.makeFunction(name: "vertex_general"),
-            let fragmentFunction = library.makeFunction(name: "fragment_post_processing_tiled")
+            let fragmentFunction = library.makeFunction(name: "fragment_post_processing_tile_memory")
         else {
             throw NSError()// TODO: throw normal error
         }

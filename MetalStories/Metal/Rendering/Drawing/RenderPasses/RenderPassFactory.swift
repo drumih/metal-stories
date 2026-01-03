@@ -3,7 +3,7 @@ import Metal
 enum RenderPassType {
     case simple
     case withIntermediateTexture
-    case tiled
+    case tileMemory
 }
 
 enum RenderPassFactory {
@@ -23,8 +23,8 @@ enum RenderPassFactory {
                 gpu: gpu,
                 pixelFormat: pixelFormat
             )
-        case .tiled:
-            try RenderPassTiled(
+        case .tileMemory:
+            try RenderPassTileMemory(
                 gpu: gpu,
                 pixelFormat: pixelFormat
             )

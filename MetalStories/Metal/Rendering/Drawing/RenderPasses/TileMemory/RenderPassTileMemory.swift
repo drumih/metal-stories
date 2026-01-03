@@ -1,7 +1,7 @@
 import Metal
 import simd
 
-final class RenderPassTiled {
+final class RenderPassTileMemory {
 
     private let gpu: GPU
     private let pixelFormat: MTLPixelFormat
@@ -28,17 +28,17 @@ final class RenderPassTiled {
         self.depthTexturePixelFormat = .depth32Float
         let bundle = Bundle(for: RenderPassSimple.self)
         let library = try gpu.device.makeDefaultLibrary(bundle: bundle)
-        self.imageRenderPSO = try PipelineStateObjectsTiled.imagePipeline(
+        self.imageRenderPSO = try PipelineStateObjectsTileMemory.imagePipeline(
             library: library,
             pixelFormat: pixelFormat,
             memorylessTexturePixelFormat: pixelFormat
         )
-        self.backgroundPSO = try PipelineStateObjectsTiled.backgroundPipeline(
+        self.backgroundPSO = try PipelineStateObjectsTileMemory.backgroundPipeline(
             library: library,
             pixelFormat: pixelFormat,
             memorylessTexturePixelFormat: pixelFormat
         )
-        self.postProcessingPSO = try PipelineStateObjectsTiled.postProcessingPipeline(
+        self.postProcessingPSO = try PipelineStateObjectsTileMemory.postProcessingPipeline(
             library: library,
             pixelFormat: pixelFormat,
             memorylessTexturePixelFormat: pixelFormat
@@ -107,7 +107,7 @@ final class RenderPassTiled {
     }
 }
 
-extension RenderPassTiled: RenderPass {
+extension RenderPassTileMemory: RenderPass {
 
     func copy() throws -> any RenderPass {
         try Self(gpu: gpu, pixelFormat: pixelFormat)
@@ -166,7 +166,7 @@ extension RenderPassTiled: RenderPass {
         renderEncoder: MTLRenderCommandEncoder,
         offset: Float
     ) {
-        renderEncoder.label = "Post Processing (Tiled)"
+        renderEncoder.label = "Post Processing (Tile Memory)"
         renderEncoder.setRenderPipelineState(postProcessingPSO)
 
         var transform = TransformCalculator.getIdentityTransform()
@@ -189,7 +189,7 @@ extension RenderPassTiled: RenderPass {
         texture: MTLTexture,
         transform: float4x4
     ) {
-        renderEncoder.label = "Draw Image (Tiled)"
+        renderEncoder.label = "Draw Image (Tile Memory)"
         renderEncoder.setRenderPipelineState(imageRenderPSO)
 
         var transform = transform
@@ -207,7 +207,7 @@ extension RenderPassTiled: RenderPass {
         topColor: SIMD4<Float>,
         bottomColor: SIMD4<Float>
     ) {
-        renderEncoder.label = "Draw Background (Tiled)"
+        renderEncoder.label = "Draw Background (Tile Memory)"
         renderEncoder.setRenderPipelineState(backgroundPSO)
 
         // TODO: check, if translation needed here
