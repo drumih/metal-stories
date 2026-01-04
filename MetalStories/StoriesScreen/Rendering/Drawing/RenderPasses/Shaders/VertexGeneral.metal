@@ -13,7 +13,7 @@ VertexOut vertex_general(uint vid [[vertex_id]],
         case 2: position = float4(-1.f,  1.f, 0.f, 1.f); uv = float2(0.f, 1.f); break;
         case 3: position = float4( 1.f,  1.f, 0.f, 1.f); uv = float2(1.f, 1.f); break;
     }
-
+    
     VertexOut out {
         .position = transformMVP * position,
         .uv = uv

@@ -1,52 +1,65 @@
 #include "Common.h"
 
+constant short kFiltersCount = 2;
+
+// MARK: filters
+
 METAL_FUNC
 float3 black_and_white(float3 rgb) {
-    const auto rec_709_coeff = float3(0.2126f, 0.7152f, 0.0722f);
-    const auto blackAndWhite = dot(rec_709_coeff, rgb);
+    constexpr float3 kRec709Coeff = float3(0.2126f, 0.7152f, 0.0722f);
+    const auto blackAndWhite = dot(kRec709Coeff, rgb);
     return saturate(blackAndWhite);
 }
 
+// TODO: implement sepia filter
+// TODO: implement instagram Paris filter
+// TODO: implement instagram Fade Cold filter
+// TODO: implement Instagram Fade Warm filter
+
+
+// MARK: filter selection
+
 METAL_FUNC
 float3 process_rgb(float3 rgb, float2 uv, float offset) {
-    // TODO: refactor this piece of code a bit
-    constexpr float filterCountF = 2.f;
-    const auto wrapped = offset - filterCountF * floor(offset / filterCountF);
-    const auto mode = short(floor(wrapped));
-    const auto next_mode = (mode + 1) % short(filterCountF);
-    const auto target_mode = uv.x > fract(wrapped) ? mode : next_mode;
-
-    float3 target_color;
-
-    switch (target_mode) {
-        case 0: target_color = rgb; break;
-        case 1: target_color = black_and_white(rgb); break;
-        default: target_color = rgb; break;
+    const float filtersCount = float(kFiltersCount);
+    const float normalizedOffset = offset - filtersCount * floor(offset / filtersCount);
+    const short currentMode = short(normalizedOffset);
+    const float splitPoint = normalizedOffset - float(currentMode);
+    const short nextMode = (currentMode + 1) % kFiltersCount;
+    const short targetMode = uv.x > splitPoint ? currentMode : nextMode;
+    
+    float3 targetColor;
+    
+    switch (targetMode) {
+        case 0: targetColor = rgb; break;
+        case 1: targetColor = black_and_white(rgb); break;
+        default: targetColor = rgb; break;
     }
     
-    return saturate(target_color);
+    return saturate(targetColor);
 }
+
+// MARK: fragment shaders
 
 fragment
 float4 fragment_post_processing(VertexOut in [[ stage_in ]],
                                 texture2d<float, access::sample> texture [[ texture(0) ]],
                                 constant float& offset [[ buffer(0) ]]
                                 ) {
-    // TODO: use better sampler
     constexpr sampler textureSampler(filter::linear,
                                      address::repeat);
     const auto color = texture.sample(textureSampler, in.uv);
-    const auto processed_rgb = process_rgb(color.rgb, in.uv, offset);
-    return float4(processed_rgb, color.a);
+    const auto processedRGB = process_rgb(color.rgb, in.uv, offset);
+    return float4(processedRGB, color.a);
 }
 
 fragment
 float4 fragment_post_processing_tile_memory(VertexOut vertexIn [[ stage_in ]],
-                                      FragmentOut fragmentIn,
-                                      constant float& offset [[ buffer(0) ]]
-                                      ) {
+                                            FragmentOut fragmentIn,
+                                            constant float& offset [[ buffer(0) ]]
+                                            ) {
     const auto color = fragmentIn.color;
-    const auto processed_rgb = process_rgb(color.rgb, vertexIn.uv, offset);
+    const auto processedRGB = process_rgb(color.rgb, vertexIn.uv, offset);
     
-    return float4(processed_rgb, color.a);
+    return float4(processedRGB, color.a);
 }
