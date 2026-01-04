@@ -17,17 +17,17 @@ final class RenderPassTileMemory {
         depthTexturePixelFormat = .depth32Float
         let bundle = Bundle(for: RenderPassSimple.self)
         let library = try gpu.device.makeDefaultLibrary(bundle: bundle)
-        imageRenderPSO = try PipelineStateObjectsTileMemory.imagePipeline(
+        imageRenderPSO = try PipelineStateObjectsFactory.imageTileMemoryPipeline(
             library: library,
             pixelFormat: pixelFormat,
             memorylessTexturePixelFormat: pixelFormat,
         )
-        backgroundPSO = try PipelineStateObjectsTileMemory.backgroundPipeline(
+        backgroundPSO = try PipelineStateObjectsFactory.backgroundTileMemoryPipeline(
             library: library,
             pixelFormat: pixelFormat,
             memorylessTexturePixelFormat: pixelFormat,
         )
-        postProcessingPSO = try PipelineStateObjectsTileMemory.postProcessingPipeline(
+        postProcessingPSO = try PipelineStateObjectsFactory.postProcessingTileMemoryPipeline(
             library: library,
             pixelFormat: pixelFormat,
             memorylessTexturePixelFormat: pixelFormat,

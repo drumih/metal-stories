@@ -15,15 +15,15 @@ final class RenderPassWithRegularIntermediateTexture {
         self.pixelFormat = pixelFormat
         let bundle = Bundle(for: RenderPassSimple.self)
         let library = try gpu.device.makeDefaultLibrary(bundle: bundle)
-        imageRenderPSO = try PipelineStateObjectsSimple.imagePipeline(
+        imageRenderPSO = try PipelineStateObjectsFactory.imageBasePipeline(
             library: library,
             pixelFormat: pixelFormat,
         )
-        backgroundPSO = try PipelineStateObjectsSimple.backgroundPipeline(
+        backgroundPSO = try PipelineStateObjectsFactory.backgroundBasePipeline(
             library: library,
             pixelFormat: pixelFormat,
         )
-        postProcessingPSO = try PipelineStateObjectsWithIntermediateTexture.postProcessingPipeline(
+        postProcessingPSO = try PipelineStateObjectsFactory.postProcessingBasePipeline(
             library: library,
             pixelFormat: pixelFormat,
         )

@@ -1,20 +1,11 @@
-import Photos
 import PhotosUI
 import UIKit
 import UniformTypeIdentifiers
 
-// MARK: - PhotoSelectionViewState
-
-enum PhotoSelectionViewState {
-    case authorized(previewImage: UIImage?)
-    case denied
-    case notDetermined
-}
-
 // MARK: - PhotoSelectionView
 
 protocol PhotoSelectionView: AnyObject {
-    func updateState(_ state: PhotoSelectionViewState)
+    func updateState(_ cachedImage: UIImage?)
     func presentStoriesEditor(imageData: Data, renderPassType: RenderPassType)
     func showErrorAlert(message: String)
 }
@@ -35,14 +26,6 @@ final class PhotoSelectionPresenter {
 
     func viewWillAppear() {
         loadSavedImagePreview()
-    }
-
-    func requestGalleryAccess() {
-        PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.updateViewState()
-            }
-        }
     }
 
     func updateRenderPassType(_ type: RenderPassType) {
@@ -126,16 +109,7 @@ final class PhotoSelectionPresenter {
     private var previewImage: UIImage?
 
     private func updateViewState() {
-        switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
-        case .authorized, .limited:
-            view?.updateState(.authorized(previewImage: previewImage))
-        case .denied, .restricted:
-            view?.updateState(.denied)
-        case .notDetermined:
-            view?.updateState(.notDetermined)
-        @unknown default:
-            break
-        }
+        view?.updateState(previewImage)
     }
 
     private func getSavedImageURL() -> URL? {

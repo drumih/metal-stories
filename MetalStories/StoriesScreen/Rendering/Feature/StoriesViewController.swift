@@ -1,5 +1,6 @@
 import UIKit
 
+// TODO: for ui setup, layout and creation follow the same pattern as PhotoSelectionViewController
 final class StoriesViewController: UIViewController {
 
     // MARK: Lifecycle
