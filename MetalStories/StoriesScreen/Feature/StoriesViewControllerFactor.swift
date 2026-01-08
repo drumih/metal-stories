@@ -29,7 +29,7 @@ enum StoriesViewControllerFactor {
             renderingView: renderingView,
             sceneInput: scene,
             offscreenRenderer: renderer,
-            imageData: imageData,
+            inputImageData: imageData,
             title: title,
         )
     }

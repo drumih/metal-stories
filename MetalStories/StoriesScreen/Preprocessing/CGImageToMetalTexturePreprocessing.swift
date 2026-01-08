@@ -187,7 +187,7 @@ enum CGImageToMetalTexturePreprocessing {
         )
 
         guard let swizzledTexture else {
-            throw NSError() // TODO: throw something normal
+            throw ImagePreprocessingError.failedToCreateTexture
         }
 
         return swizzledTexture

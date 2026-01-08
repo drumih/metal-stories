@@ -4,9 +4,6 @@ import UIKit
 
 // MARK: - SingleFingerGestureHandler
 
-// TODO: more responsive swipe for single gesture
-// TODO: finish single gesture the moment two fingers gesture started
-
 private final class SingleFingerGestureHandler {
 
     // MARK: Lifecycle
@@ -409,8 +406,10 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
             singleFingerHandler.startGesture(with: touch, in: view)
 
         case 2:
+            if singleFingerHandler.isGestureActive {
+                singleFingerHandler.snapOffsetIfNeeded()
+            }
             singleFingerHandler.resetTracking()
-            singleFingerHandler.cancelAnimations()
             twoFingerHandler.startGesture(with: trackedTouches, in: view)
 
         default:

@@ -37,9 +37,21 @@ final class Renderer {
 
 // MARK: - RendererError
 
-enum RendererError: Error {
+enum RendererError: LocalizedError {
     case failedToGetRenderPassInput
     case failedToCreateOffscreenTexture
+    case failedToCreateCommandBuffer
+
+    var errorDescription: String? {
+        switch self {
+        case .failedToGetRenderPassInput:
+            return "Unable to prepare the image for rendering. Please try again."
+        case .failedToCreateOffscreenTexture:
+            return "Unable to create output texture. The device may be low on memory."
+        case .failedToCreateCommandBuffer:
+            return "Unable to initialize GPU rendering. Please try again."
+        }
+    }
 }
 
 // MARK: RenderingViewDelegate
@@ -110,7 +122,7 @@ extension Renderer: OffscreenRenderer {
         }
 
         guard let commandBuffer = gpu.processingCommandQueue.makeCommandBuffer() else {
-            throw NSError()
+            throw RendererError.failedToCreateCommandBuffer
         }
 
         let renderPassDescriptor = MTLRenderPassDescriptor()

@@ -1,6 +1,29 @@
 import Metal
 import simd
 
+enum RenderPassTileMemoryError: LocalizedError {
+    case failedToCreateDepthStencilState
+    case failedToCreatePostProcessingDepthStencilState
+    case invalidTextureSize(width: Int, height: Int)
+    case failedToCreateIntermediateTexture(width: Int, height: Int, pixelFormat: MTLPixelFormat)
+    case failedToCreateDepthTexture(width: Int, height: Int, pixelFormat: MTLPixelFormat)
+
+    var errorDescription: String? {
+        switch self {
+        case .failedToCreateDepthStencilState:
+            return "Unable to create a depth stencil state for tile memory rendering."
+        case .failedToCreatePostProcessingDepthStencilState:
+            return "Unable to create a post-processing depth stencil state for tile memory rendering."
+        case .invalidTextureSize(let width, let height):
+            return "Invalid texture size for tile memory rendering (\(width)x\(height))."
+        case .failedToCreateIntermediateTexture(let width, let height, let pixelFormat):
+            return "Unable to create intermediate texture (\(width)x\(height), \(pixelFormat))."
+        case .failedToCreateDepthTexture(let width, let height, let pixelFormat):
+            return "Unable to create depth texture (\(width)x\(height), \(pixelFormat))."
+        }
+    }
+}
+
 // MARK: - RenderPassTileMemory
 
 final class RenderPassTileMemory {
@@ -63,7 +86,7 @@ final class RenderPassTileMemory {
         descriptor.depthCompareFunction = .less // TODO: double check
         descriptor.isDepthWriteEnabled = true
         guard let stencilState = device.makeDepthStencilState(descriptor: descriptor) else {
-            throw NSError() // TODO: throw normal error
+            throw RenderPassTileMemoryError.failedToCreateDepthStencilState
         }
         return stencilState
     }
@@ -73,7 +96,7 @@ final class RenderPassTileMemory {
         let descriptor = MTLDepthStencilDescriptor()
         descriptor.isDepthWriteEnabled = false
         guard let stencilState = device.makeDepthStencilState(descriptor: descriptor) else {
-            throw NSError() // TODO: throw normal error
+            throw RenderPassTileMemoryError.failedToCreatePostProcessingDepthStencilState
         }
         return stencilState
     }
@@ -95,22 +118,37 @@ final class RenderPassTileMemory {
         return device.makeTexture(descriptor: descriptor)
     }
 
-    private func updateIntermediateTexture(forSize size: CGSize) {
+    private func updateIntermediateTexture(forSize size: CGSize) throws {
+        let width = Int(size.width)
+        let height = Int(size.height)
+        guard width > 0, height > 0 else {
+            throw RenderPassTileMemoryError.invalidTextureSize(width: width, height: height)
+        }
         let texture = Self.makeTexture(
             device: device,
             pixelFormat: pixelFormat,
-            width: Int(size.width),
-            height: Int(size.height),
+            width: width,
+            height: height,
         )
         let depthTexture = Self.makeTexture(
             device: device,
             pixelFormat: .depth32Float,
-            width: Int(size.width),
-            height: Int(size.height),
+            width: width,
+            height: height,
         )
-        guard let texture, let depthTexture else {
-            assertionFailure()
-            return
+        guard let texture else {
+            throw RenderPassTileMemoryError.failedToCreateIntermediateTexture(
+                width: width,
+                height: height,
+                pixelFormat: pixelFormat
+            )
+        }
+        guard let depthTexture else {
+            throw RenderPassTileMemoryError.failedToCreateDepthTexture(
+                width: width,
+                height: height,
+                pixelFormat: .depth32Float
+            )
         }
         intermediateTexture = texture
         self.depthTexture = depthTexture
@@ -125,7 +163,15 @@ extension RenderPassTileMemory: RenderPass {
     // MARK: Internal
 
     func resize(size: CGSize) {
-        updateIntermediateTexture(forSize: size)
+        do {
+            try updateIntermediateTexture(forSize: size)
+        } catch {
+            intermediateTexture = nil
+            depthTexture = nil
+            #if DEBUG
+            assertionFailure(error.localizedDescription)
+            #endif
+        }
     }
 
     func draw(
@@ -133,10 +179,7 @@ extension RenderPassTileMemory: RenderPass {
         renderPassDescriptor rpd: MTLRenderPassDescriptor,
         input: RenderPassInput,
     ) {
-        guard let intermediateTexture, let depthTexture else {
-            assertionFailure()
-            return
-        }
+        guard let intermediateTexture, let depthTexture else { return }
 
         rpd.colorAttachments[1]?.texture = intermediateTexture
         rpd.colorAttachments[1]?.loadAction = .dontCare

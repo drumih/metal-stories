@@ -1,7 +1,14 @@
 import Metal
 
-enum PipelineStateObjectsFactoryError: Error {
+enum PipelineStateObjectsFactoryError: LocalizedError {
     case failedToCreateFunction(name: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .failedToCreateFunction(let name):
+            return "Unable to create GPU shader function '\(name)'. The app may need to be reinstalled."
+        }
+    }
 }
 
 enum PipelineStateObjectsFactory {

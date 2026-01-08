@@ -4,10 +4,21 @@ import Metal
 
 // MARK: - CGImageFromMetalTextureError
 
-enum CGImageFromMetalTextureError: Error {
+enum CGImageFromMetalTextureError: LocalizedError {
     case unsupportedPixelFormat
     case failedToCreateDataProvider
     case failedToCreateImage
+
+    var errorDescription: String? {
+        switch self {
+        case .unsupportedPixelFormat:
+            return "The image format is not supported for export."
+        case .failedToCreateDataProvider:
+            return "Unable to read the rendered image data."
+        case .failedToCreateImage:
+            return "Unable to create the final image for export."
+        }
+    }
 }
 
 // MARK: - CGImageFromMetalTexture

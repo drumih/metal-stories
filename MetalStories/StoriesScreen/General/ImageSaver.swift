@@ -8,16 +8,31 @@ enum ImageSaver {
     
     // MARK: - ImageSaverError
 
-    enum ImageSaverError: Error {
+    enum ImageSaverError: LocalizedError {
         case failedToCreateImageDestination
         case failedToFinalizeImageDestination
         case failedToSaveImage
+        case photoLibraryAccessDenied
+
+        var errorDescription: String? {
+            switch self {
+            case .failedToCreateImageDestination:
+                return "Unable to prepare the image for saving."
+            case .failedToFinalizeImageDestination:
+                return "Unable to encode the image. Please try again."
+            case .failedToSaveImage:
+                return "Unable to save the image to your photo library."
+            case .photoLibraryAccessDenied:
+                return "Photo library access is required. Please enable it in Settings."
+            }
+        }
     }
-    
+
     static func saveImage(
         _ cgImage: CGImage,
         newOrientation: CGImagePropertyOrientation,
         originalData: Data?,
+        callbackQueue: DispatchQueue,
         completion: @escaping (Result<Void, Error>) -> Void,
     ) {
         let imageDataResult = makeImageData(
@@ -25,6 +40,13 @@ enum ImageSaver {
             newOrientation: newOrientation,
             originalData: originalData
         )
+        
+        let onCompletion: (Result<Void, Error>) -> Void = { result in
+            callbackQueue.async {
+                completion(result)
+            }
+        }
+        
         switch imageDataResult {
         case let .success(result):
             requestPhotoLibraryAccess { accessResult in
@@ -33,14 +55,14 @@ enum ImageSaver {
                     saveToPhotoLibrary(
                         imageData: result.data,
                         destinationTypeIdentifier: result.typeIdentifier,
-                        completion: completion
+                        completion: onCompletion
                     )
                 case let .failure(error):
-                    completion(.failure(error))
+                    onCompletion(.failure(error))
                 }
             }
         case let .failure(error):
-            completion(.failure(error))
+            onCompletion(.failure(error))
         }
     }
 
@@ -117,7 +139,7 @@ enum ImageSaver {
         }
 
         guard currentStatus == .notDetermined else {
-            completion(.failure(ImageSaverError.failedToSaveImage))
+            completion(.failure(ImageSaverError.photoLibraryAccessDenied))
             return
         }
 

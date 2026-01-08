@@ -1,6 +1,5 @@
 import UIKit
 
-// TODO: for ui setup, layout and creation follow the same pattern as PhotoSelectionViewController
 final class StoriesViewController: UIViewController {
 
     // MARK: Lifecycle
@@ -10,14 +9,14 @@ final class StoriesViewController: UIViewController {
         renderingView: RenderingView,
         sceneInput: SceneInput,
         offscreenRenderer: OffscreenRenderer,
-        imageData: Data,
+        inputImageData: Data,
         title: String,
     ) {
         self.gpu = gpu
         self.renderingView = renderingView
         self.sceneInput = sceneInput
         self.offscreenRenderer = offscreenRenderer
-        self.imageData = imageData
+        self.inputImageData = inputImageData
         self.titleString = title
 
         super.init(nibName: nil, bundle: nil)
@@ -31,10 +30,9 @@ final class StoriesViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupCommonUI()
         do {
             try prepareImage()
-            setupStoriesUI()
+            setupUI()
             setupGestureHandler()
         } catch {
             setupFailureUI(error: error)
@@ -48,15 +46,32 @@ final class StoriesViewController: UIViewController {
 
     private let gpu: GPU
     private let renderingView: RenderingView
-    private let touchTrackingView: TouchTrackingView = {
+    
+    private var isSavingEnabled: Bool = true {
+        didSet {
+            topPanelView.isSaveButtonEnabled = isSavingEnabled
+        }
+    }
+
+    private lazy var touchTrackingView: TouchTrackingView = {
         let view = TouchTrackingView()
         view.isMultipleTouchEnabled = true
         view.backgroundColor = .clear
         return view
     }()
-    private let topContainer: UIView = {
+
+    private lazy var topPanelView: StoriesTopPanelView = {
+        let view = StoriesTopPanelView(title: titleString)
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.layer.zPosition = 1
+        view.delegate = self
+        return view
+    }()
+
+    // TODO: looks like it is possible to avoid intermediate view
+    private let containerView: UIView = {
         let view = UIView()
-        view.backgroundColor = .clear
+        view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
 
@@ -64,13 +79,16 @@ final class StoriesViewController: UIViewController {
     private let offscreenRenderer: OffscreenRenderer
     private var gestureHandler: StoriesGestureHandler?
 
-    private let imageData: Data
-
+    private let inputImageData: Data
     private let titleString: String
+}
 
+// MARK: - Image Handling
+
+extension StoriesViewController {
     private func prepareImage() throws {
         let cgImage = try DataToCGImagePreprocessing.loadCGImage(
-            from: imageData,
+            from: inputImageData,
             maxPixelSize: Self.maxImageSize,
         )
         let preparationResult = try CGImageToMetalTexturePreprocessing.prepareCGImage(
@@ -79,96 +97,57 @@ final class StoriesViewController: UIViewController {
         )
         sceneInput.setPreparationResult(preparationResult)
     }
+    
+    private func saveImage() {
+        guard isSavingEnabled else { return }
+        isSavingEnabled = false
 
-    private func setupCommonUI() {
-        view.backgroundColor = .black
+        let cgImage: CGImage
+        do {
+            cgImage = try offscreenRenderer.renderImageToOffscreenTexture(
+                size: Self.imageOutputSize,
+                colorSpace: CGColorSpaceCreateDeviceRGB(),
+            )
+        } catch {
+            isSavingEnabled = true
+            showAlert(title: "Error", message: error.localizedDescription)
+            return
+        }
         
+        ImageSaver.saveImage(
+            cgImage,
+            newOrientation: .up,
+            originalData: inputImageData,
+            callbackQueue: .main
+        ) { [weak self] result in
+            self?.isSavingEnabled = true
+            switch result {
+            case .success:
+                self?.showAlert(title: "Success", message: "Image saved to photo library")
+            case .failure(let error):
+                self?.showAlert(title: "Error", message: error.localizedDescription)
+            }
+        }
+    }
+}
+
+// MARK: - UI
+
+extension StoriesViewController {
+    
+    private func setupGestureHandler() {
+        gestureHandler = StoriesGestureHandler(
+            touchTrackingView: touchTrackingView,
+            sceneInput: sceneInput,
+        )
+    }
+    
+    private func setupUI() {
+        view.backgroundColor = .black
+
         let safeArea = view.safeAreaLayoutGuide
 
-        topContainer.translatesAutoresizingMaskIntoConstraints = false
-        topContainer.layer.zPosition = 1
-        view.addSubview(topContainer)
-
-        let closeButton = UIButton(type: .system)
-        closeButton.setImage(UIImage(systemName: "xmark"), for: .normal)
-        closeButton.tintColor = .white
-        closeButton.backgroundColor = UIColor.white.withAlphaComponent(0.2)
-        closeButton.translatesAutoresizingMaskIntoConstraints = false
-        closeButton.layer.cornerRadius = 20
-        closeButton.clipsToBounds = true
-        closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
-        topContainer.addSubview(closeButton)
-
-        let resetButton = UIButton(type: .system)
-        resetButton.setImage(UIImage(systemName: "arrow.circlepath"), for: .normal)
-        resetButton.tintColor = .white
-        resetButton.backgroundColor = UIColor.white.withAlphaComponent(0.2)
-        resetButton.translatesAutoresizingMaskIntoConstraints = false
-        resetButton.layer.cornerRadius = 20
-        resetButton.clipsToBounds = true
-        resetButton.addTarget(self, action: #selector(resetButtonTapped), for: .touchUpInside)
-        topContainer.addSubview(resetButton)
-
-        let saveButton = UIButton(type: .system)
-        saveButton.setImage(UIImage(systemName: "arrowshape.down.circle"), for: .normal)
-        saveButton.tintColor = .white
-        saveButton.backgroundColor = UIColor.white.withAlphaComponent(0.2)
-        saveButton.translatesAutoresizingMaskIntoConstraints = false
-        saveButton.layer.cornerRadius = 20
-        saveButton.clipsToBounds = true
-        saveButton.addTarget(self, action: #selector(exportButtonTapped), for: .touchUpInside)
-        topContainer.addSubview(saveButton)
-
-        let titleLabel = UILabel()
-        titleLabel.text = titleString
-        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
-        titleLabel.textColor = .white
-        titleLabel.textAlignment = .center
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        topContainer.addSubview(titleLabel)
-
-        NSLayoutConstraint.activate([
-            topContainer.topAnchor.constraint(equalTo: safeArea.topAnchor),
-            topContainer.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor),
-            topContainer.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor),
-
-            titleLabel.topAnchor.constraint(equalTo: topContainer.topAnchor, constant: 12),
-            titleLabel.centerXAnchor.constraint(equalTo: topContainer.centerXAnchor),
-            titleLabel.bottomAnchor.constraint(equalTo: topContainer.bottomAnchor, constant: -12),
-
-            closeButton.leadingAnchor.constraint(equalTo: topContainer.leadingAnchor, constant: 16),
-            closeButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            closeButton.heightAnchor.constraint(equalToConstant: 40),
-            closeButton.widthAnchor.constraint(equalTo: closeButton.heightAnchor),
-
-            resetButton.trailingAnchor.constraint(equalTo: saveButton.leadingAnchor, constant: -12),
-            resetButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            resetButton.heightAnchor.constraint(equalToConstant: 40),
-            resetButton.widthAnchor.constraint(equalTo: resetButton.heightAnchor),
-
-            saveButton.trailingAnchor.constraint(equalTo: topContainer.trailingAnchor, constant: -16),
-            saveButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            saveButton.heightAnchor.constraint(equalToConstant: 40),
-            saveButton.widthAnchor.constraint(equalTo: saveButton.heightAnchor),
-        ])
-    }
-
-    @objc
-    private func closeButtonTapped() {
-        dismiss(animated: true)
-    }
-
-    @objc
-    private func resetButtonTapped() {
-        gestureHandler?.resetTracking()
-        sceneInput.reset()
-    }
-
-    // TODO: fix layout errors
-    private func setupStoriesUI() {
-
-        let containerView = UIView()
-        containerView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(topPanelView)
         view.addSubview(containerView)
 
         renderingView.translatesAutoresizingMaskIntoConstraints = false
@@ -178,16 +157,20 @@ final class StoriesViewController: UIViewController {
         renderingView.addSubview(touchTrackingView)
 
         let aspectRatio = containerView.heightAnchor.constraint(equalTo: containerView.widthAnchor, multiplier: 16.0 / 9.0)
-        let preferredWidth = containerView.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor)
+        let preferredWidth = containerView.widthAnchor.constraint(equalTo: safeArea.widthAnchor)
         preferredWidth.priority = .defaultHigh
 
         NSLayoutConstraint.activate([
-            containerView.topAnchor.constraint(equalTo: topContainer.bottomAnchor, constant: 12),
+            topPanelView.topAnchor.constraint(equalTo: safeArea.topAnchor),
+            topPanelView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor),
+            topPanelView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor),
+
+            containerView.topAnchor.constraint(equalTo: topPanelView.bottomAnchor, constant: 12),
             containerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            containerView.widthAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.widthAnchor),
+            containerView.widthAnchor.constraint(lessThanOrEqualTo: safeArea.widthAnchor),
             preferredWidth,
-            containerView.heightAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.heightAnchor),
-            containerView.bottomAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor),
+            containerView.heightAnchor.constraint(lessThanOrEqualTo: safeArea.heightAnchor),
+            containerView.bottomAnchor.constraint(lessThanOrEqualTo: safeArea.bottomAnchor),
             aspectRatio,
 
             renderingView.topAnchor.constraint(equalTo: containerView.topAnchor),
@@ -202,36 +185,25 @@ final class StoriesViewController: UIViewController {
         ])
     }
 
-    @objc
-    private func exportButtonTapped() {
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
+    private func setupFailureUI(error: Error) {
+        let failureView = StoriesFailureView(error: error)
+        failureView.translatesAutoresizingMaskIntoConstraints = false
+        failureView.delegate = self
 
-        do {
-            let cgImage = try offscreenRenderer.renderImageToOffscreenTexture(
-                size: Self.imageOutputSize,
-                colorSpace: colorSpace,
-            )
+        view.addSubview(failureView)
 
-            ImageSaver.saveImage(
-                cgImage,
-                newOrientation: .up,
-                originalData: imageData,
-            ) { [weak self] result in
-                DispatchQueue.main.async {
-                    switch result {
-                    case .success:
-                        self?.showAlert(title: "Success", message: "Image saved to photo library")
-                    case .failure:
-                        self?.showAlert(title: "Error", message: "Failed to save image")
-                    }
-                }
-            }
-        } catch {
-            showAlert(title: "Error", message: "Failed to export image")
-        }
+        NSLayoutConstraint.activate([
+            failureView.topAnchor.constraint(equalTo: view.topAnchor),
+            failureView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            failureView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            failureView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+        ])
     }
 
-    private func showAlert(title: String, message: String) {
+    private func showAlert(
+        title: String,
+        message: String
+    ) {
         let alert = UIAlertController(
             title: title,
             message: message,
@@ -240,32 +212,29 @@ final class StoriesViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
+}
 
-    private func setupFailureUI(error: Error) {
-        view.backgroundColor = .black
+// MARK: - StoriesTopPanelViewDelegate
 
-        let failureLabel = UILabel()
-        failureLabel.text = "Can't load image, try another image:\n`\(error.localizedDescription)`"
-        failureLabel.textAlignment = .center
-        failureLabel.font = .systemFont(ofSize: 17, weight: .medium)
-        failureLabel.textColor = .white
-        failureLabel.numberOfLines = 0
-        failureLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        view.addSubview(failureLabel)
-
-        NSLayoutConstraint.activate([
-            failureLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            failureLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            failureLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
-            failureLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20),
-        ])
+extension StoriesViewController: StoriesTopPanelViewDelegate {
+    func storiesTopPanelDidTapClose() {
+        dismiss(animated: true)
     }
 
-    private func setupGestureHandler() {
-        gestureHandler = StoriesGestureHandler(
-            touchTrackingView: touchTrackingView,
-            sceneInput: sceneInput,
-        )
+    func storiesTopPanelDidTapReset() {
+        gestureHandler?.resetTracking()
+        sceneInput.reset()
+    }
+
+    func storiesTopPanelDidTapSave() {
+        saveImage()
+    }
+}
+
+// MARK: - StoriesFailureViewDelegate
+
+extension StoriesViewController: StoriesFailureViewDelegate {
+    func storiesFailureViewDidTapBack() {
+        dismiss(animated: true)
     }
 }

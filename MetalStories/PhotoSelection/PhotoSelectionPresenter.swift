@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 // MARK: - PhotoSelectionView
 
-protocol PhotoSelectionView: AnyObject {
+protocol PhotoSelectionViewProtocol: AnyObject {
     func updateState(_ cachedImage: UIImage?)
     func presentStoriesEditor(imageData: Data, renderPassType: RenderPassType)
     func showErrorAlert(message: String)
@@ -16,7 +16,7 @@ final class PhotoSelectionPresenter {
 
     // MARK: Lifecycle
 
-    init(view: PhotoSelectionView) {
+    init(view: PhotoSelectionViewProtocol) {
         self.view = view
     }
 
@@ -105,7 +105,7 @@ final class PhotoSelectionPresenter {
         static let previewMaxDimensionSize: CGFloat = 1080
     }
 
-    private weak var view: PhotoSelectionView?
+    private weak var view: PhotoSelectionViewProtocol?
     private var previewImage: UIImage?
 
     private func updateViewState() {
