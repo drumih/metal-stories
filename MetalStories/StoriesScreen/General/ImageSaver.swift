@@ -2,7 +2,6 @@ import CoreGraphics
 import Foundation
 import ImageIO
 import Photos
-import UniformTypeIdentifiers
 
 enum ImageSaver {
     

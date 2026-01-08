@@ -1,5 +1,24 @@
 import MetalKit
 
+// MARK: - RendererError
+
+enum RendererError: LocalizedError {
+    case failedToGetRenderPassInput
+    case failedToCreateOffscreenTexture
+    case failedToCreateCommandBuffer
+
+    var errorDescription: String? {
+        switch self {
+        case .failedToGetRenderPassInput:
+            return "Unable to prepare the image for rendering. Please try again."
+        case .failedToCreateOffscreenTexture:
+            return "Unable to create output texture. The device may be low on memory."
+        case .failedToCreateCommandBuffer:
+            return "Unable to initialize GPU rendering. Please try again."
+        }
+    }
+}
+
 // MARK: - OffscreenRenderer
 
 protocol OffscreenRenderer: AnyObject {
@@ -35,25 +54,6 @@ final class Renderer {
 
 }
 
-// MARK: - RendererError
-
-enum RendererError: LocalizedError {
-    case failedToGetRenderPassInput
-    case failedToCreateOffscreenTexture
-    case failedToCreateCommandBuffer
-
-    var errorDescription: String? {
-        switch self {
-        case .failedToGetRenderPassInput:
-            return "Unable to prepare the image for rendering. Please try again."
-        case .failedToCreateOffscreenTexture:
-            return "Unable to create output texture. The device may be low on memory."
-        case .failedToCreateCommandBuffer:
-            return "Unable to initialize GPU rendering. Please try again."
-        }
-    }
-}
-
 // MARK: RenderingViewDelegate
 
 extension Renderer: RenderingViewDelegate {
@@ -62,6 +62,7 @@ extension Renderer: RenderingViewDelegate {
         renderPass.resize(size: size)
     }
 
+    // TODO: do I need three texture here to reuse?
     func draw(in view: MTKView) {
         let drawableSize = SIMD2<Float>(
             Float(view.drawableSize.width),
@@ -92,7 +93,6 @@ extension Renderer: RenderingViewDelegate {
 
 extension Renderer: OffscreenRenderer {
 
-    // TODO: do I need three texture here to reuse?
     // TODO: clean up this code later
     func renderImageToOffscreenTexture(
         size: CGSize,

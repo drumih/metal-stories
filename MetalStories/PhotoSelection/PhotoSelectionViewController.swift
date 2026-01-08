@@ -5,14 +5,13 @@ import UIKit
 
 
 final class PhotoSelectionViewController: UIViewController {
+    
+    private enum Constants {
+        static let cachedImageFileName = "cached_image.dat"
+        static let previewMaxDimensionSize: CGFloat = 1080
+    }
 
     // MARK: Internal
-
-    var presenter: PhotoSelectionPresenter!
-
-    override func loadView() {
-        view = PhotoSelectionView()
-    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -21,22 +20,28 @@ final class PhotoSelectionViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        presenter.viewWillAppear()
+        loadSavedImagePreview()
     }
 
     private func setupUI() {
-        contentView.configure(selectedRenderPassIndex: presenter.selectedRenderPassType.rawValue)
+        view.addSubview(contentView)
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            contentView.topAnchor.constraint(equalTo: view.topAnchor),
+            contentView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            contentView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+    }
+
+    private lazy var contentView: PhotoSelectionView = {
+        let contentView = PhotoSelectionView()
+        contentView.configure(selectedRenderPassIndex: selectedRenderPassType.rawValue)
         contentView.delegate = self
-    }
-
-    private var contentView: PhotoSelectionView {
-        guard let contentView = view as? PhotoSelectionView else {
-            fatalError("PhotoSelectionViewController expects PhotoSelectionView")
-        }
         return contentView
-    }
+    }()
 
-    private func selectPhotoTapped() {
+    private func selectPhoto() {
         var configuration = PHPickerConfiguration(photoLibrary: .shared())
         configuration.filter = .images
         configuration.selectionLimit = 1
@@ -46,30 +51,123 @@ final class PhotoSelectionViewController: UIViewController {
         present(picker, animated: true)
     }
 
-    private func renderPassTypeChanged(selectedIndex: Int) {
-        guard let renderPassType = RenderPassType(rawValue: selectedIndex) else {
+    private func changeRenderPassType(to index: Int) {
+        guard let renderPassType = RenderPassType(rawValue: index) else {
             assertionFailure()
             return
         }
-        presenter.updateRenderPassType(renderPassType)
+        selectedRenderPassType = renderPassType
     }
 
-    private func loadPreviousImageTapped() {
-        presenter.loadPreviousImage()
+    private var selectedRenderPassType = RenderPassType.tileMemory
+    private var previewImage: UIImage?
+
+    private func updateViewState() {
+        contentView.updateCachedImage(previewImage)
     }
 
-    private func deletePreviousImageTapped() {
-        presenter.deleteSavedImage()
+    private func getSavedImageURL() -> URL? {
+        guard
+            let documentsDirectory = FileManager.default.urls(
+                for: .documentDirectory,
+                in: .userDomainMask,
+            ).first
+        else {
+            return nil
+        }
+        return documentsDirectory.appendingPathComponent(
+            Constants.cachedImageFileName
+        )
+    }
+
+    private func loadSavedImageData() -> Data? {
+        guard
+            let fileURL = getSavedImageURL(),
+            FileManager.default.fileExists(atPath: fileURL.path)
+        else {
+            return nil
+        }
+        return try? Data(contentsOf: fileURL)
+    }
+
+    private func loadSavedImagePreview() {
+        defer { updateViewState() }
+        guard let imageData = loadSavedImageData() else {
+            previewImage = nil
+            return
+        }
+
+        do {
+            let (cgImage, _) = try DataToCGImagePreprocessing.loadCGImage(
+                from: imageData,
+                maxPixelSize: Constants.previewMaxDimensionSize,
+            )
+            previewImage = UIImage(cgImage: cgImage)
+        } catch {
+            previewImage = nil
+        }
+    }
+
+    private func deleteSavedImage() {
+        guard
+            let fileURL = getSavedImageURL(),
+            FileManager.default.fileExists(atPath: fileURL.path)
+        else {
+            return
+        }
+        do {
+            try FileManager.default.removeItem(at: fileURL)
+            previewImage = nil
+            updateViewState()
+        } catch {
+            showErrorAlert(
+                message: "Failed to delete saved image"
+            )
+        }
+    }
+
+    private func loadPreviousImage() {
+        guard let imageData = loadSavedImageData() else {
+            showErrorAlert(message: "No saved image found.")
+            return
+        }
+        presentStoriesEditor(
+            imageData: imageData,
+            renderPassType: selectedRenderPassType,
+        )
+    }
+
+    private func didSelectImage(_ result: PHPickerResult) {
+        result.itemProvider
+            .loadDataRepresentation(
+                forTypeIdentifier: UTType.image.identifier
+            ) { [weak self] data, error in
+                guard let self else { return }
+
+                guard let data, error == nil else {
+                    DispatchQueue.main.async {
+                        self.showErrorAlert(message: "Failed to load image. Please try again.")
+                    }
+                    return
+                }
+
+                if let fileURL = self.getSavedImageURL() {
+                    try? data.write(to: fileURL)
+                }
+
+                DispatchQueue.main.async {
+                    self.presentStoriesEditor(
+                        imageData: data,
+                        renderPassType: self.selectedRenderPassType,
+                    )
+                }
+            }
     }
 }
 
 // MARK: PhotoSelectionView
 
-extension PhotoSelectionViewController: PhotoSelectionViewProtocol {
-
-    func updateState(_ cachedImage: UIImage?) {
-        contentView.updateCachedImage(cachedImage)
-    }
+extension PhotoSelectionViewController {
 
     func presentStoriesEditor(imageData: Data, renderPassType: RenderPassType) {
         do {
@@ -94,25 +192,24 @@ extension PhotoSelectionViewController: PhotoSelectionViewProtocol {
         present(alert, animated: true)
     }
 }
-
 // MARK: PhotoSelectionViewDelegate
 
 extension PhotoSelectionViewController: PhotoSelectionViewDelegate {
 
     func photoSelectionViewDidTapSelectPhoto(_ view: PhotoSelectionView) {
-        selectPhotoTapped()
+        selectPhoto()
     }
 
     func photoSelectionView(_ view: PhotoSelectionView, didChangeRenderPassIndex index: Int) {
-        renderPassTypeChanged(selectedIndex: index)
+        changeRenderPassType(to: index)
     }
 
     func photoSelectionViewDidTapUseCachedImage(_ view: PhotoSelectionView) {
-        loadPreviousImageTapped()
+        loadPreviousImage()
     }
 
     func photoSelectionViewDidTapDeleteCachedImage(_ view: PhotoSelectionView) {
-        deletePreviousImageTapped()
+        deleteSavedImage()
     }
 }
 
@@ -126,6 +223,6 @@ extension PhotoSelectionViewController: PHPickerViewControllerDelegate {
     ) {
         picker.dismiss(animated: true)
         guard let result = results.first else { return }
-        presenter.didSelectImage(result)
+        didSelectImage(result)
     }
 }

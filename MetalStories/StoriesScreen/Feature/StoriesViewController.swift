@@ -68,13 +68,6 @@ final class StoriesViewController: UIViewController {
         return view
     }()
 
-    // TODO: looks like it is possible to avoid intermediate view
-    private let containerView: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-
     private let sceneInput: SceneInput
     private let offscreenRenderer: OffscreenRenderer
     private var gestureHandler: StoriesGestureHandler?
@@ -148,16 +141,15 @@ extension StoriesViewController {
         let safeArea = view.safeAreaLayoutGuide
 
         view.addSubview(topPanelView)
-        view.addSubview(containerView)
 
         renderingView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(renderingView)
+        view.addSubview(renderingView)
 
         touchTrackingView.translatesAutoresizingMaskIntoConstraints = false
         renderingView.addSubview(touchTrackingView)
 
-        let aspectRatio = containerView.heightAnchor.constraint(equalTo: containerView.widthAnchor, multiplier: 16.0 / 9.0)
-        let preferredWidth = containerView.widthAnchor.constraint(equalTo: safeArea.widthAnchor)
+        let aspectRatio = renderingView.heightAnchor.constraint(equalTo: renderingView.widthAnchor, multiplier: 16.0 / 9.0)
+        let preferredWidth = renderingView.widthAnchor.constraint(equalTo: safeArea.widthAnchor)
         preferredWidth.priority = .defaultHigh
 
         NSLayoutConstraint.activate([
@@ -165,18 +157,13 @@ extension StoriesViewController {
             topPanelView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor),
             topPanelView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor),
 
-            containerView.topAnchor.constraint(equalTo: topPanelView.bottomAnchor, constant: 12),
-            containerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            containerView.widthAnchor.constraint(lessThanOrEqualTo: safeArea.widthAnchor),
+            renderingView.topAnchor.constraint(equalTo: topPanelView.bottomAnchor, constant: 12),
+            renderingView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            renderingView.widthAnchor.constraint(lessThanOrEqualTo: safeArea.widthAnchor),
             preferredWidth,
-            containerView.heightAnchor.constraint(lessThanOrEqualTo: safeArea.heightAnchor),
-            containerView.bottomAnchor.constraint(lessThanOrEqualTo: safeArea.bottomAnchor),
+            renderingView.heightAnchor.constraint(lessThanOrEqualTo: safeArea.heightAnchor),
+            renderingView.bottomAnchor.constraint(lessThanOrEqualTo: safeArea.bottomAnchor),
             aspectRatio,
-
-            renderingView.topAnchor.constraint(equalTo: containerView.topAnchor),
-            renderingView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-            renderingView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            renderingView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
 
             touchTrackingView.topAnchor.constraint(equalTo: renderingView.topAnchor),
             touchTrackingView.bottomAnchor.constraint(equalTo: renderingView.bottomAnchor),
