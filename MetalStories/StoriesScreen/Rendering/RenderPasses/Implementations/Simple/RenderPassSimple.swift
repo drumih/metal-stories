@@ -8,13 +8,12 @@ final class RenderPassSimple {
     // MARK: Lifecycle
 
     init(
-        gpu: GPU,
+        device: MTLDevice,
         pixelFormat: MTLPixelFormat,
     ) throws {
-        self.gpu = gpu
         self.pixelFormat = pixelFormat
         let bundle = Bundle(for: RenderPassSimple.self)
-        let library = try gpu.device.makeDefaultLibrary(bundle: bundle)
+        let library = try device.makeDefaultLibrary(bundle: bundle)
         imageRenderPSO = try PipelineStateObjectsFactory.imageBasePipeline(
             library: library,
             pixelFormat: pixelFormat,
@@ -27,7 +26,6 @@ final class RenderPassSimple {
 
     // MARK: Private
 
-    private let gpu: GPU
     private let pixelFormat: MTLPixelFormat
 
     private let imageRenderPSO: MTLRenderPipelineState
@@ -38,12 +36,6 @@ final class RenderPassSimple {
 // MARK: RenderPass
 
 extension RenderPassSimple: RenderPass {
-
-    // MARK: Internal
-
-    func copy() throws -> any RenderPass {
-        try RenderPassSimple(gpu: gpu, pixelFormat: pixelFormat)
-    }
 
     func resize(size _: CGSize) {
         // --

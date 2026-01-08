@@ -10,28 +10,40 @@ enum RenderPassType: Int {
 
 // MARK: - RenderPassFactory
 
-enum RenderPassFactory {
-    static func getRenderPass(
-        gpu: GPU,
+final class RenderPassFactory {
+    
+    private let device: MTLDevice
+
+    private let pixelFormat: MTLPixelFormat
+    private let renderPassType: RenderPassType
+    
+    init(
+        device: MTLDevice,
         pixelFormat: MTLPixelFormat,
-        forRenderPassType renderPassType: RenderPassType,
-    ) throws -> any RenderPass {
+        renderPassType: RenderPassType
+    ) {
+        self.device = device
+        self.pixelFormat = pixelFormat
+        self.renderPassType = renderPassType
+    }
+
+    func createNewRenderPass() throws -> any RenderPass {
         switch renderPassType {
         case .simple:
             try RenderPassSimple(
-                gpu: gpu,
+                device: device,
                 pixelFormat: pixelFormat,
             )
 
         case .withIntermediateTexture:
             try RenderPassWithRegularIntermediateTexture(
-                gpu: gpu,
+                device: device,
                 pixelFormat: pixelFormat,
             )
 
         case .tileMemory:
             try RenderPassTileMemory(
-                gpu: gpu,
+                device: device,
                 pixelFormat: pixelFormat,
             )
         }

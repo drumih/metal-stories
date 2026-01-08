@@ -37,7 +37,6 @@ private final class SingleFingerGestureHandler {
             lastPoint: startPoint,
             lastTimestamp: touch.timestamp,
             lastVelocity: 0,
-            lastAcceleration: 0,
         )
     }
 
@@ -62,8 +61,6 @@ private final class SingleFingerGestureHandler {
         let dt = currentTime - snapshot.lastTimestamp
         if dt > 0 {
             let velocity = Float((currentPoint.x - snapshot.lastPoint.x) / bounds.width) / Float(dt)
-            let acceleration = (velocity - snapshot.lastVelocity) / Float(dt)
-            snapshot.lastAcceleration = acceleration
             snapshot.lastVelocity = velocity
         }
         snapshot.lastPoint = currentPoint
@@ -75,28 +72,12 @@ private final class SingleFingerGestureHandler {
         guard let snapshot else { return }
         let currentOffset = sceneInput.filterOffset
         let velocity = snapshot.lastVelocity
-        let acceleration = snapshot.lastAcceleration
-
-        let lower = floor(currentOffset)
-        let upper = lower + 1
-        let midpoint = lower + 0.5
-
-        let projectedOffset = currentOffset
-            + velocity * 0.25 // increased inertia so smaller swipes can cross midpoint
-            + acceleration * 0.07 // acceleration nudges the snap direction
-
-        // Snap strictly to the nearest neighbor; inertia only influences which side of the midpoint we land on.
-        let targetOffset: Float =
-            if projectedOffset == lower || projectedOffset == upper {
-                projectedOffset
-            } else {
-                projectedOffset < midpoint ? lower : upper
-            }
-
-        startFilterOffsetAnimation(
-            to: targetOffset,
-            initialVelocity: velocity,
+        let targetOffset = calculateSnapTarget(
+            currentPosition: currentOffset,
+            velocity: velocity,
         )
+
+        startFilterOffsetAnimation(to: targetOffset)
     }
 
     func resetTracking() {
@@ -115,7 +96,6 @@ private final class SingleFingerGestureHandler {
         var lastPoint: CGPoint
         var lastTimestamp: TimeInterval
         var lastVelocity: Float
-        var lastAcceleration: Float
     }
 
     private struct FilterOffsetAnimation {
@@ -141,7 +121,6 @@ extension SingleFingerGestureHandler {
 
     private func startFilterOffsetAnimation(
         to targetOffset: Float,
-        initialVelocity: Float,
     ) {
         let startOffset = sceneInput.filterOffset
         let distance = abs(targetOffset - startOffset)
@@ -152,11 +131,8 @@ extension SingleFingerGestureHandler {
             return
         }
 
-        // Duration scales with distance and velocity to feel smooth.
-        let velocityComponent = max(0.1, min(1.0, Double(abs(initialVelocity)) * 0.5))
-        let baseDuration = 0.16 + 0.18 * velocityComponent
-        let distanceComponent = Double(distance) * 0.25
-        let clampedDuration = max(0.16, min(0.45, baseDuration + distanceComponent))
+        // Duration scales with distance for a consistent snap feel.
+        let clampedDuration = max(0.28, min(0.7, Double(distance) * 0.45))
 
         filterOffsetAnimation = FilterOffsetAnimation(
             startValue: startOffset,
@@ -182,7 +158,7 @@ extension SingleFingerGestureHandler {
         let progress = min(1.0, elapsed / animation.duration)
 
         // Ease-out cubic for a smooth finish.
-        let eased = 1.0 - pow(1.0 - progress, 3)
+        let eased = 1.0 - pow(1.0 - progress, 3.0)
         let newOffset = animation.startValue + Float(eased) * (animation.targetValue - animation.startValue)
         sceneInput.filterOffset = newOffset
 
@@ -191,6 +167,33 @@ extension SingleFingerGestureHandler {
             cancelFilterOffsetAnimation()
             return
         }
+    }
+}
+
+extension SingleFingerGestureHandler {
+    private func calculateSnapTarget(
+        currentPosition: Float,
+        velocity: Float,
+    ) -> Float {
+        let lowerBound = floor(currentPosition)
+        let upperBound = ceil(currentPosition)
+
+        if lowerBound == upperBound {
+            return lowerBound
+        }
+
+        let distanceToLower = currentPosition - lowerBound
+        let distanceToUpper = upperBound - currentPosition
+
+        let velocityThreshold: Float = 0.3
+        if abs(velocity) < velocityThreshold {
+            return distanceToLower < distanceToUpper ? lowerBound : upperBound
+        }
+
+        if velocity > 0 {
+            return (distanceToLower < 0.15) ? lowerBound : upperBound
+        }
+        return (distanceToUpper < 0.15) ? upperBound : lowerBound
     }
 }
 

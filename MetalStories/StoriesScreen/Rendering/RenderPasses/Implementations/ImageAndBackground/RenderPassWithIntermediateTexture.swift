@@ -8,13 +8,13 @@ final class RenderPassWithRegularIntermediateTexture {
     // MARK: Lifecycle
 
     init(
-        gpu: GPU,
+        device: MTLDevice,
         pixelFormat: MTLPixelFormat,
     ) throws {
-        self.gpu = gpu
+        self.device = device
         self.pixelFormat = pixelFormat
         let bundle = Bundle(for: RenderPassSimple.self)
-        let library = try gpu.device.makeDefaultLibrary(bundle: bundle)
+        let library = try device.makeDefaultLibrary(bundle: bundle)
         imageRenderPSO = try PipelineStateObjectsFactory.imageBasePipeline(
             library: library,
             pixelFormat: pixelFormat,
@@ -31,7 +31,7 @@ final class RenderPassWithRegularIntermediateTexture {
 
     // MARK: Private
 
-    private let gpu: GPU
+    private let device: MTLDevice
     private let pixelFormat: MTLPixelFormat
 
     private let imageRenderPSO: MTLRenderPipelineState
@@ -59,7 +59,7 @@ final class RenderPassWithRegularIntermediateTexture {
 
     private func updateIntermediateTexture(forSize size: CGSize) {
         let texture = Self.makeTexture(
-            device: gpu.device,
+            device: device,
             pixelFormat: pixelFormat,
             width: Int(size.width),
             height: Int(size.height),
@@ -78,10 +78,6 @@ final class RenderPassWithRegularIntermediateTexture {
 extension RenderPassWithRegularIntermediateTexture: RenderPass {
 
     // MARK: Internal
-
-    func copy() throws -> any RenderPass {
-        try Self(gpu: gpu, pixelFormat: pixelFormat)
-    }
 
     func resize(size: CGSize) {
         updateIntermediateTexture(forSize: size)

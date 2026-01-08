@@ -8,15 +8,17 @@ final class RenderPassTileMemory {
     // MARK: Lifecycle
 
     init(
-        gpu: GPU,
+        device: MTLDevice,
         pixelFormat: MTLPixelFormat,
     ) throws {
-        self.gpu = gpu
+        self.device = device
         self.pixelFormat = pixelFormat
+
         intermediateTexturePixelFormat = pixelFormat
         depthTexturePixelFormat = .depth32Float
-        let bundle = Bundle(for: RenderPassSimple.self)
-        let library = try gpu.device.makeDefaultLibrary(bundle: bundle)
+
+        let bundle = Bundle(for: Self.self)
+        let library = try device.makeDefaultLibrary(bundle: bundle)
         imageRenderPSO = try PipelineStateObjectsFactory.imageTileMemoryPipeline(
             library: library,
             pixelFormat: pixelFormat,
@@ -33,14 +35,16 @@ final class RenderPassTileMemory {
             memorylessTexturePixelFormat: pixelFormat,
         )
 
-        depthStencilState = try Self.makeDepthStencilState(device: gpu.device)
-        postProcessingDepthStencilState = try Self.makePostProcessingDepthStencilState(device: gpu.device)
+        depthStencilState = try Self.makeDepthStencilState(device: device)
+        postProcessingDepthStencilState = try Self.makePostProcessingDepthStencilState(device: device)
     }
 
     // MARK: Private
 
-    private let gpu: GPU
+    private let device: MTLDevice
     private let pixelFormat: MTLPixelFormat
+    
+    // use another pixel format
     private let intermediateTexturePixelFormat: MTLPixelFormat
     private let depthTexturePixelFormat: MTLPixelFormat
 
@@ -93,13 +97,13 @@ final class RenderPassTileMemory {
 
     private func updateIntermediateTexture(forSize size: CGSize) {
         let texture = Self.makeTexture(
-            device: gpu.device,
+            device: device,
             pixelFormat: pixelFormat,
             width: Int(size.width),
             height: Int(size.height),
         )
         let depthTexture = Self.makeTexture(
-            device: gpu.device,
+            device: device,
             pixelFormat: .depth32Float,
             width: Int(size.width),
             height: Int(size.height),
@@ -119,10 +123,6 @@ final class RenderPassTileMemory {
 extension RenderPassTileMemory: RenderPass {
 
     // MARK: Internal
-
-    func copy() throws -> any RenderPass {
-        try Self(gpu: gpu, pixelFormat: pixelFormat)
-    }
 
     func resize(size: CGSize) {
         updateIntermediateTexture(forSize: size)

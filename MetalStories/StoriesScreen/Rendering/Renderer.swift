@@ -18,17 +18,19 @@ final class Renderer {
     init(
         gpu: GPU,
         scene: any SceneOutput,
-        renderPass: any RenderPass,
-    ) {
+        renderPassFactory: RenderPassFactory,
+    ) throws {
         self.gpu = gpu
         self.scene = scene
-        self.renderPass = renderPass
+        self.renderPassFactory = renderPassFactory
+        self.renderPass = try renderPassFactory.createNewRenderPass()
     }
 
     // MARK: Private
 
     private let gpu: GPU
     private let scene: any SceneOutput
+    private let renderPassFactory: RenderPassFactory
     private let renderPass: any RenderPass
 
 }
@@ -38,6 +40,40 @@ final class Renderer {
 enum RendererError: Error {
     case failedToGetRenderPassInput
     case failedToCreateOffscreenTexture
+}
+
+// MARK: RenderingViewDelegate
+
+extension Renderer: RenderingViewDelegate {
+
+    func mtkView(_: MTKView, drawableSizeWillChange size: CGSize) {
+        renderPass.resize(size: size)
+    }
+
+    func draw(in view: MTKView) {
+        let drawableSize = SIMD2<Float>(
+            Float(view.drawableSize.width),
+            Float(view.drawableSize.height),
+        )
+
+        guard
+            let input = scene.getRenderPassInput(renderingViewSize: drawableSize),
+            let commandBuffer = gpu.renderingCommandQueue.makeCommandBuffer(),
+            let descriptor = view.currentRenderPassDescriptor
+        else {
+            return
+        }
+
+        renderPass.draw(
+            commandBuffer: commandBuffer,
+            renderPassDescriptor: descriptor,
+            input: input,
+        )
+
+        guard let drawable = view.currentDrawable else { return }
+        commandBuffer.present(drawable)
+        commandBuffer.commit()
+    }
 }
 
 // MARK: OffscreenRenderer
@@ -58,7 +94,7 @@ extension Renderer: OffscreenRenderer {
             throw RendererError.failedToGetRenderPassInput
         }
 
-        let offscreenRenderPass = try renderPass.copy()
+        let offscreenRenderPass = try renderPassFactory.createNewRenderPass()
         offscreenRenderPass.resize(size: size)
         let offscreenTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
             pixelFormat: targetPixelFormat,
@@ -95,39 +131,5 @@ extension Renderer: OffscreenRenderer {
             from: offscreenTexture,
             colorSpace: colorSpace,
         )
-    }
-}
-
-// MARK: RenderingViewDelegate
-
-extension Renderer: RenderingViewDelegate {
-
-    func mtkView(_: MTKView, drawableSizeWillChange size: CGSize) {
-        renderPass.resize(size: size)
-    }
-
-    func draw(in view: MTKView) {
-        let drawableSize = SIMD2<Float>(
-            Float(view.drawableSize.width),
-            Float(view.drawableSize.height),
-        )
-
-        guard
-            let input = scene.getRenderPassInput(renderingViewSize: drawableSize),
-            let commandBuffer = gpu.renderingCommandQueue.makeCommandBuffer(),
-            let descriptor = view.currentRenderPassDescriptor
-        else {
-            return
-        }
-
-        renderPass.draw(
-            commandBuffer: commandBuffer,
-            renderPassDescriptor: descriptor,
-            input: input,
-        )
-
-        guard let drawable = view.currentDrawable else { return }
-        commandBuffer.present(drawable)
-        commandBuffer.commit()
     }
 }

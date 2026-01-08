@@ -9,16 +9,17 @@ enum StoriesViewControllerFactor {
         let gpu = GPU.default
 
         let renderingView = RenderingView(device: gpu.device)
-        let renderPass = try RenderPassFactory.getRenderPass(
-            gpu: gpu,
-            pixelFormat: renderingView.pixelFormat,
-            forRenderPassType: renderPassType,
+        let pixelFormat = renderingView.pixelFormat
+        let renderPassFactory = RenderPassFactory(
+            device: gpu.device,
+            pixelFormat: pixelFormat,
+            renderPassType: renderPassType
         )
         let scene = Scene()
-        let renderer = Renderer(
+        let renderer = try Renderer(
             gpu: gpu,
             scene: scene,
-            renderPass: renderPass,
+            renderPassFactory: renderPassFactory,
         )
         renderingView.delegate = renderer
 

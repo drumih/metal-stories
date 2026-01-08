@@ -7,7 +7,4 @@ protocol RenderPass: AnyObject {
         renderPassDescriptor rpd: MTLRenderPassDescriptor,
         input: RenderPassInput,
     )
-
-    // TODO: fix it somehow and use better api
-    func copy() throws -> any RenderPass
 }
