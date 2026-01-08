@@ -19,7 +19,5 @@
 			</array>
 		</dict>
 	</dict>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Save Photos</string>
 </dict>
 </plist>
