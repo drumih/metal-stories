@@ -1,8 +1,12 @@
 import UIKit
 
+// MARK: - FailureViewDelegate
+
 protocol FailureViewDelegate: AnyObject {
     func failureViewDidTapBack()
 }
+
+// MARK: - FailureView
 
 final class FailureView: UIView {
 
@@ -14,7 +18,7 @@ final class FailureView: UIView {
         setupUI()
     }
 
-    required init?(coder: NSCoder) {
+    required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 

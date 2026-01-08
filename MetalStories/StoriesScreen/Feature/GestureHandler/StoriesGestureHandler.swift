@@ -117,7 +117,7 @@ extension SingleFingerGestureHandler {
     }
 
     private func startFilterOffsetAnimation(
-        to targetOffset: Float,
+        to targetOffset: Float
     ) {
         let startOffset = sceneInput.filterOffset
         let distance = abs(targetOffset - startOffset)
@@ -298,18 +298,18 @@ extension TwoFingerGestureHandler {
 
     // MARK: Fileprivate
 
-    fileprivate func midpoint(_ p1: CGPoint, _ p2: CGPoint) -> CGPoint {
-        CGPoint(
-            x: (p1.x + p2.x) / 2.0,
-            y: (p1.y + p2.y) / 2.0,
-        )
-    }
-
     fileprivate func distance(_ p1: CGPoint, _ p2: CGPoint) -> CGFloat {
         hypot(p2.x - p1.x, p2.y - p1.y)
     }
 
     // MARK: Private
+
+    private func midpoint(_ p1: CGPoint, _ p2: CGPoint) -> CGPoint {
+        CGPoint(
+            x: (p1.x + p2.x) / 2.0,
+            y: (p1.y + p2.y) / 2.0,
+        )
+    }
 
     private func normalizedAnchor(for point: CGPoint, bounds: CGRect) -> SIMD2<Float> {
         SIMD2<Float>(

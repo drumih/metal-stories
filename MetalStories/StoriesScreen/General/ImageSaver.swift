@@ -4,8 +4,8 @@ import ImageIO
 import Photos
 
 enum ImageSaver {
-    
-    // MARK: - ImageSaverError
+
+    // MARK: Internal
 
     enum ImageSaverError: LocalizedError {
         case failedToCreateImageDestination
@@ -16,13 +16,13 @@ enum ImageSaver {
         var errorDescription: String? {
             switch self {
             case .failedToCreateImageDestination:
-                return "Unable to prepare the image for saving."
+                "Unable to prepare the image for saving."
             case .failedToFinalizeImageDestination:
-                return "Unable to encode the image. Please try again."
+                "Unable to encode the image. Please try again."
             case .failedToSaveImage:
-                return "Unable to save the image to your photo library."
+                "Unable to save the image to your photo library."
             case .photoLibraryAccessDenied:
-                return "Photo library access is required. Please enable it in Settings."
+                "Photo library access is required. Please enable it in Settings."
             }
         }
     }
@@ -37,44 +37,48 @@ enum ImageSaver {
         let imageDataResult = makeImageData(
             cgImage,
             newOrientation: newOrientation,
-            originalData: originalData
+            originalData: originalData,
         )
-        
+
         let onCompletion: (Result<Void, Error>) -> Void = { result in
             callbackQueue.async {
                 completion(result)
             }
         }
-        
+
         switch imageDataResult {
-        case let .success(result):
+        case .success(let result):
             requestPhotoLibraryAccess { accessResult in
                 switch accessResult {
                 case .success:
                     saveToPhotoLibrary(
                         imageData: result.data,
                         destinationTypeIdentifier: result.typeIdentifier,
-                        completion: onCompletion
+                        completion: onCompletion,
                     )
-                case let .failure(error):
+
+                case .failure(let error):
                     onCompletion(.failure(error))
                 }
             }
-        case let .failure(error):
+
+        case .failure(let error):
             onCompletion(.failure(error))
         }
     }
+
+    // MARK: Private
 
     private static func getMetadata(
         from imageSource: CGImageSource?,
         newOrientation: CGImagePropertyOrientation,
     ) -> CFDictionary {
-        var metadata: [CFString: Any] = [:]
+        var metadata = [CFString: Any]()
         if let imageSource, let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any] {
             metadata = properties
         }
         metadata[kCGImagePropertyOrientation] = newOrientation.rawValue
-        
+
         return metadata as CFDictionary
     }
 
@@ -96,13 +100,13 @@ enum ImageSaver {
     private static func makeImageData(
         _ cgImage: CGImage,
         newOrientation: CGImagePropertyOrientation,
-        originalData: Data?
+        originalData: Data?,
     ) -> Result<(data: Data, typeIdentifier: CFString), Error> {
         let imageSource = makeImageSource(from: originalData)
 
         let metadata = getMetadata(
             from: imageSource,
-            newOrientation: newOrientation
+            newOrientation: newOrientation,
         )
 
         let destinationTypeIdentifier = getDestinationTypeIdentifier(from: imageSource)
@@ -112,7 +116,7 @@ enum ImageSaver {
             imageData as CFMutableData,
             destinationTypeIdentifier,
             1,
-            nil
+            nil,
         )
 
         guard let destination else {
@@ -154,7 +158,7 @@ enum ImageSaver {
     private static func saveToPhotoLibrary(
         imageData: Data,
         destinationTypeIdentifier: CFString,
-        completion: @escaping (Result<Void, Error>) -> Void
+        completion: @escaping (Result<Void, Error>) -> Void,
     ) {
         PHPhotoLibrary.shared().performChanges {
             let options = PHAssetResourceCreationOptions()

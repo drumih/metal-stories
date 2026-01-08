@@ -1,6 +1,8 @@
 import Metal
 import simd
 
+// MARK: - RenderPassTileMemoryError
+
 enum RenderPassTileMemoryError: LocalizedError {
     case failedToCreateDepthStencilState
     case failedToCreatePostProcessingDepthStencilState
@@ -8,18 +10,20 @@ enum RenderPassTileMemoryError: LocalizedError {
     case failedToCreateIntermediateTexture(width: Int, height: Int, pixelFormat: MTLPixelFormat)
     case failedToCreateDepthTexture(width: Int, height: Int, pixelFormat: MTLPixelFormat)
 
+    // MARK: Internal
+
     var errorDescription: String? {
         switch self {
         case .failedToCreateDepthStencilState:
-            return "Unable to create a depth stencil state for tile memory rendering."
+            "Unable to create a depth stencil state for tile memory rendering."
         case .failedToCreatePostProcessingDepthStencilState:
-            return "Unable to create a post-processing depth stencil state for tile memory rendering."
+            "Unable to create a post-processing depth stencil state for tile memory rendering."
         case .invalidTextureSize(let width, let height):
-            return "Invalid texture size for tile memory rendering (\(width)x\(height))."
+            "Invalid texture size for tile memory rendering (\(width)x\(height))."
         case .failedToCreateIntermediateTexture(let width, let height, let pixelFormat):
-            return "Unable to create intermediate texture (\(width)x\(height), \(pixelFormat))."
+            "Unable to create intermediate texture (\(width)x\(height), \(pixelFormat))."
         case .failedToCreateDepthTexture(let width, let height, let pixelFormat):
-            return "Unable to create depth texture (\(width)x\(height), \(pixelFormat))."
+            "Unable to create depth texture (\(width)x\(height), \(pixelFormat))."
         }
     }
 }
@@ -66,7 +70,7 @@ final class RenderPassTileMemory {
 
     private let device: MTLDevice
     private let pixelFormat: MTLPixelFormat
-    
+
     // use another pixel format
     private let intermediateTexturePixelFormat: MTLPixelFormat
     private let depthTexturePixelFormat: MTLPixelFormat
@@ -140,14 +144,14 @@ final class RenderPassTileMemory {
             throw RenderPassTileMemoryError.failedToCreateIntermediateTexture(
                 width: width,
                 height: height,
-                pixelFormat: pixelFormat
+                pixelFormat: pixelFormat,
             )
         }
         guard let depthTexture else {
             throw RenderPassTileMemoryError.failedToCreateDepthTexture(
                 width: width,
                 height: height,
-                pixelFormat: .depth32Float
+                pixelFormat: .depth32Float,
             )
         }
         intermediateTexture = texture
@@ -159,8 +163,6 @@ final class RenderPassTileMemory {
 // MARK: RenderPass
 
 extension RenderPassTileMemory: RenderPass {
-
-    // MARK: Internal
 
     func resize(size: CGSize) {
         do {
@@ -201,19 +203,19 @@ extension RenderPassTileMemory: RenderPass {
             imageRenderPSO: imageRenderPSO,
             label: "Draw Image (Tile Memory)",
             texture: input.imageTexture,
-            transform: input.transform
+            transform: input.transform,
         )
-        
+
         RenderPassHelper.drawBackground(
             renderEncoder: renderEncoder,
             backgroundPSO: backgroundPSO,
             label: "Draw Background (Tile Memory)",
             topColor: input.topBackgroundColor,
-            bottomColor: input.bottomBackgroundColor
+            bottomColor: input.bottomBackgroundColor,
         )
 
         renderEncoder.setDepthStencilState(postProcessingDepthStencilState)
-        
+
         // pay attention on transform
         RenderPassHelper.drawPostProcessing(
             renderEncoder: renderEncoder,
@@ -221,7 +223,7 @@ extension RenderPassTileMemory: RenderPass {
             label: "Post Processing (Tile Memory)",
             texture: nil,
             transform: TransformCalculator.getIdentityTransform(),
-            offset: input.filterPositionOffset
+            offset: input.filterPositionOffset,
         )
 
         renderEncoder.endEncoding()

@@ -11,21 +11,20 @@ enum RenderPassType: Int {
 // MARK: - RenderPassFactory
 
 final class RenderPassFactory {
-    
-    private let device: MTLDevice
 
-    private let pixelFormat: MTLPixelFormat
-    private let renderPassType: RenderPassType
-    
+    // MARK: Lifecycle
+
     init(
         device: MTLDevice,
         pixelFormat: MTLPixelFormat,
-        renderPassType: RenderPassType
+        renderPassType: RenderPassType,
     ) {
         self.device = device
         self.pixelFormat = pixelFormat
         self.renderPassType = renderPassType
     }
+
+    // MARK: Internal
 
     func createNewRenderPass() throws -> any RenderPass {
         switch renderPassType {
@@ -48,4 +47,12 @@ final class RenderPassFactory {
             )
         }
     }
+
+    // MARK: Private
+
+    private let device: MTLDevice
+
+    private let pixelFormat: MTLPixelFormat
+    private let renderPassType: RenderPassType
+
 }

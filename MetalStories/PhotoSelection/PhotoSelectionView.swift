@@ -3,15 +3,26 @@ import UIKit
 // MARK: - PhotoSelectionViewDelegate
 
 protocol PhotoSelectionViewDelegate: AnyObject {
-    func photoSelectionViewDidTapSelectPhoto(_ view: PhotoSelectionView)
-    func photoSelectionView(_ view: PhotoSelectionView, didChangeRenderPassIndex index: Int)
-    func photoSelectionViewDidTapUseCachedImage(_ view: PhotoSelectionView)
-    func photoSelectionViewDidTapDeleteCachedImage(_ view: PhotoSelectionView)
+    func photoSelectionViewDidTapSelectPhoto()
+    func photoSelectionView(didChangeRenderPassIndex index: Int)
+    func photoSelectionViewDidTapUseCachedImage()
+    func photoSelectionViewDidTapDeleteCachedImage()
 }
 
 // MARK: - PhotoSelectionView
 
 final class PhotoSelectionView: UIView {
+
+    // MARK: Lifecycle
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupView()
+    }
+
+    required init?(coder _: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     // MARK: Internal
 
@@ -91,17 +102,6 @@ final class PhotoSelectionView: UIView {
         return button
     }()
 
-    // MARK: Lifecycle
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupView()
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
     private func setupView() {
         backgroundColor = .systemBackground
 
@@ -109,7 +109,7 @@ final class PhotoSelectionView: UIView {
         renderPassSegmentedControl.addTarget(
             self,
             action: #selector(renderPassChanged),
-            for: .valueChanged
+            for: .valueChanged,
         )
         useCachedImageButton.addTarget(self, action: #selector(useCachedImageTapped), for: .touchUpInside)
         deleteCachedImageButton.addTarget(self, action: #selector(deleteCachedImageTapped), for: .touchUpInside)
@@ -133,7 +133,7 @@ final class PhotoSelectionView: UIView {
             renderPassSegmentedControl.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
             renderPassSegmentedControl.bottomAnchor.constraint(
                 equalTo: safeAreaLayoutGuide.bottomAnchor,
-                constant: -16
+                constant: -16,
             ),
 
             selectPhotoButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
@@ -165,21 +165,21 @@ final class PhotoSelectionView: UIView {
 
     @objc
     private func selectPhotoTapped() {
-        delegate?.photoSelectionViewDidTapSelectPhoto(self)
+        delegate?.photoSelectionViewDidTapSelectPhoto()
     }
 
     @objc
     private func renderPassChanged(_ sender: UISegmentedControl) {
-        delegate?.photoSelectionView(self, didChangeRenderPassIndex: sender.selectedSegmentIndex)
+        delegate?.photoSelectionView(didChangeRenderPassIndex: sender.selectedSegmentIndex)
     }
 
     @objc
     private func useCachedImageTapped() {
-        delegate?.photoSelectionViewDidTapUseCachedImage(self)
+        delegate?.photoSelectionViewDidTapUseCachedImage()
     }
 
     @objc
     private func deleteCachedImageTapped() {
-        delegate?.photoSelectionViewDidTapDeleteCachedImage(self)
+        delegate?.photoSelectionViewDidTapDeleteCachedImage()
     }
 }

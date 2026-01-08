@@ -1,22 +1,26 @@
 import UIKit
 
+// MARK: - StoriesTopPanelViewDelegate
+
 protocol StoriesTopPanelViewDelegate: AnyObject {
     func storiesTopPanelDidTapClose()
     func storiesTopPanelDidTapReset()
     func storiesTopPanelDidTapSave()
 }
 
+// MARK: - StoriesTopPanelView
+
 final class StoriesTopPanelView: UIView {
 
     // MARK: Lifecycle
 
     init(title: String) {
-        self.titleString = title
+        titleString = title
         super.init(frame: .zero)
         setupUI()
     }
 
-    required init?(coder: NSCoder) {
+    required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 

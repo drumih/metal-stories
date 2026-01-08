@@ -77,8 +77,6 @@ final class RenderPassWithRegularIntermediateTexture {
 
 extension RenderPassWithRegularIntermediateTexture: RenderPass {
 
-    // MARK: Internal
-
     func resize(size: CGSize) {
         updateIntermediateTexture(forSize: size)
     }
@@ -109,7 +107,7 @@ extension RenderPassWithRegularIntermediateTexture: RenderPass {
             backgroundPSO: backgroundPSO,
             label: "Draw Background (intermediate texture)",
             topColor: input.topBackgroundColor,
-            bottomColor: input.bottomBackgroundColor
+            bottomColor: input.bottomBackgroundColor,
         )
 
         RenderPassHelper.drawImage(
@@ -117,7 +115,7 @@ extension RenderPassWithRegularIntermediateTexture: RenderPass {
             imageRenderPSO: imageRenderPSO,
             label: "Draw Image (intermediate texture)",
             texture: input.imageTexture,
-            transform: input.transform
+            transform: input.transform,
         )
 
         intermediateRenderEncoder.endEncoding()
@@ -133,7 +131,7 @@ extension RenderPassWithRegularIntermediateTexture: RenderPass {
             label: "Post Processing (intermediate texture)",
             texture: intermediateTexture,
             transform: TransformCalculator.getFlippedVerticallyTransform(),
-            offset: input.filterPositionOffset
+            offset: input.filterPositionOffset,
         )
 
         renderEncoder.endEncoding()

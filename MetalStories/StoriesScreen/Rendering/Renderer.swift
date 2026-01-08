@@ -10,11 +10,11 @@ enum RendererError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .failedToGetRenderPassInput:
-            return "Unable to prepare the image for rendering. Please try again."
+            "Unable to prepare the image for rendering. Please try again."
         case .failedToCreateOffscreenTexture:
-            return "Unable to create output texture. The device may be low on memory."
+            "Unable to create output texture. The device may be low on memory."
         case .failedToCreateCommandBuffer:
-            return "Unable to initialize GPU rendering. Please try again."
+            "Unable to initialize GPU rendering. Please try again."
         }
     }
 }
@@ -42,7 +42,7 @@ final class Renderer {
         self.gpu = gpu
         self.scene = scene
         self.renderPassFactory = renderPassFactory
-        self.renderPass = try renderPassFactory.createNewRenderPass()
+        renderPass = try renderPassFactory.createNewRenderPass()
     }
 
     // MARK: Private

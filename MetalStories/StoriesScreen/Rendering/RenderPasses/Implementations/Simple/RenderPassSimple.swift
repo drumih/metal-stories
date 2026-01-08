@@ -57,7 +57,7 @@ extension RenderPassSimple: RenderPass {
             backgroundPSO: backgroundPSO,
             label: "Draw Background (Simple)",
             topColor: input.topBackgroundColor,
-            bottomColor: input.bottomBackgroundColor
+            bottomColor: input.bottomBackgroundColor,
         )
 
         RenderPassHelper.drawImage(
@@ -65,7 +65,7 @@ extension RenderPassSimple: RenderPass {
             imageRenderPSO: imageRenderPSO,
             label: "Draw Image (Simple)",
             texture: input.imageTexture,
-            transform: input.transform
+            transform: input.transform,
         )
 
         renderEncoder.endEncoding()

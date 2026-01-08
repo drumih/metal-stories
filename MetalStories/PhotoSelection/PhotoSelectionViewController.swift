@@ -3,13 +3,7 @@ import UIKit
 
 // MARK: - PhotoSelectionViewController
 
-
 final class PhotoSelectionViewController: UIViewController {
-    
-    private enum Constants {
-        static let cachedImageFileName = "cached_image.dat"
-        static let previewMaxDimensionSize: CGFloat = 1080
-    }
 
     // MARK: Internal
 
@@ -23,6 +17,23 @@ final class PhotoSelectionViewController: UIViewController {
         loadSavedImagePreview()
     }
 
+    // MARK: Private
+
+    private enum Constants {
+        static let cachedImageFileName = "cached_image.dat"
+        static let previewMaxDimensionSize: CGFloat = 1080
+    }
+
+    private lazy var contentView: PhotoSelectionView = {
+        let contentView = PhotoSelectionView()
+        contentView.configure(selectedRenderPassIndex: selectedRenderPassType.rawValue)
+        contentView.delegate = self
+        return contentView
+    }()
+
+    private var selectedRenderPassType = RenderPassType.tileMemory
+    private var previewImage: UIImage?
+
     private func setupUI() {
         view.addSubview(contentView)
         contentView.translatesAutoresizingMaskIntoConstraints = false
@@ -33,13 +44,6 @@ final class PhotoSelectionViewController: UIViewController {
             contentView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
     }
-
-    private lazy var contentView: PhotoSelectionView = {
-        let contentView = PhotoSelectionView()
-        contentView.configure(selectedRenderPassIndex: selectedRenderPassType.rawValue)
-        contentView.delegate = self
-        return contentView
-    }()
 
     private func selectPhoto() {
         var configuration = PHPickerConfiguration(photoLibrary: .shared())
@@ -58,9 +62,6 @@ final class PhotoSelectionViewController: UIViewController {
         }
         selectedRenderPassType = renderPassType
     }
-
-    private var selectedRenderPassType = RenderPassType.tileMemory
-    private var previewImage: UIImage?
 
     private func updateViewState() {
         contentView.updateCachedImage(previewImage)
@@ -151,7 +152,7 @@ final class PhotoSelectionViewController: UIViewController {
                     return
                 }
 
-                if let fileURL = self.getSavedImageURL() {
+                if let fileURL = getSavedImageURL() {
                     try? data.write(to: fileURL)
                 }
 
@@ -192,23 +193,24 @@ extension PhotoSelectionViewController {
         present(alert, animated: true)
     }
 }
+
 // MARK: PhotoSelectionViewDelegate
 
 extension PhotoSelectionViewController: PhotoSelectionViewDelegate {
 
-    func photoSelectionViewDidTapSelectPhoto(_ view: PhotoSelectionView) {
+    func photoSelectionViewDidTapSelectPhoto() {
         selectPhoto()
     }
 
-    func photoSelectionView(_ view: PhotoSelectionView, didChangeRenderPassIndex index: Int) {
+    func photoSelectionView(didChangeRenderPassIndex index: Int) {
         changeRenderPassType(to: index)
     }
 
-    func photoSelectionViewDidTapUseCachedImage(_ view: PhotoSelectionView) {
+    func photoSelectionViewDidTapUseCachedImage() {
         loadPreviousImage()
     }
 
-    func photoSelectionViewDidTapDeleteCachedImage(_ view: PhotoSelectionView) {
+    func photoSelectionViewDidTapDeleteCachedImage() {
         deleteSavedImage()
     }
 }

@@ -47,11 +47,11 @@ enum ImagePreprocessingError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .failedToCreateImageSource:
-            return "Unable to read image data. The file may be corrupted or in an unsupported format."
+            "Unable to read image data. The file may be corrupted or in an unsupported format."
         case .failedToCreateThumbnail:
-            return "Unable to process the image. Please try a different image."
+            "Unable to process the image. Please try a different image."
         case .failedToCreateTexture:
-            return "Unable to create GPU texture from image. The device may be low on memory."
+            "Unable to create GPU texture from image. The device may be low on memory."
         }
     }
 }

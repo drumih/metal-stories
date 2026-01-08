@@ -1,5 +1,7 @@
 import UIKit
 
+// MARK: - StoriesViewController
+
 final class StoriesViewController: UIViewController {
 
     // MARK: Lifecycle
@@ -17,7 +19,7 @@ final class StoriesViewController: UIViewController {
         self.sceneInput = sceneInput
         self.offscreenRenderer = offscreenRenderer
         self.inputImageData = inputImageData
-        self.titleString = title
+        titleString = title
 
         super.init(nibName: nil, bundle: nil)
     }
@@ -46,12 +48,6 @@ final class StoriesViewController: UIViewController {
 
     private let gpu: GPU
     private let renderingView: RenderingView
-    
-    private var isSavingEnabled: Bool = true {
-        didSet {
-            topPanelView.isSaveButtonEnabled = isSavingEnabled
-        }
-    }
 
     private lazy var touchTrackingView: TouchTrackingView = {
         let view = TouchTrackingView()
@@ -74,6 +70,13 @@ final class StoriesViewController: UIViewController {
 
     private let inputImageData: Data
     private let titleString: String
+
+    private var isSavingEnabled = true {
+        didSet {
+            topPanelView.isSaveButtonEnabled = isSavingEnabled
+        }
+    }
+
 }
 
 // MARK: - Image Handling
@@ -90,7 +93,7 @@ extension StoriesViewController {
         )
         sceneInput.setPreparationResult(preparationResult)
     }
-    
+
     private func saveImage() {
         guard isSavingEnabled else { return }
         isSavingEnabled = false
@@ -106,12 +109,12 @@ extension StoriesViewController {
             showAlert(title: "Error", message: error.localizedDescription)
             return
         }
-        
+
         ImageSaver.saveImage(
             cgImage,
             newOrientation: .up,
             originalData: inputImageData,
-            callbackQueue: .main
+            callbackQueue: .main,
         ) { [weak self] result in
             self?.isSavingEnabled = true
             switch result {
@@ -127,14 +130,14 @@ extension StoriesViewController {
 // MARK: - UI
 
 extension StoriesViewController {
-    
+
     private func setupGestureHandler() {
         gestureHandler = StoriesGestureHandler(
             touchTrackingView: touchTrackingView,
             sceneInput: sceneInput,
         )
     }
-    
+
     private func setupUI() {
         view.backgroundColor = .black
 
@@ -189,7 +192,7 @@ extension StoriesViewController {
 
     private func showAlert(
         title: String,
-        message: String
+        message: String,
     ) {
         let alert = UIAlertController(
             title: title,
@@ -201,7 +204,7 @@ extension StoriesViewController {
     }
 }
 
-// MARK: - StoriesTopPanelViewDelegate
+// MARK: StoriesTopPanelViewDelegate
 
 extension StoriesViewController: StoriesTopPanelViewDelegate {
     func storiesTopPanelDidTapClose() {
@@ -218,7 +221,7 @@ extension StoriesViewController: StoriesTopPanelViewDelegate {
     }
 }
 
-// MARK: - StoriesFailureViewDelegate
+// MARK: StoriesFailureViewDelegate
 
 extension StoriesViewController: StoriesFailureViewDelegate {
     func storiesFailureViewDidTapBack() {

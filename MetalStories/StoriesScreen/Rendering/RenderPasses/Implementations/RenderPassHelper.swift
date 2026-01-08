@@ -53,7 +53,7 @@ enum RenderPassHelper {
         )
         renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
     }
-    
+
     static func drawPostProcessing(
         renderEncoder: MTLRenderCommandEncoder,
         postProcessingPSO: MTLRenderPipelineState,

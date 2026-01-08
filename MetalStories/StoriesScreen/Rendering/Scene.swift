@@ -11,7 +11,7 @@ protocol SceneInput: AnyObject {
     var anchorPoint: SIMD2<Float> { get set } // in range 0...1
 
     var filterOffset: Float { get set }
-    
+
     func reset()
 
     func setPreparationResult(_ preparationResult: MetalPreparationResult)
@@ -91,7 +91,7 @@ extension Scene: SceneInput {
         _translation = .init(0.5, 0.5)
         _rotationRadians = 0
         _scale = 1
-        self.filterOffset = 0
+        filterOffset = 0
     }
 
     func setPreparationResult(_ preparationResult: MetalPreparationResult) {

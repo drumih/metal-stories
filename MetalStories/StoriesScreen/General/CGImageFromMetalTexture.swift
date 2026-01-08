@@ -12,11 +12,11 @@ enum CGImageFromMetalTextureError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unsupportedPixelFormat:
-            return "The image format is not supported for export."
+            "The image format is not supported for export."
         case .failedToCreateDataProvider:
-            return "Unable to read the rendered image data."
+            "Unable to read the rendered image data."
         case .failedToCreateImage:
-            return "Unable to create the final image for export."
+            "Unable to create the final image for export."
         }
     }
 }

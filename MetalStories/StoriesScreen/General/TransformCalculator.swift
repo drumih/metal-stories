@@ -7,6 +7,8 @@ enum ImageAspectMode {
     case scaleAspectFill
 }
 
+// MARK: - ImageAspectModeType
+
 enum ImageAspectModeType {
     case automatic(threshold: Float)
     case specific(aspectMode: ImageAspectMode)
@@ -60,7 +62,6 @@ extension TransformCalculator {
         translation: SIMD2<Float>,
         aspectMode: ImageAspectMode,
     ) -> float4x4 {
-
         let scaleToCanvasX = canvasSize.x / textureSize.x
         let scaleToCanvasY = canvasSize.y / textureSize.y
         let aspectScale: Float =
@@ -102,10 +103,10 @@ extension TransformCalculator {
             far: 1,
         )
     }
-    
+
     fileprivate static func targetAspectMode(
         for aspectModeType: ImageAspectModeType,
-        textureSize: SIMD2<Float>
+        textureSize: SIMD2<Float>,
     ) -> ImageAspectMode {
         let textureAspect = textureSize.x / textureSize.y
         switch aspectModeType {

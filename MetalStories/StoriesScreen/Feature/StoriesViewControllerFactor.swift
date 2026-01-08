@@ -2,6 +2,9 @@ import Foundation
 import UIKit
 
 enum StoriesViewControllerFactor {
+
+    // MARK: Internal
+
     static func getViewController(
         imageData: Data,
         renderPassType: RenderPassType,
@@ -13,7 +16,7 @@ enum StoriesViewControllerFactor {
         let renderPassFactory = RenderPassFactory(
             device: gpu.device,
             pixelFormat: pixelFormat,
-            renderPassType: renderPassType
+            renderPassType: renderPassType,
         )
         let scene = Scene()
         let renderer = try Renderer(
@@ -34,14 +37,16 @@ enum StoriesViewControllerFactor {
         )
     }
 
+    // MARK: Private
+
     private static func titleForRenderPassType(_ type: RenderPassType) -> String {
         switch type {
         case .simple:
-            return "Simple"
+            "Simple"
         case .withIntermediateTexture:
-            return "Intermediate"
+            "Intermediate"
         case .tileMemory:
-            return "Tile"
+            "Tile"
         }
     }
 }

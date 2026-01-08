@@ -165,17 +165,17 @@ enum CGImageToMetalTexturePreprocessing {
                 .origin: MTKTextureLoader.Origin.flippedVertically.rawValue as NSString,
             ],
         )
-        
+
         // textureLoader bugfix
         guard cgImage.alphaInfo == .noneSkipFirst else {
             return texture
         }
-        
+
         let swizzle = MTLTextureSwizzleChannels(
-            red:   .green,
+            red: .green,
             green: .red,
-            blue:  .alpha,
-            alpha: .one
+            blue: .alpha,
+            alpha: .one,
         )
 
         let swizzledTexture = texture.makeTextureView(
@@ -183,7 +183,7 @@ enum CGImageToMetalTexturePreprocessing {
             textureType: texture.textureType,
             levels: 0..<texture.mipmapLevelCount,
             slices: 0..<texture.arrayLength,
-            swizzle: swizzle
+            swizzle: swizzle,
         )
 
         guard let swizzledTexture else {
