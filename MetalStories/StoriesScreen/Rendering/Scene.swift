@@ -10,7 +10,6 @@ protocol SceneInput: AnyObject {
     var scale: Float { get set } // in range 0.1 ... 3
     var rotationRadians: Float { get set } // no limits, but must be normalized on set
     var anchorPoint: SIMD2<Float> { get set } // in range 0...1
-    var imageCenter: SIMD2<Float> { get }
 
     func didStartNewGesture(newAnchorPoint: SIMD2<Float>)
     func reset()
@@ -29,6 +28,7 @@ protocol SceneOutput: AnyObject {
 final class Scene {
     
     private let imageAspectModeType: ImageAspectModeType = .automatic(threshold: 4.0 / 5.0)
+    private let canvasAspectRatio: Float = 9.0 / 16.0
 
     private var preparationResult: MetalPreparationResult?
 
@@ -46,10 +46,6 @@ final class Scene {
 // MARK: SceneInput
 
 extension Scene: SceneInput {
-    var imageCenter: SIMD2<Float> {
-        _anchorPoint
-        // TODO: calculate image center based on all given parameters
-    }
     
     var scale: Float {
         get { _scale }
@@ -118,12 +114,32 @@ extension Scene: SceneInput {
     }
 
     func didStartNewGesture(newAnchorPoint: SIMD2<Float>) {
-        _toAnchorPointVector = getImageCenter() - newAnchorPoint
-        anchorPoint = newAnchorPoint
-    }
+        let clampedAnchor = SIMD2<Float>(
+            max(0.0, min(1.0, newAnchorPoint.x)),
+            max(0.0, min(1.0, newAnchorPoint.y)),
+        )
+        let canvasSize = SIMD2<Float>(canvasAspectRatio, 1.0)
+        let scale = _scale
+        if scale > .ulpOfOne {
+            let s = sin(_rotationRadians)
+            let c = cos(_rotationRadians)
 
-    private func getImageCenter() -> SIMD2<Float> {
-        _anchorPoint
+            let vCanvas = _toAnchorPointVector * canvasSize * scale
+            let rotated = SIMD2<Float>(
+                vCanvas.x * c - vCanvas.y * s,
+                vCanvas.x * s + vCanvas.y * c
+            )
+            let deltaAnchor = (_anchorPoint - clampedAnchor) * canvasSize
+            let target = deltaAnchor + rotated
+
+            let unrotated = SIMD2<Float>(
+                target.x * c + target.y * s,
+                -target.x * s + target.y * c
+            )
+
+            _toAnchorPointVector = unrotated / (canvasSize * scale)
+        }
+        _anchorPoint = clampedAnchor
     }
 }
 
