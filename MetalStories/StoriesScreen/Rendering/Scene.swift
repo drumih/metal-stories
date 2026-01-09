@@ -4,14 +4,15 @@ import simd
 // MARK: - SceneInput
 
 protocol SceneInput: AnyObject {
-
+    
+    var filterOffset: Float { get set }
+    
     var scale: Float { get set } // in range 0.1 ... 3
     var rotationRadians: Float { get set } // no limits, but must be normalized on set
-    var translation: SIMD2<Float> { get set } // -1...2
     var anchorPoint: SIMD2<Float> { get set } // in range 0...1
+    var imageCenter: SIMD2<Float> { get }
 
-    var filterOffset: Float { get set }
-
+    func didStartNewGesture(newAnchorPoint: SIMD2<Float>)
     func reset()
 
     func setPreparationResult(_ preparationResult: MetalPreparationResult)
@@ -26,29 +27,37 @@ protocol SceneOutput: AnyObject {
 // MARK: - Scene
 
 final class Scene {
+    
+    private let imageAspectModeType: ImageAspectModeType = .automatic(threshold: 4.0 / 5.0)
 
     private var preparationResult: MetalPreparationResult?
+
+    private var _textureSize: SIMD2<Float>?
+    private var _resolvedAspectMode: ImageAspectMode = .scaleAspectFit
 
     private var _filterOffset: Float = 0
 
     private var _scale: Float = 1
     private var _rotationRadians: Float = 0
-    private var _translation = SIMD2<Float>(0.5, 0.5)
     private var _anchorPoint = SIMD2<Float>(0.5, 0.5)
+    private var _toAnchorPointVector = SIMD2<Float>(repeating: 0)
 }
 
 // MARK: SceneInput
 
 extension Scene: SceneInput {
+    var imageCenter: SIMD2<Float> {
+        _anchorPoint
+        // TODO: calculate image center based on all given parameters
+    }
+    
     var scale: Float {
         get { _scale }
         set { _scale = max(0.1, min(3.0, newValue)) }
     }
 
     var rotationRadians: Float {
-        get {
-            _rotationRadians
-        }
+        get { _rotationRadians }
         set {
             // Normalize to 0...2 * Float.pi
             let twoPi = Float.pi * 2.0
@@ -59,20 +68,8 @@ extension Scene: SceneInput {
         }
     }
 
-    var translation: SIMD2<Float> {
-        get { _translation }
-        set {
-            _translation = .init(
-                max(-1.0, min(2.0, newValue.x)),
-                max(-1.0, min(2.0, newValue.y)),
-            )
-        }
-    }
-
     var anchorPoint: SIMD2<Float> {
-        get {
-            _anchorPoint
-        }
+        get { _anchorPoint }
         set {
             _anchorPoint = .init(
                 max(0.0, min(1.0, newValue.x)),
@@ -86,18 +83,48 @@ extension Scene: SceneInput {
         set { _filterOffset = newValue }
     }
 
-    func reset() {
-        _anchorPoint = .init(0.5, 0.5)
-        _translation = .init(0.5, 0.5)
-        _rotationRadians = 0
-        _scale = 1
-        filterOffset = 0
-    }
-
     func setPreparationResult(_ preparationResult: MetalPreparationResult) {
         self.preparationResult = preparationResult
+        let textureSize = SIMD2<Float>(
+            Float(preparationResult.texture.width),
+            Float(preparationResult.texture.height),
+        )
+        _textureSize = textureSize
+        _resolvedAspectMode = Self.targetAspectMode(
+            for: imageAspectModeType,
+            textureSize: textureSize
+        )
+    }
+    
+    private static func targetAspectMode(
+        for aspectModeType: ImageAspectModeType,
+        textureSize: SIMD2<Float>,
+    ) -> ImageAspectMode {
+        switch aspectModeType {
+        case .automatic(let threshold):
+            let aspectRatio = textureSize.x / textureSize.y
+            return aspectRatio < threshold ? .scaleAspectFill : .scaleAspectFit
+        case .specific(let aspectMode):
+            return aspectMode
+        }
+    }
+    
+    func reset() {
+        _anchorPoint = .init(0.5, 0.5)
+        _rotationRadians = 0
+        _scale = 1
+        _filterOffset = 0
+        _toAnchorPointVector = .init(repeating: 0)
     }
 
+    func didStartNewGesture(newAnchorPoint: SIMD2<Float>) {
+        _toAnchorPointVector = getImageCenter() - newAnchorPoint
+        anchorPoint = newAnchorPoint
+    }
+
+    private func getImageCenter() -> SIMD2<Float> {
+        _anchorPoint
+    }
 }
 
 // MARK: SceneOutput
@@ -106,23 +133,17 @@ extension Scene: SceneOutput {
 
     // MARK: Internal
 
-    func getRenderPassInput(
-        renderingViewSize: SIMD2<Float>
-    ) -> RenderPassInput? {
-        guard let preparationResult else { return nil }
-        let textureSize = SIMD2<Float>(
-            Float(preparationResult.texture.width),
-            Float(preparationResult.texture.height),
-        )
+    func getRenderPassInput(renderingViewSize: SIMD2<Float>) -> RenderPassInput? {
+        guard let _textureSize, let preparationResult else { return nil }
         let transform = getTransform(
-            textureSize: textureSize,
+            textureSize: _textureSize,
             renderingViewSize: renderingViewSize,
         )
         return RenderPassInput(
             imageTexture: preparationResult.texture,
             transform: transform,
-            bottomBackgroundColor: .init(preparationResult.bottomColor, 1),
-            topBackgroundColor: .init(preparationResult.topColor, 1),
+            bottomBackgroundColor: preparationResult.bottomColor,
+            topBackgroundColor: preparationResult.topColor,
             filterPositionOffset: _filterOffset,
         )
     }
@@ -139,8 +160,8 @@ extension Scene: SceneOutput {
             anchor: _anchorPoint,
             scale: _scale,
             rotation: _rotationRadians,
-            translation: _translation,
-            aspectModeType: .automatic(threshold: 4.0 / 5.0),
+            translation: _anchorPoint + _toAnchorPointVector,
+            aspectMode: _resolvedAspectMode
         )
     }
 }

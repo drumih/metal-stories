@@ -1,6 +1,7 @@
 import Metal
 import MetalKit
 
+// TODO: remove it later
 final class GPU {
 
     // MARK: Lifecycle

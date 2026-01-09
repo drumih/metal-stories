@@ -24,9 +24,8 @@ enum TransformCalculator {
         scale: Float,
         rotation: Float,
         translation: SIMD2<Float>,
-        aspectModeType: ImageAspectModeType,
+        aspectMode: ImageAspectMode,
     ) -> float4x4 {
-        let aspectMode = targetAspectMode(for: aspectModeType, textureSize: textureSize)
         let modelTransform = getModelTransform(
             textureSize: textureSize,
             canvasSize: canvasSize,
@@ -62,15 +61,11 @@ extension TransformCalculator {
         translation: SIMD2<Float>,
         aspectMode: ImageAspectMode,
     ) -> float4x4 {
-        let scaleToCanvasX = canvasSize.x / textureSize.x
-        let scaleToCanvasY = canvasSize.y / textureSize.y
-        let aspectScale: Float =
-            switch aspectMode {
-            case .scaleAspectFit:
-                min(scaleToCanvasX, scaleToCanvasY)
-            case .scaleAspectFill:
-                max(scaleToCanvasX, scaleToCanvasY)
-            }
+        let aspectScale = aspectScale(
+            canvasSize: canvasSize,
+            textureSize: textureSize,
+            aspectMode: aspectMode
+        )
 
         let scaledTextureSize = textureSize * aspectScale
         let targetPosition = (translation - 0.5) * canvasSize
@@ -184,6 +179,20 @@ extension TransformCalculator {
     }
 
     // scale
+    
+    fileprivate static func aspectScale(
+        canvasSize: SIMD2<Float>,
+        textureSize: SIMD2<Float>,
+        aspectMode: ImageAspectMode
+    ) -> Float {
+        let scaleToCanvas = canvasSize / textureSize
+        switch aspectMode {
+        case .scaleAspectFit:
+            return min(scaleToCanvas.x, scaleToCanvas.y)
+        case .scaleAspectFill:
+            return max(scaleToCanvas.x, scaleToCanvas.y)
+        }
+    }
 
     fileprivate static func scaleMatrix(_ scale: SIMD2<Float>) -> float4x4 {
         .init(
