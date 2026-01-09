@@ -98,7 +98,6 @@ extension Renderer: OffscreenRenderer {
         size: CGSize,
         colorSpace: CGColorSpace,
     ) throws -> CGImage {
-        let targetPixelFormat = MTLPixelFormat.bgra8Unorm
         let renderingViewSize = SIMD2<Float>(Float(size.width), Float(size.height))
         guard
             let input = scene.getRenderPassInput(renderingViewSize: renderingViewSize)
@@ -109,7 +108,7 @@ extension Renderer: OffscreenRenderer {
         let offscreenRenderPass = try renderPassFactory.createNewRenderPass()
         offscreenRenderPass.resize(size: size)
         let offscreenTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: targetPixelFormat,
+            pixelFormat: .bgra8Unorm,
             width: Int(size.width),
             height: Int(size.height),
             mipmapped: false,

@@ -6,8 +6,8 @@ import MetalPerformanceShaders
 
 struct MetalPreparationResult {
     let texture: MTLTexture
-    let topColor: SIMD3<Float>
-    let bottomColor: SIMD3<Float>
+    let topColor: SIMD4<Float>
+    let bottomColor: SIMD4<Float>
 }
 
 // MARK: - CGImageToMetalTexturePreprocessing
@@ -33,15 +33,15 @@ enum CGImageToMetalTexturePreprocessing {
     // MARK: Private
 
     private static let histogramBins = 128
-    private static let histogramTextureSize = 128
+    private static let histogramTextureSize = 256
 
-    private static let defaultTopColor = SIMD3<Float>(0.7, 0.7, 0.7)
-    private static let defaultBottomColor = SIMD3<Float>(0.4, 0.4, 0.4)
+    private static let defaultTopColor = SIMD4<Float>(0.7, 0.7, 0.7, 1.0)
+    private static let defaultBottomColor = SIMD4<Float>(0.4, 0.4, 0.4, 1.0)
 
     private static func computeEdgeMedianColors(
         for texture: MTLTexture,
         gpu: GPU,
-    ) -> (top: SIMD3<Float>, bottom: SIMD3<Float>)? {
+    ) -> (top: SIMD4<Float>, bottom: SIMD4<Float>)? {
         guard
             let histogramTexture = getHistogramTexture(
                 device: gpu.device,
@@ -110,7 +110,7 @@ enum CGImageToMetalTexturePreprocessing {
     }
 
     // TODO: simplify
-    private static func medianColor(from buffer: MTLBuffer) -> SIMD3<Float> {
+    private static func medianColor(from buffer: MTLBuffer) -> SIMD4<Float> {
         let histogramData = buffer.contents().bindMemory(
             to: UInt32.self,
             capacity: histogramBins * 4,
@@ -142,10 +142,11 @@ enum CGImageToMetalTexturePreprocessing {
             return 0
         }
 
-        return SIMD3<Float>(
+        return SIMD4<Float>(
             medianValue(for: 0),
             medianValue(for: 1),
             medianValue(for: 2),
+            1.0
         )
     }
 
