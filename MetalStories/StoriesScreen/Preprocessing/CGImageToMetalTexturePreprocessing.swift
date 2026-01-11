@@ -6,6 +6,8 @@ import MetalPerformanceShaders
 
 struct MetalPreparationResult {
     let texture: MTLTexture
+    let textureSize: SIMD2<Float>
+
     let topColor: SIMD4<Float>
     let bottomColor: SIMD4<Float>
 }
@@ -21,10 +23,15 @@ enum CGImageToMetalTexturePreprocessing {
         gpu: GPU,
     ) throws -> MetalPreparationResult {
         let metalTexture = try makeTexture(from: cgImage, device: gpu.device)
+        let textureSize = SIMD2<Float>(
+            .init(metalTexture.width),
+            .init(metalTexture.height)
+        )
         let gradientColors = computeEdgeMedianColors(for: metalTexture, gpu: gpu)
 
         return .init(
             texture: metalTexture,
+            textureSize: textureSize,
             topColor: gradientColors?.top ?? defaultTopColor,
             bottomColor: gradientColors?.bottom ?? defaultBottomColor,
         )

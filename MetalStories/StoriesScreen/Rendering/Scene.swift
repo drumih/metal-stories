@@ -7,8 +7,8 @@ protocol SceneInput: AnyObject {
 
     var filterOffset: Float { get set }
 
-    var scale: Float { get set } // in range 0.1 ... 3
-    var rotationRadians: Float { get set } // no limits, but must be normalized on set
+    var scale: Float { get set }
+    var rotationRadians: Float { get set }
 
     func didStartNewGesture(newAnchorPoint: SIMD2<Float>)
     func didUpdateAnchorPoint(_ anchorPoint: SIMD2<Float>)
@@ -32,8 +32,6 @@ final class Scene {
     private let canvasAspectRatio: Float = 9.0 / 16.0
 
     private var preparationResult: MetalPreparationResult?
-
-    private var _textureSize: SIMD2<Float>?
     private var _resolvedAspectMode = ImageAspectMode.scaleAspectFit
 
     private var _filterOffset: Float = 0
@@ -74,22 +72,18 @@ extension Scene: SceneInput {
 
     func setPreparationResult(_ preparationResult: MetalPreparationResult) {
         self.preparationResult = preparationResult
-        let textureSize = SIMD2<Float>(
-            Float(preparationResult.texture.width),
-            Float(preparationResult.texture.height),
-        )
-        _textureSize = textureSize
         _resolvedAspectMode = Self.targetAspectMode(
             for: imageAspectModeType,
-            textureSize: textureSize,
+            textureSize: preparationResult.textureSize,
         )
     }
 
     func reset() {
+        _filterOffset = 0
+        
         _anchorPoint = .init(0.5, 0.5)
         _rotationRadians = 0
         _scale = 1
-        _filterOffset = 0
         _toAnchorPointVector = .init(repeating: 0)
     }
 
@@ -100,7 +94,8 @@ extension Scene: SceneInput {
         )
         let canvasSize = SIMD2<Float>(canvasAspectRatio, 1.0)
         let scale = _scale
-        if scale > .ulpOfOne {
+        if scale > 0 {
+            // TODO: improve this code it somehow
             let s = sin(_rotationRadians)
             let c = cos(_rotationRadians)
 
@@ -144,7 +139,6 @@ extension Scene: SceneInput {
             return aspectMode
         }
     }
-
 }
 
 // MARK: SceneOutput
@@ -154,9 +148,9 @@ extension Scene: SceneOutput {
     // MARK: Internal
 
     func getRenderPassInput(renderingViewSize: SIMD2<Float>) -> RenderPassInput? {
-        guard let _textureSize, let preparationResult else { return nil }
+        guard let preparationResult else { return nil }
         let transform = getTransform(
-            textureSize: _textureSize,
+            textureSize: preparationResult.textureSize,
             renderingViewSize: renderingViewSize,
         )
         return RenderPassInput(

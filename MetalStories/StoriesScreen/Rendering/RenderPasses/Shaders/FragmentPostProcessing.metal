@@ -20,16 +20,20 @@ float3 black_and_white(float3 rgb) {
 // MARK: filter selection
 
 METAL_FUNC
+short target_mode(float2 uv, float offset) {
+    const auto filtersCount = float(kFiltersCount);
+    const auto normalizedOffset = offset - filtersCount * floor(offset / filtersCount);
+    const auto currentMode = short(normalizedOffset);
+    const auto splitPoint = normalizedOffset - float(currentMode);
+    const auto nextMode = (currentMode + 1) % kFiltersCount;
+    const auto targetMode = uv.x > splitPoint ? currentMode : nextMode;
+    return targetMode;
+}
+
+METAL_FUNC
 float3 process_rgb(float3 rgb, float2 uv, float offset) {
-    const float filtersCount = float(kFiltersCount);
-    const float normalizedOffset = offset - filtersCount * floor(offset / filtersCount);
-    const short currentMode = short(normalizedOffset);
-    const float splitPoint = normalizedOffset - float(currentMode);
-    const short nextMode = (currentMode + 1) % kFiltersCount;
-    const short targetMode = uv.x > splitPoint ? currentMode : nextMode;
-    
+    const auto targetMode = target_mode(uv, offset);
     float3 targetColor;
-    
     switch (targetMode) {
         case 0: targetColor = rgb; break;
         case 1: targetColor = black_and_white(rgb); break;
@@ -60,6 +64,5 @@ float4 fragment_post_processing_tile_memory(VertexOut vertexIn [[ stage_in ]],
                                             ) {
     const auto color = fragmentIn.color;
     const auto processedRGB = process_rgb(color.rgb, vertexIn.uv, offset);
-    
     return float4(processedRGB, color.a);
 }
