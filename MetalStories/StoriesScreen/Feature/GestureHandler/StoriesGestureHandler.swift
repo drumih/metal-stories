@@ -13,8 +13,9 @@ final class StoriesGestureHandler {
         sceneInput: SceneInput,
     ) {
         self.sceneInput = sceneInput
-        singleFingerHandler = SingleFingerGestureHandler(sceneInput: sceneInput)
-        twoFingerHandler = TwoFingerGestureHandler(sceneInput: sceneInput)
+        singleFingerHandler = .init(sceneInput: sceneInput)
+        twoFingerHandler = .init(sceneInput: sceneInput)
+        offsetAnimator = .init(sceneInput: sceneInput)
 
         touchTrackingView.touchDelegate = self
     }
@@ -25,7 +26,8 @@ final class StoriesGestureHandler {
 
     func resetTracking() {
         trackedTouches.removeAll()
-        singleFingerHandler.cancelAnimations()
+
+        offsetAnimator.cancel()
         singleFingerHandler.resetTracking()
         twoFingerHandler.resetTracking()
     }
@@ -35,6 +37,7 @@ final class StoriesGestureHandler {
     private var trackedTouches = [UITouch]()
     private let singleFingerHandler: SingleFingerGestureHandler
     private let twoFingerHandler: TwoFingerGestureHandler
+    private let offsetAnimator: OffsetAnimator
 
 }
 
@@ -53,13 +56,14 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
 
         switch trackedTouches.count {
         case 1:
+            offsetAnimator.cancel()
             twoFingerHandler.resetTracking()
-            guard let touch = trackedTouches.first else { return }
+            let touch = trackedTouches[0]
             singleFingerHandler.startGesture(with: touch, in: view)
 
         case 2:
-            if singleFingerHandler.isGestureActive {
-                singleFingerHandler.snapOffsetIfNeeded()
+            if singleFingerHandler.isGestureActive, let animationSpec = singleFingerHandler.getAnimationSpecIfPossible() {
+                offsetAnimator.animate(from: animationSpec.from, to: animationSpec.to)
             }
             singleFingerHandler.resetTracking()
             twoFingerHandler.startGesture(with: trackedTouches, in: view)
@@ -76,8 +80,9 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
     ) {
         switch trackedTouches.count {
         case 1:
-            guard let touch = trackedTouches.first else { return }
+            let touch = trackedTouches[0]
             singleFingerHandler.updateGesture(with: touch, in: view)
+            offsetAnimator.cancel()
 
         case 2:
             twoFingerHandler.updateGesture(with: trackedTouches, in: view)
@@ -99,8 +104,8 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
         }
 
         let remainingTouches = trackedTouches.count
-        if wasSingleFingerGesture, remainingTouches == 0 {
-            singleFingerHandler.snapOffsetIfNeeded()
+        if wasSingleFingerGesture, remainingTouches == 0, let animationSpec = singleFingerHandler.getAnimationSpecIfPossible() {
+            offsetAnimator.animate(from: animationSpec.from, to: animationSpec.to)
         }
 
         switch remainingTouches {
