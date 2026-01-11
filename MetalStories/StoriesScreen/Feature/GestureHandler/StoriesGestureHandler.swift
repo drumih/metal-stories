@@ -2,6 +2,7 @@ import QuartzCore
 import simd
 import UIKit
 
+// MARK: - StoriesGestureHandler
 
 final class StoriesGestureHandler {
 

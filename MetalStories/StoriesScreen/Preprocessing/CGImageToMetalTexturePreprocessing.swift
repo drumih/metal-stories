@@ -146,7 +146,7 @@ enum CGImageToMetalTexturePreprocessing {
             medianValue(for: 0),
             medianValue(for: 1),
             medianValue(for: 2),
-            1.0
+            1.0,
         )
     }
 

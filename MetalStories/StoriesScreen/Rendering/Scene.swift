@@ -4,9 +4,9 @@ import simd
 // MARK: - SceneInput
 
 protocol SceneInput: AnyObject {
-    
+
     var filterOffset: Float { get set }
-    
+
     var scale: Float { get set } // in range 0.1 ... 3
     var rotationRadians: Float { get set } // no limits, but must be normalized on set
 
@@ -27,14 +27,14 @@ protocol SceneOutput: AnyObject {
 // MARK: - Scene
 
 final class Scene {
-    
-    private let imageAspectModeType: ImageAspectModeType = .automatic(threshold: 4.0 / 5.0)
+
+    private let imageAspectModeType = ImageAspectModeType.automatic(threshold: 4.0 / 5.0)
     private let canvasAspectRatio: Float = 9.0 / 16.0
 
     private var preparationResult: MetalPreparationResult?
 
     private var _textureSize: SIMD2<Float>?
-    private var _resolvedAspectMode: ImageAspectMode = .scaleAspectFit
+    private var _resolvedAspectMode = ImageAspectMode.scaleAspectFit
 
     private var _filterOffset: Float = 0
 
@@ -47,7 +47,9 @@ final class Scene {
 // MARK: SceneInput
 
 extension Scene: SceneInput {
-    
+
+    // MARK: Internal
+
     var scale: Float {
         get { _scale }
         set { _scale = max(0.1, min(3.0, newValue)) }
@@ -79,23 +81,10 @@ extension Scene: SceneInput {
         _textureSize = textureSize
         _resolvedAspectMode = Self.targetAspectMode(
             for: imageAspectModeType,
-            textureSize: textureSize
+            textureSize: textureSize,
         )
     }
-    
-    private static func targetAspectMode(
-        for aspectModeType: ImageAspectModeType,
-        textureSize: SIMD2<Float>,
-    ) -> ImageAspectMode {
-        switch aspectModeType {
-        case .automatic(let threshold):
-            let aspectRatio = textureSize.x / textureSize.y
-            return aspectRatio < threshold ? .scaleAspectFill : .scaleAspectFit
-        case .specific(let aspectMode):
-            return aspectMode
-        }
-    }
-    
+
     func reset() {
         _anchorPoint = .init(0.5, 0.5)
         _rotationRadians = 0
@@ -118,27 +107,44 @@ extension Scene: SceneInput {
             let vCanvas = _toAnchorPointVector * canvasSize * scale
             let rotated = SIMD2<Float>(
                 vCanvas.x * c - vCanvas.y * s,
-                vCanvas.x * s + vCanvas.y * c
+                vCanvas.x * s + vCanvas.y * c,
             )
             let deltaAnchor = (_anchorPoint - clampedAnchor) * canvasSize
             let target = deltaAnchor + rotated
 
             let unrotated = SIMD2<Float>(
                 target.x * c + target.y * s,
-                -target.x * s + target.y * c
+                -target.x * s + target.y * c,
             )
 
             _toAnchorPointVector = unrotated / (canvasSize * scale)
         }
         _anchorPoint = clampedAnchor
     }
-    
+
     func didUpdateAnchorPoint(_ anchorPoint: SIMD2<Float>) {
         _anchorPoint = .init(
             max(0.0, min(1.0, anchorPoint.x)),
             max(0.0, min(1.0, anchorPoint.y)),
         )
     }
+
+    // MARK: Private
+
+    private static func targetAspectMode(
+        for aspectModeType: ImageAspectModeType,
+        textureSize: SIMD2<Float>,
+    ) -> ImageAspectMode {
+        switch aspectModeType {
+        case .automatic(let threshold):
+            let aspectRatio = textureSize.x / textureSize.y
+            return aspectRatio < threshold ? .scaleAspectFill : .scaleAspectFit
+
+        case .specific(let aspectMode):
+            return aspectMode
+        }
+    }
+
 }
 
 // MARK: SceneOutput
@@ -175,7 +181,7 @@ extension Scene: SceneOutput {
             scale: _scale,
             rotation: _rotationRadians,
             translation: _anchorPoint + _toAnchorPointVector,
-            aspectMode: _resolvedAspectMode
+            aspectMode: _resolvedAspectMode,
         )
     }
 }

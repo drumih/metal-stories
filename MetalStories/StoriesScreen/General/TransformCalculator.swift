@@ -64,7 +64,7 @@ extension TransformCalculator {
         let aspectScale = aspectScale(
             canvasSize: canvasSize,
             textureSize: textureSize,
-            aspectMode: aspectMode
+            aspectMode: aspectMode,
         )
 
         let scaledTextureSize = textureSize * aspectScale
@@ -179,11 +179,11 @@ extension TransformCalculator {
     }
 
     // scale
-    
+
     fileprivate static func aspectScale(
         canvasSize: SIMD2<Float>,
         textureSize: SIMD2<Float>,
-        aspectMode: ImageAspectMode
+        aspectMode: ImageAspectMode,
     ) -> Float {
         let scaleToCanvas = canvasSize / textureSize
         switch aspectMode {

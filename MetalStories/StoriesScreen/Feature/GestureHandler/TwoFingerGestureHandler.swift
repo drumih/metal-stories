@@ -1,9 +1,11 @@
 import UIKit
 
+// MARK: - TwoFingerGestureHandler
+
 final class TwoFingerGestureHandler {
-    
+
     // MARK: Lifecycle
-    
+
     init(sceneInput: SceneInput) {
         self.sceneInput = sceneInput
     }
@@ -30,7 +32,7 @@ final class TwoFingerGestureHandler {
             initialSceneRotation: sceneInput.rotationRadians,
         )
     }
-    
+
     func updateGesture(
         with touches: [UITouch],
         in overlay: UIView,
@@ -45,32 +47,78 @@ final class TwoFingerGestureHandler {
             startGesture(with: touches, in: overlay)
         }
         guard let initialValues else { return }
-        
+
         updateAnchorPoint(
             twoPoints: twoPoints
         )
-        
+
         updateScale(
             twoPoints: twoPoints,
-            initialValues: initialValues
+            initialValues: initialValues,
         )
-        
+
         updateAngle(
             twoPoints: twoPoints,
-            initialValues: initialValues
+            initialValues: initialValues,
         )
     }
-    
+
+    func resetTracking() {
+        initialValues = nil
+    }
+
+    // MARK: Fileprivate
+
+    fileprivate struct TwoPoints {
+        let firstPoint: CGPoint
+        let secondPoint: CGPoint
+        let boundsSize: CGSize
+    }
+
+    // MARK: Private
+
+    private struct InitialValues {
+        let initialPointsDistance: CGFloat
+        let initialPointsAngle: CGFloat
+
+        let initialSceneScale: Float
+        let initialSceneRotation: Float
+    }
+
+    private let sceneInput: SceneInput
+    private var initialValues: InitialValues?
+
+    private static func getTwoPointsIfPossible(
+        touches: [UITouch],
+        view: UIView,
+    ) -> TwoPoints? {
+        let bounds = view.bounds
+        guard
+            touches.count == 2,
+            bounds.width > 0,
+            bounds.height > 0
+        else { return nil }
+
+        let firstPoint = touches[0].location(in: view)
+        let secondPoint = touches[1].location(in: view)
+
+        return .init(
+            firstPoint: firstPoint,
+            secondPoint: secondPoint,
+            boundsSize: bounds.size,
+        )
+    }
+
     private func updateAnchorPoint(
         twoPoints: TwoPoints
     ) {
         let newAnchorPoint = twoPoints.normalizedAnchor
         sceneInput.didUpdateAnchorPoint(newAnchorPoint)
     }
-    
+
     private func updateScale(
         twoPoints: TwoPoints,
-        initialValues: InitialValues
+        initialValues: InitialValues,
     ) {
         let currentDistance = twoPoints.distance
         let initialDistance = initialValues.initialPointsDistance
@@ -82,10 +130,10 @@ final class TwoFingerGestureHandler {
         let currentScaleRatio = Float(currentDistance / initialDistance)
         sceneInput.scale = initialValues.initialSceneScale * currentScaleRatio
     }
-    
+
     private func updateAngle(
         twoPoints: TwoPoints,
-        initialValues: InitialValues
+        initialValues: InitialValues,
     ) {
         let currentAngle = twoPoints.angle
         let initialAngle = initialValues.initialPointsAngle
@@ -93,54 +141,11 @@ final class TwoFingerGestureHandler {
         let deltaAngle = Float(currentAngle - initialAngle)
         sceneInput.rotationRadians = initialValues.initialSceneRotation - deltaAngle
     }
-    
-    private static func getTwoPointsIfPossible(
-        touches: [UITouch],
-        view: UIView,
-    ) -> TwoPoints? {
-        let bounds = view.bounds
-        guard
-            touches.count == 2,
-            bounds.width > 0,
-            bounds.height > 0
-        else { return nil }
-        
-        let firstPoint = touches[0].location(in: view)
-        let secondPoint = touches[1].location(in: view)
-        
-        return .init(
-            firstPoint: firstPoint,
-            secondPoint: secondPoint,
-            boundsSize: bounds.size
-        )
-    }
 
-    func resetTracking() {
-        initialValues = nil
-    }
-    
-    // MARK: Private
-    
-    struct TwoPoints {
-        let firstPoint: CGPoint
-        let secondPoint: CGPoint
-        let boundsSize: CGSize
-    }
-    
-    private struct InitialValues {
-        let initialPointsDistance: CGFloat
-        let initialPointsAngle: CGFloat
-        
-        let initialSceneScale: Float
-        let initialSceneRotation: Float
-    }
-    
-    private let sceneInput: SceneInput
-    private var initialValues: InitialValues?
 }
 
-private extension TwoFingerGestureHandler.TwoPoints {
-    var normalizedAnchor: SIMD2<Float> {
+extension TwoFingerGestureHandler.TwoPoints {
+    fileprivate var normalizedAnchor: SIMD2<Float> {
         let midPoint = CGPoint(
             x: (firstPoint.x + secondPoint.x) / 2.0,
             y: (firstPoint.y + secondPoint.y) / 2.0,
@@ -151,17 +156,17 @@ private extension TwoFingerGestureHandler.TwoPoints {
         )
     }
 
-    var distance: CGFloat {
+    fileprivate var distance: CGFloat {
         hypot(
             secondPoint.x - firstPoint.x,
-            secondPoint.y - firstPoint.y
+            secondPoint.y - firstPoint.y,
         )
     }
 
-    var angle: CGFloat {
+    fileprivate var angle: CGFloat {
         atan2(
             secondPoint.y - firstPoint.y,
-            secondPoint.x - firstPoint.x
+            secondPoint.x - firstPoint.x,
         )
     }
 }
