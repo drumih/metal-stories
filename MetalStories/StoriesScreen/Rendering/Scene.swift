@@ -52,7 +52,7 @@ extension Scene: SceneInput {
 
     var scale: Float {
         get { _scale }
-        set { _scale = max(0.1, min(3.0, newValue)) }
+        set { _scale = clamp(value: newValue, min: 0.1, max: 3.0) }
     }
 
     var rotationRadians: Float {
@@ -95,8 +95,8 @@ extension Scene: SceneInput {
 
     func didStartNewGesture(newAnchorPoint: SIMD2<Float>) {
         let clampedAnchor = SIMD2<Float>(
-            max(0.0, min(1.0, newAnchorPoint.x)),
-            max(0.0, min(1.0, newAnchorPoint.y)),
+            clamp01(newAnchorPoint.x),
+            clamp01(newAnchorPoint.y)
         )
         let canvasSize = SIMD2<Float>(canvasAspectRatio, 1.0)
         let scale = _scale
@@ -124,8 +124,8 @@ extension Scene: SceneInput {
 
     func didUpdateAnchorPoint(_ anchorPoint: SIMD2<Float>) {
         _anchorPoint = .init(
-            max(0.0, min(1.0, anchorPoint.x)),
-            max(0.0, min(1.0, anchorPoint.y)),
+            clamp01(anchorPoint.x),
+            clamp01(anchorPoint.y),
         )
     }
 

@@ -3,16 +3,20 @@ import MetalKit
 
 // TODO: remove it later
 final class GPU {
+    
+    enum GPUError: LocalizedError {
+        case cantInitiateGPU
+    }
 
     // MARK: Lifecycle
 
-    init?() {
+    init() throws {
         guard
             let device = MTLCreateSystemDefaultDevice(),
             let renderingCommandQueue = device.makeCommandQueue(),
             let processingCommandQueue = device.makeCommandQueue()
         else {
-            return nil
+            throw GPUError.cantInitiateGPU
         }
         self.device = device
         self.renderingCommandQueue = renderingCommandQueue
@@ -21,9 +25,16 @@ final class GPU {
 
     // MARK: Internal
 
-    static var `default` = GPU()!
-
     let device: MTLDevice
     let renderingCommandQueue: MTLCommandQueue
     let processingCommandQueue: MTLCommandQueue
+}
+
+extension GPU.GPUError {
+    var errorDescription: String? {
+        switch self {
+        case .cantInitiateGPU:
+            return "Can't initiate GPU"
+        }
+    }
 }

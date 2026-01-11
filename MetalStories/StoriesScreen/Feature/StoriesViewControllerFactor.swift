@@ -9,7 +9,7 @@ enum StoriesViewControllerFactor {
         imageData: Data,
         renderPassType: RenderPassType,
     ) throws -> UIViewController {
-        let gpu = GPU.default
+        let gpu = try GPU()
 
         let renderingView = RenderingView(device: gpu.device)
         let pixelFormat = renderingView.pixelFormat

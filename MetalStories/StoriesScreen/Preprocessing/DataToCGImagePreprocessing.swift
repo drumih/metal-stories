@@ -43,6 +43,9 @@ enum ImagePreprocessingError: LocalizedError {
     case failedToCreateImageSource
     case failedToCreateThumbnail
     case failedToCreateTexture
+}
+
+extension ImagePreprocessingError {
 
     var errorDescription: String? {
         switch self {

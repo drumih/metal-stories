@@ -91,7 +91,7 @@ final class SingleFingerGestureHandler {
 
 private extension SingleFingerGestureHandler {
 
-    private static func calculateAnimationTarget(
+    static func calculateAnimationTarget(
         currentPosition: Float,
         velocity: Float,
     ) -> Float {

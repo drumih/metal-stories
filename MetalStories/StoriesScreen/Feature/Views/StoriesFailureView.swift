@@ -30,30 +30,42 @@ final class StoriesFailureView: UIView {
 
     private let error: Error
 
-    private func setupUI() {
-        backgroundColor = .black
-
+    private lazy var stackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .vertical
         stackView.spacing = 24
         stackView.alignment = .center
         stackView.translatesAutoresizingMaskIntoConstraints = false
+        return stackView
+    }()
 
-        let failureLabel = UILabel()
-        failureLabel.text = "Can't load image\n\n\(error.localizedDescription)"
-        failureLabel.textAlignment = .center
-        failureLabel.font = .systemFont(ofSize: 17, weight: .medium)
-        failureLabel.textColor = .white
-        failureLabel.numberOfLines = 0
+    private lazy var failureLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Can't load image\n\n\(error.localizedDescription)"
+        label.textAlignment = .center
+        label.font = .systemFont(ofSize: 17, weight: .medium)
+        label.textColor = .white
+        label.numberOfLines = 0
+        return label
+    }()
 
-        let backButton = UIButton(type: .system)
-        backButton.setTitle("Go Back", for: .normal)
-        backButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
-        backButton.tintColor = .white
-        backButton.backgroundColor = UIColor.white.withAlphaComponent(0.2)
-        backButton.layer.cornerRadius = 12
-        backButton.contentEdgeInsets = UIEdgeInsets(top: 12, left: 24, bottom: 12, right: 24)
-        backButton.addTarget(self, action: #selector(backButtonTapped), for: .touchUpInside)
+    private lazy var backButton: UIButton = {
+        let button = UIButton(type: .system)
+        var configuration = UIButton.Configuration.plain()
+        var title = AttributedString("Go Back")
+        title.font = .systemFont(ofSize: 17, weight: .semibold)
+        configuration.attributedTitle = title
+        configuration.baseForegroundColor = .white
+        configuration.background.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+        configuration.background.cornerRadius = 12
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 24, bottom: 12, trailing: 24)
+        button.configuration = configuration
+        button.addTarget(self, action: #selector(backButtonTapped), for: .touchUpInside)
+        return button
+    }()
+
+    private func setupUI() {
+        backgroundColor = .black
 
         stackView.addArrangedSubview(failureLabel)
         stackView.addArrangedSubview(backButton)

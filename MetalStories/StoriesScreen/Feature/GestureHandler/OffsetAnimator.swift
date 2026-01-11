@@ -23,8 +23,8 @@ final class OffsetAnimator {
     func animate(from startOffset: Float, to targetOffset: Float) {
         let distance = abs(targetOffset - startOffset)
 
-        // TODO: use eps constant
-        if distance < 0.0001 {
+        let minimumDistance: Float = 0.001
+        guard distance > minimumDistance else {
             sceneInput.filterOffset = targetOffset
             cancel()
             return

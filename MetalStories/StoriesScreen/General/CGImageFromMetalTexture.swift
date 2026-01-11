@@ -8,17 +8,6 @@ enum CGImageFromMetalTextureError: LocalizedError {
     case unsupportedPixelFormat
     case failedToCreateDataProvider
     case failedToCreateImage
-
-    var errorDescription: String? {
-        switch self {
-        case .unsupportedPixelFormat:
-            "The image format is not supported for export."
-        case .failedToCreateDataProvider:
-            "Unable to read the rendered image data."
-        case .failedToCreateImage:
-            "Unable to create the final image for export."
-        }
-    }
 }
 
 // MARK: - CGImageFromMetalTexture
@@ -77,5 +66,18 @@ enum CGImageFromMetalTexture {
         }
 
         return cgImage
+    }
+}
+
+extension CGImageFromMetalTextureError {
+    var errorDescription: String? {
+        switch self {
+        case .unsupportedPixelFormat:
+            "The image format is not supported for export."
+        case .failedToCreateDataProvider:
+            "Unable to read the rendered image data."
+        case .failedToCreateImage:
+            "Unable to create the final image for export."
+        }
     }
 }
