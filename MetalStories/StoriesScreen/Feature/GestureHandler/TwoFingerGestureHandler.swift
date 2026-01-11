@@ -1,9 +1,9 @@
 import UIKit
 
 final class TwoFingerGestureHandler {
-
+    
     // MARK: Lifecycle
-
+    
     init(sceneInput: SceneInput) {
         self.sceneInput = sceneInput
     }
@@ -14,100 +14,154 @@ final class TwoFingerGestureHandler {
         with touches: [UITouch],
         in overlay: UIView,
     ) {
-        guard touches.count == 2 else { return }
-        guard let firstTouch = touches.first, let secondTouch = touches.last else { return }
+        guard
+            let twoPoints = Self.getTwoPointsIfPossible(touches: touches, view: overlay)
+        else {
+            return
+        }
 
-        let bounds = overlay.bounds
-        guard bounds.width > 0, bounds.height > 0 else { return }
-
-        let firstPoint = firstTouch.location(in: overlay)
-        let secondPoint = secondTouch.location(in: overlay)
-        let midpoint = midpoint(firstPoint, secondPoint)
-        let newAnchor = normalizedAnchor(for: midpoint, bounds: bounds)
-
+        let newAnchor = twoPoints.normalizedAnchor
         sceneInput.didStartNewGesture(newAnchorPoint: newAnchor)
 
-        snapshot = Snapshot(
-            startAngle: angle(firstPoint, secondPoint),
-            startDistance: distance(firstPoint, secondPoint),
-            initialScale: sceneInput.scale,
-            initialRotation: sceneInput.rotationRadians,
+        initialValues = InitialValues(
+            initialPointsDistance: twoPoints.distance,
+            initialPointsAngle: twoPoints.angle,
+            initialSceneScale: sceneInput.scale,
+            initialSceneRotation: sceneInput.rotationRadians,
         )
     }
-
+    
     func updateGesture(
         with touches: [UITouch],
         in overlay: UIView,
     ) {
-        guard touches.count == 2 else { return }
-        if snapshot == nil {
+        guard
+            let twoPoints = Self.getTwoPointsIfPossible(touches: touches, view: overlay)
+        else {
+            return
+        }
+
+        if initialValues == nil {
             startGesture(with: touches, in: overlay)
         }
-        guard let snapshot else { return }
-
-        let bounds = overlay.bounds
-        guard bounds.width > 0, bounds.height > 0 else { return }
-
-        let firstTouch = touches[0]
-        let secondTouch = touches[1]
-        let firstPoint = firstTouch.location(in: overlay)
-        let secondPoint = secondTouch.location(in: overlay)
-        let midpoint = midpoint(firstPoint, secondPoint)
-        let currentAnchor = normalizedAnchor(for: midpoint, bounds: bounds)
-
-        let currentDistance = distance(firstPoint, secondPoint)
-        if currentDistance > .ulpOfOne, snapshot.startDistance > .ulpOfOne {
-            let scaleRatio = Float(currentDistance / snapshot.startDistance)
-            sceneInput.scale = snapshot.initialScale * scaleRatio
+        guard let initialValues else { return }
+        
+        updateAnchorPoint(
+            twoPoints: twoPoints
+        )
+        
+        updateScale(
+            twoPoints: twoPoints,
+            initialValues: initialValues
+        )
+        
+        updateAngle(
+            twoPoints: twoPoints,
+            initialValues: initialValues
+        )
+    }
+    
+    private func updateAnchorPoint(
+        twoPoints: TwoPoints
+    ) {
+        let newAnchorPoint = twoPoints.normalizedAnchor
+        sceneInput.didUpdateAnchorPoint(newAnchorPoint)
+    }
+    
+    private func updateScale(
+        twoPoints: TwoPoints,
+        initialValues: InitialValues
+    ) {
+        let currentDistance = twoPoints.distance
+        let initialDistance = initialValues.initialPointsDistance
+        guard
+            currentDistance > 0, initialDistance > 0
+        else {
+            return
         }
+        let currentScaleRatio = Float(currentDistance / initialDistance)
+        sceneInput.scale = initialValues.initialSceneScale * currentScaleRatio
+    }
+    
+    private func updateAngle(
+        twoPoints: TwoPoints,
+        initialValues: InitialValues
+    ) {
+        let currentAngle = twoPoints.angle
+        let initialAngle = initialValues.initialPointsAngle
 
-        let currentAngle = angle(firstPoint, secondPoint)
-        let deltaAngle = Float(currentAngle - snapshot.startAngle)
-        sceneInput.rotationRadians = snapshot.initialRotation - deltaAngle
-
-        sceneInput.anchorPoint = currentAnchor
+        let deltaAngle = Float(currentAngle - initialAngle)
+        sceneInput.rotationRadians = initialValues.initialSceneRotation - deltaAngle
+    }
+    
+    private static func getTwoPointsIfPossible(
+        touches: [UITouch],
+        view: UIView,
+    ) -> TwoPoints? {
+        let bounds = view.bounds
+        guard
+            touches.count == 2,
+            bounds.width > 0,
+            bounds.height > 0
+        else { return nil }
+        
+        let firstPoint = touches[0].location(in: view)
+        let secondPoint = touches[1].location(in: view)
+        
+        return .init(
+            firstPoint: firstPoint,
+            secondPoint: secondPoint,
+            boundsSize: bounds.size
+        )
     }
 
     func resetTracking() {
-        snapshot = nil
+        initialValues = nil
     }
-
+    
     // MARK: Private
-
-    private struct Snapshot {
-        let startAngle: CGFloat
-        let startDistance: CGFloat
-        let initialScale: Float
-        let initialRotation: Float
+    
+    struct TwoPoints {
+        let firstPoint: CGPoint
+        let secondPoint: CGPoint
+        let boundsSize: CGSize
     }
-
+    
+    private struct InitialValues {
+        let initialPointsDistance: CGFloat
+        let initialPointsAngle: CGFloat
+        
+        let initialSceneScale: Float
+        let initialSceneRotation: Float
+    }
+    
     private let sceneInput: SceneInput
-    private var snapshot: Snapshot?
+    private var initialValues: InitialValues?
+}
 
-
-    // MARK: Fileprivate
-
-    fileprivate func distance(_ p1: CGPoint, _ p2: CGPoint) -> CGFloat {
-        hypot(p2.x - p1.x, p2.y - p1.y)
-    }
-
-    // MARK: Private
-
-    private func midpoint(_ p1: CGPoint, _ p2: CGPoint) -> CGPoint {
-        CGPoint(
-            x: (p1.x + p2.x) / 2.0,
-            y: (p1.y + p2.y) / 2.0,
+private extension TwoFingerGestureHandler.TwoPoints {
+    var normalizedAnchor: SIMD2<Float> {
+        let midPoint = CGPoint(
+            x: (firstPoint.x + secondPoint.x) / 2.0,
+            y: (firstPoint.y + secondPoint.y) / 2.0,
+        )
+        return SIMD2<Float>(
+            Float(midPoint.x / boundsSize.width),
+            Float(1.0 - (midPoint.y / boundsSize.height)),
         )
     }
 
-    private func normalizedAnchor(for point: CGPoint, bounds: CGRect) -> SIMD2<Float> {
-        SIMD2<Float>(
-            Float(point.x / bounds.width),
-            Float(1.0 - (point.y / bounds.height)),
+    var distance: CGFloat {
+        hypot(
+            secondPoint.x - firstPoint.x,
+            secondPoint.y - firstPoint.y
         )
     }
 
-    private func angle(_ p1: CGPoint, _ p2: CGPoint) -> CGFloat {
-        atan2(p2.y - p1.y, p2.x - p1.x)
+    var angle: CGFloat {
+        atan2(
+            secondPoint.y - firstPoint.y,
+            secondPoint.x - firstPoint.x
+        )
     }
 }

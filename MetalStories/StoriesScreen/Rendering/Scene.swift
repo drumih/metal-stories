@@ -9,9 +9,10 @@ protocol SceneInput: AnyObject {
     
     var scale: Float { get set } // in range 0.1 ... 3
     var rotationRadians: Float { get set } // no limits, but must be normalized on set
-    var anchorPoint: SIMD2<Float> { get set } // in range 0...1
 
     func didStartNewGesture(newAnchorPoint: SIMD2<Float>)
+    func didUpdateAnchorPoint(_ anchorPoint: SIMD2<Float>)
+
     func reset()
 
     func setPreparationResult(_ preparationResult: MetalPreparationResult)
@@ -61,16 +62,6 @@ extension Scene: SceneInput {
             if _rotationRadians < 0 {
                 _rotationRadians += twoPi
             }
-        }
-    }
-
-    var anchorPoint: SIMD2<Float> {
-        get { _anchorPoint }
-        set {
-            _anchorPoint = .init(
-                max(0.0, min(1.0, newValue.x)),
-                max(0.0, min(1.0, newValue.y)),
-            )
         }
     }
 
@@ -140,6 +131,13 @@ extension Scene: SceneInput {
             _toAnchorPointVector = unrotated / (canvasSize * scale)
         }
         _anchorPoint = clampedAnchor
+    }
+    
+    func didUpdateAnchorPoint(_ anchorPoint: SIMD2<Float>) {
+        _anchorPoint = .init(
+            max(0.0, min(1.0, anchorPoint.x)),
+            max(0.0, min(1.0, anchorPoint.y)),
+        )
     }
 }
 
