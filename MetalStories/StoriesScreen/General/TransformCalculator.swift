@@ -20,7 +20,7 @@ enum TransformCalculator {
     static func getMVPTransform(
         textureSize: SIMD2<Float>,
         canvasSize: SIMD2<Float>,
-        anchor: SIMD2<Float>,
+        anchorPoint: SIMD2<Float>,
         anchorToImageOffset: SIMD2<Float>,
         rotation: Float,
         scale: Float,
@@ -29,7 +29,7 @@ enum TransformCalculator {
         let modelTransform = Self.getModelTransform(
             textureSize: textureSize,
             canvasSize: canvasSize,
-            anchorPosition: anchor,
+            anchorPoint: anchorPoint,
             anchorToImageOffset: anchorToImageOffset,
             rotation: rotation,
             scale: scale,
@@ -54,7 +54,7 @@ private extension TransformCalculator {
     static func getModelTransform(
         textureSize: SIMD2<Float>,
         canvasSize: SIMD2<Float>,
-        anchorPosition: SIMD2<Float>,
+        anchorPoint: SIMD2<Float>,
         anchorToImageOffset: SIMD2<Float>,
         rotation: Float,
         scale: Float,
@@ -68,7 +68,7 @@ private extension TransformCalculator {
         )
         let scaledTextureSize = textureSize * aspectScale
 
-        let targetPosition = (anchorPosition + anchorToImageOffset - 0.5) * canvasSize
+        let targetPosition = (anchorPoint + anchorToImageOffset - 0.5) * canvasSize
         let anchorOffset = anchorToImageOffset * canvasSize
 
         let userScaleMatrix = scaleMatrix(.init(scale, scale))
@@ -85,7 +85,7 @@ private extension TransformCalculator {
             userScaleMatrix,
             rotationMatrix,
             toAnchorMatrix,
-            toTargetMatrix
+            toTargetMatrix,
         ]
 
         var resultMatrix = matrix_identity_float4x4

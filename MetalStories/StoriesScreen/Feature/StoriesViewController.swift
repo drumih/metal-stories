@@ -43,8 +43,8 @@ final class StoriesViewController: UIViewController {
 
     // MARK: Private
 
-    private static let maxImageSize: CGFloat = 1920
-    private static let imageOutputSize = CGSize(width: 1080, height: 1920)
+    private static let maxImageDimension: CGFloat = 2016
+    private static let maxExportImageWidth: CGFloat = 1080
 
     private let gpu: GPU
     private let renderingView: RenderingView
@@ -85,7 +85,7 @@ extension StoriesViewController {
     private func prepareImage() throws {
         let cgImage = try DataToCGImagePreprocessing.loadCGImage(
             from: inputImageData,
-            maxPixelSize: Self.maxImageSize,
+            maxPixelSize: Self.maxImageDimension,
         )
         let preparationResult = try CGImageToMetalTexturePreprocessing.prepareCGImage(
             cgImage: cgImage.0,
@@ -100,8 +100,10 @@ extension StoriesViewController {
 
         let cgImage: CGImage
         do {
+            let width = Self.maxExportImageWidth
+            let height = round(width * CGFloat(sceneInput.canvasAspectRatio))
             cgImage = try offscreenRenderer.renderImageToOffscreenTexture(
-                size: Self.imageOutputSize,
+                size: .init(width: width, height: height),
                 colorSpace: CGColorSpaceCreateDeviceRGB(),
             )
         } catch {
@@ -151,7 +153,10 @@ extension StoriesViewController {
         touchTrackingView.translatesAutoresizingMaskIntoConstraints = false
         renderingView.addSubview(touchTrackingView)
 
-        let aspectRatio = renderingView.heightAnchor.constraint(equalTo: renderingView.widthAnchor, multiplier: 16.0 / 9.0)
+        let aspectRatio = renderingView.heightAnchor.constraint(
+            equalTo: renderingView.widthAnchor,
+            multiplier: .init(sceneInput.canvasAspectRatio)
+        )
         let preferredWidth = renderingView.widthAnchor.constraint(equalTo: safeArea.widthAnchor)
         preferredWidth.priority = .defaultHigh
 

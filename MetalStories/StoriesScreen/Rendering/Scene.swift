@@ -5,6 +5,8 @@ import simd
 
 protocol SceneInput: AnyObject {
 
+    var canvasAspectRatio: Float { get }
+
     var filterOffset: Float { get set }
 
     var scale: Float { get set }
@@ -27,19 +29,27 @@ protocol SceneOutput: AnyObject {
 // MARK: - Scene
 
 final class Scene {
+    
+    init(
+        canvasAspectRatio: Float,
+        imageAspectModeType: ImageAspectModeType,
+    ) {
+        self.canvasAspectRatio = canvasAspectRatio
+        self.imageAspectModeType = imageAspectModeType
+    }
 
-    private let imageAspectModeType = ImageAspectModeType.automatic(threshold: 4.0 / 5.0)
-    private let canvasAspectRatio: Float = 9.0 / 16.0
+    let canvasAspectRatio: Float
+
+    private let imageAspectModeType: ImageAspectModeType
 
     private var preparationResult: MetalPreparationResult?
     private var resolvedAspectMode = ImageAspectMode.scaleAspectFit
 
-    // TODO: remove underscores somehow
-    private var _filterOffset: Float = 0
+    private var imageFilterOffset: Float = 0
 
-    private var _scale: Float = 1
-    private var _rotationRadians: Float = 0
-    private var _anchorPoint = SIMD2<Float>(0.5, 0.5)
+    private var userScale: Float = 1
+    private var rotation: Float = 0
+    private var anchorPoint = SIMD2<Float>(0.5, 0.5)
     private var anchorToImageOffset = SIMD2<Float>(repeating: 0)
 }
 
@@ -50,25 +60,24 @@ extension Scene: SceneInput {
     // MARK: Internal
 
     var scale: Float {
-        get { _scale }
-        set { _scale = clamp(value: newValue, min: 0.1, max: 3.0) }
+        get { userScale }
+        set { userScale = clamp(value: newValue, min: 0.1, max: 3.0) }
     }
 
     var rotationRadians: Float {
-        get { _rotationRadians }
+        get { rotation }
         set {
-            // Normalize to 0...2 * Float.pi
             let twoPi = Float.pi * 2.0
-            _rotationRadians = newValue.truncatingRemainder(dividingBy: twoPi)
-            if _rotationRadians < 0 {
-                _rotationRadians += twoPi
+            rotation = newValue.truncatingRemainder(dividingBy: twoPi)
+            if rotation < 0 {
+                rotation += twoPi
             }
         }
     }
 
     var filterOffset: Float {
-        get { _filterOffset }
-        set { _filterOffset = newValue }
+        get { imageFilterOffset }
+        set { imageFilterOffset = newValue }
     }
 
     func setPreparationResult(_ preparationResult: MetalPreparationResult) {
@@ -80,11 +89,11 @@ extension Scene: SceneInput {
     }
 
     func reset() {
-        _filterOffset = 0
+        imageFilterOffset = 0
         
-        _anchorPoint = .init(0.5, 0.5)
-        _rotationRadians = 0
-        _scale = 1
+        anchorPoint = .init(0.5, 0.5)
+        rotation = 0
+        userScale = 1
         anchorToImageOffset = .init(repeating: 0)
     }
 
@@ -95,19 +104,19 @@ extension Scene: SceneInput {
             clamp01(newAnchorPoint.x),
             clamp01(newAnchorPoint.y)
         )
-        let canvasSize = SIMD2<Float>(canvasAspectRatio, 1.0)
-        let scale = _scale
+        let canvasSize = SIMD2<Float>(1.0, canvasAspectRatio)
+        let scale = userScale
         if scale > 0 {
             // TODO: improve this code it somehow
-            let s = sin(_rotationRadians)
-            let c = cos(_rotationRadians)
+            let s = sin(rotation)
+            let c = cos(rotation)
 
             let vCanvas = anchorToImageOffset * canvasSize * scale
             let rotated = SIMD2<Float>(
                 vCanvas.x * c - vCanvas.y * s,
                 vCanvas.x * s + vCanvas.y * c,
             )
-            let deltaAnchor = (_anchorPoint - clampedAnchor) * canvasSize
+            let deltaAnchor = (anchorPoint - clampedAnchor) * canvasSize
             let target = deltaAnchor + rotated
 
             let unrotated = SIMD2<Float>(
@@ -118,11 +127,11 @@ extension Scene: SceneInput {
             // TODO: use _toAnchorPointVector of _fromAnchorPointVector
             anchorToImageOffset = unrotated / (canvasSize * scale)
         }
-        _anchorPoint = clampedAnchor
+        anchorPoint = clampedAnchor
     }
 
     func didUpdateAnchorPoint(_ anchorPoint: SIMD2<Float>) {
-        _anchorPoint = .init(
+        self.anchorPoint = .init(
             clamp01(anchorPoint.x),
             clamp01(anchorPoint.y),
         )
@@ -153,16 +162,18 @@ extension Scene: SceneOutput {
 
     func getRenderPassInput(renderingViewSize: SIMD2<Float>) -> RenderPassInput? {
         guard let preparationResult else { return nil }
+
         let mvpTransform = getMVPTransform(
             textureSize: preparationResult.textureSize,
             renderingViewSize: renderingViewSize,
         )
+
         return RenderPassInput(
             imageTexture: preparationResult.texture,
             mvpTransform: mvpTransform,
             bottomBackgroundColor: preparationResult.bottomColor,
             topBackgroundColor: preparationResult.topColor,
-            filterPositionOffset: _filterOffset,
+            filterPositionOffset: imageFilterOffset,
         )
     }
 
@@ -175,10 +186,10 @@ extension Scene: SceneOutput {
         TransformCalculator.getMVPTransform(
             textureSize: textureSize,
             canvasSize: renderingViewSize,
-            anchor: _anchorPoint,
+            anchorPoint: anchorPoint,
             anchorToImageOffset: anchorToImageOffset,
-            rotation: _rotationRadians,
-            scale: _scale,
+            rotation: rotation,
+            scale: userScale,
             aspectMode: resolvedAspectMode
         )
     }
