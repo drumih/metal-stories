@@ -68,7 +68,7 @@ final class RenderPassTileMemory {
     private let backgroundPSO: MTLRenderPipelineState
     private let postProcessingPSO: MTLRenderPipelineState
 
-    private let depthStencilState: MTLDepthStencilState
+    private let depthStencilState: MTLDepthStencilState // TODO: should we ignore depth for simplicity?
     private let postProcessingDepthStencilState: MTLDepthStencilState
 
     private var intermediateTexture: MTLTexture?
@@ -203,7 +203,7 @@ extension RenderPassTileMemory: RenderPass {
             postProcessingPSO: postProcessingPSO,
             label: "Post Processing (Tile Memory)",
             texture: nil,
-            transform: TransformCalculator.getIdentityTransform(),
+            transform: nil,
             offset: input.filterPositionOffset,
         )
 

@@ -59,18 +59,19 @@ enum RenderPassHelper {
         postProcessingPSO: MTLRenderPipelineState,
         label: String,
         texture: MTLTexture?,
-        transform: float4x4,
+        transform: float4x4?,
         offset: Float,
     ) {
         renderEncoder.label = label
         renderEncoder.setRenderPipelineState(postProcessingPSO)
 
-        var transform = transform
-        renderEncoder.setVertexBytes(
-            &transform,
-            length: MemoryLayout<float4x4>.stride,
-            index: 0,
-        )
+        if var transform = transform {
+            renderEncoder.setVertexBytes(
+                &transform,
+                length: MemoryLayout<float4x4>.stride,
+                index: 0,
+            )
+        }
 
         var offset = offset
         renderEncoder.setFragmentBytes(
