@@ -115,7 +115,7 @@ extension RenderPassWithRegularIntermediateTexture: RenderPass {
             imageRenderPSO: imageRenderPSO,
             label: "Draw Image (intermediate texture)",
             texture: input.imageTexture,
-            transform: input.transform,
+            transform: input.mvpTransform,
         )
 
         intermediateRenderEncoder.endEncoding()

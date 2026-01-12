@@ -2,7 +2,7 @@
 
 vertex
 VertexOut vertex_general(uint vid [[vertex_id]],
-                         constant float4x4& transformMVP [[ buffer(0) ]]
+                         constant float4x4& mvpTransform [[ buffer(0) ]]
                          ) {
     const auto index = vid % 4;
     float4 position;
@@ -15,7 +15,7 @@ VertexOut vertex_general(uint vid [[vertex_id]],
     }
     
     VertexOut out {
-        .position = transformMVP * position,
+        .position = mvpTransform * position,
         .uv = uv
     };
     return out;

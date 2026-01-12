@@ -65,7 +65,7 @@ extension RenderPassSimple: RenderPass {
             imageRenderPSO: imageRenderPSO,
             label: "Draw Image (Simple)",
             texture: input.imageTexture,
-            transform: input.transform,
+            transform: input.mvpTransform,
         )
 
         renderEncoder.endEncoding()

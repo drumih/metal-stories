@@ -32,14 +32,15 @@ final class Scene {
     private let canvasAspectRatio: Float = 9.0 / 16.0
 
     private var preparationResult: MetalPreparationResult?
-    private var _resolvedAspectMode = ImageAspectMode.scaleAspectFit
+    private var resolvedAspectMode = ImageAspectMode.scaleAspectFit
 
+    // TODO: remove underscores somehow
     private var _filterOffset: Float = 0
 
     private var _scale: Float = 1
     private var _rotationRadians: Float = 0
     private var _anchorPoint = SIMD2<Float>(0.5, 0.5)
-    private var _toAnchorPointVector = SIMD2<Float>(repeating: 0)
+    private var anchorToImageOffset = SIMD2<Float>(repeating: 0)
 }
 
 // MARK: SceneInput
@@ -72,7 +73,7 @@ extension Scene: SceneInput {
 
     func setPreparationResult(_ preparationResult: MetalPreparationResult) {
         self.preparationResult = preparationResult
-        _resolvedAspectMode = Self.targetAspectMode(
+        resolvedAspectMode = Self.targetAspectMode(
             for: imageAspectModeType,
             textureSize: preparationResult.textureSize,
         )
@@ -84,10 +85,12 @@ extension Scene: SceneInput {
         _anchorPoint = .init(0.5, 0.5)
         _rotationRadians = 0
         _scale = 1
-        _toAnchorPointVector = .init(repeating: 0)
+        anchorToImageOffset = .init(repeating: 0)
     }
 
     func didStartNewGesture(newAnchorPoint: SIMD2<Float>) {
+        // TODO: extract it to TransformCalculator, clean up
+        
         let clampedAnchor = SIMD2<Float>(
             clamp01(newAnchorPoint.x),
             clamp01(newAnchorPoint.y)
@@ -99,7 +102,7 @@ extension Scene: SceneInput {
             let s = sin(_rotationRadians)
             let c = cos(_rotationRadians)
 
-            let vCanvas = _toAnchorPointVector * canvasSize * scale
+            let vCanvas = anchorToImageOffset * canvasSize * scale
             let rotated = SIMD2<Float>(
                 vCanvas.x * c - vCanvas.y * s,
                 vCanvas.x * s + vCanvas.y * c,
@@ -112,7 +115,8 @@ extension Scene: SceneInput {
                 -target.x * s + target.y * c,
             )
 
-            _toAnchorPointVector = unrotated / (canvasSize * scale)
+            // TODO: use _toAnchorPointVector of _fromAnchorPointVector
+            anchorToImageOffset = unrotated / (canvasSize * scale)
         }
         _anchorPoint = clampedAnchor
     }
@@ -149,13 +153,13 @@ extension Scene: SceneOutput {
 
     func getRenderPassInput(renderingViewSize: SIMD2<Float>) -> RenderPassInput? {
         guard let preparationResult else { return nil }
-        let transform = getTransform(
+        let mvpTransform = getMVPTransform(
             textureSize: preparationResult.textureSize,
             renderingViewSize: renderingViewSize,
         )
         return RenderPassInput(
             imageTexture: preparationResult.texture,
-            transform: transform,
+            mvpTransform: mvpTransform,
             bottomBackgroundColor: preparationResult.bottomColor,
             topBackgroundColor: preparationResult.topColor,
             filterPositionOffset: _filterOffset,
@@ -164,18 +168,18 @@ extension Scene: SceneOutput {
 
     // MARK: Private
 
-    private func getTransform(
+    private func getMVPTransform(
         textureSize: SIMD2<Float>,
         renderingViewSize: SIMD2<Float>,
     ) -> float4x4 {
-        TransformCalculator.getTransform(
+        TransformCalculator.getMVPTransform(
             textureSize: textureSize,
             canvasSize: renderingViewSize,
             anchor: _anchorPoint,
-            scale: _scale,
+            anchorToImageOffset: anchorToImageOffset,
             rotation: _rotationRadians,
-            translation: _anchorPoint + _toAnchorPointVector,
-            aspectMode: _resolvedAspectMode,
+            scale: _scale,
+            aspectMode: resolvedAspectMode
         )
     }
 }

@@ -184,7 +184,7 @@ extension RenderPassTileMemory: RenderPass {
             imageRenderPSO: imageRenderPSO,
             label: "Draw Image (Tile Memory)",
             texture: input.imageTexture,
-            transform: input.transform,
+            transform: input.mvpTransform,
         )
 
         RenderPassHelper.drawBackground(
