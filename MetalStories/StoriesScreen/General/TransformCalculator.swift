@@ -42,7 +42,7 @@ enum TransformCalculator {
     }
 
     static func getFlippedVerticallyTransform() -> float4x4 {
-        scaleMatrix(.init(x: 1, y: -1))
+        getScaleMatrix(.init(x: 1, y: -1))
     }
 
     static func getIdentityTransform() -> float4x4 {
@@ -67,12 +67,12 @@ enum TransformCalculator {
         let inverseCanvasScale = SIMD2<Float>.one / scaledCanvasSize
         
 
-        let rotationMatrix = rotationMatrixZ(rotation)
-        let inverseRotationMatrix = rotationMatrixZ(-rotation)
-        let scaledMatrix = scaleMatrix(scaledCanvasSize)
-        let inverseScaleMatrix = scaleMatrix(inverseCanvasScale)
+        let rotationMatrix = getRotationMatrixZ(rotation)
+        let inverseRotationMatrix = getRotationMatrixZ(-rotation)
+        let scaleMatrix = getScaleMatrix(scaledCanvasSize)
+        let inverseScaleMatrix = getScaleMatrix(inverseCanvasScale)
 
-        let toCanvasMatrix = rotationMatrix * scaledMatrix
+        let toCanvasMatrix = rotationMatrix * scaleMatrix
         let fromCanvasMatrix = inverseScaleMatrix * inverseRotationMatrix
 
         let deltaAnchor = (currentAnchorPoint - newAnchorPoint) * canvasSize
@@ -94,7 +94,7 @@ private extension TransformCalculator {
         aspectMode: ImageAspectMode,
     ) -> float4x4 {
 
-        let aspectScale = aspectScale(
+        let aspectScale = getAspectScale(
             canvasSize: canvasSize,
             textureSize: textureSize,
             aspectMode: aspectMode,
@@ -104,13 +104,13 @@ private extension TransformCalculator {
         let targetPosition = (anchorPoint + anchorToImageOffset - 0.5) * canvasSize
         let anchorOffset = anchorToImageOffset * canvasSize
 
-        let userScaleMatrix = scaleMatrix(.init(scale, scale))
-        let baseScaleMatrix = scaleMatrix(scaledTextureSize / 2.0)
-        let rotationMatrix = rotationMatrixZ(rotation)
+        let userScaleMatrix = getScaleMatrix(.init(scale, scale))
+        let baseScaleMatrix = getScaleMatrix(scaledTextureSize / 2.0)
+        let rotationMatrix = getRotationMatrixZ(rotation)
 
-        let toAnchorMatrix = translationMatrix(-anchorOffset)
-        let fromAnchorMatrix = translationMatrix(anchorOffset)
-        let toTargetMatrix = translationMatrix(targetPosition)
+        let toAnchorMatrix = getTranslationMatrix(-anchorOffset)
+        let fromAnchorMatrix = getTranslationMatrix(anchorOffset)
+        let toTargetMatrix = getTranslationMatrix(targetPosition)
         
         let transformMatrices = [
             baseScaleMatrix,
@@ -159,7 +159,6 @@ private extension TransformCalculator {
     }
 }
 
-// TODO: rename with pattern rotationMatrixX -> getRotationMatrixX . apply to all possible funcs here
 private extension TransformCalculator {
 
     // MARK: projection
@@ -189,7 +188,7 @@ private extension TransformCalculator {
 
     // MARK: rotation
 
-    static func rotationMatrixX(_ radians: Float) -> float4x4 {
+    static func getRotationMatrixX(_ radians: Float) -> float4x4 {
         let s = sin(radians)
         let c = cos(radians)
 
@@ -201,7 +200,7 @@ private extension TransformCalculator {
         )
     }
 
-    static func rotationMatrixY(_ radians: Float) -> float4x4 {
+    static func getRotationMatrixY(_ radians: Float) -> float4x4 {
         let s = sin(radians)
         let c = cos(radians)
 
@@ -213,7 +212,7 @@ private extension TransformCalculator {
         )
     }
 
-    static func rotationMatrixZ(_ radians: Float) -> float4x4 {
+    static func getRotationMatrixZ(_ radians: Float) -> float4x4 {
         let s = sin(radians)
         let c = cos(radians)
 
@@ -227,7 +226,7 @@ private extension TransformCalculator {
 
     // MARK: scale
 
-    static func aspectScale(
+    static func getAspectScale(
         canvasSize: SIMD2<Float>,
         textureSize: SIMD2<Float>,
         aspectMode: ImageAspectMode,
@@ -241,7 +240,7 @@ private extension TransformCalculator {
         }
     }
 
-    static func scaleMatrix(_ scale: SIMD2<Float>) -> float4x4 {
+    static func getScaleMatrix(_ scale: SIMD2<Float>) -> float4x4 {
         .init(
             .init(scale.x, 0, 0, 0),
             .init(0, scale.y, 0, 0),
@@ -252,7 +251,7 @@ private extension TransformCalculator {
 
     // MARK: translation
 
-    static func translationMatrix(_ translation: SIMD2<Float>) -> float4x4 {
+    static func getTranslationMatrix(_ translation: SIMD2<Float>) -> float4x4 {
         .init(
             .init(1, 0, 0, 0),
             .init(0, 1, 0, 0),
