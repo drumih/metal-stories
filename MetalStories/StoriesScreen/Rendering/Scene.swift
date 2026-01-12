@@ -98,35 +98,18 @@ extension Scene: SceneInput {
     }
 
     func didStartNewGesture(newAnchorPoint: SIMD2<Float>) {
-        // TODO: extract it to TransformCalculator, clean up
-        
         let clampedAnchor = SIMD2<Float>(
             clamp01(newAnchorPoint.x),
             clamp01(newAnchorPoint.y)
         )
-        let canvasSize = SIMD2<Float>(1.0, canvasAspectRatio)
-        let scale = userScale
-        if scale > 0 {
-            // TODO: improve this code it somehow
-            let s = sin(rotation)
-            let c = cos(rotation)
-
-            let vCanvas = anchorToImageOffset * canvasSize * scale
-            let rotated = SIMD2<Float>(
-                vCanvas.x * c - vCanvas.y * s,
-                vCanvas.x * s + vCanvas.y * c,
-            )
-            let deltaAnchor = (anchorPoint - clampedAnchor) * canvasSize
-            let target = deltaAnchor + rotated
-
-            let unrotated = SIMD2<Float>(
-                target.x * c + target.y * s,
-                -target.x * s + target.y * c,
-            )
-
-            // TODO: use _toAnchorPointVector of _fromAnchorPointVector
-            anchorToImageOffset = unrotated / (canvasSize * scale)
-        }
+        anchorToImageOffset = TransformCalculator.getAnchorToImageOffset(
+            currentAnchorPoint: anchorPoint,
+            newAnchorPoint: clampedAnchor,
+            anchorToImageOffset: anchorToImageOffset,
+            rotation: rotation,
+            scale: userScale,
+            canvasAspectRatio: canvasAspectRatio
+        )
         anchorPoint = clampedAnchor
     }
 
@@ -152,6 +135,7 @@ extension Scene: SceneInput {
             return aspectMode
         }
     }
+
 }
 
 // MARK: SceneOutput

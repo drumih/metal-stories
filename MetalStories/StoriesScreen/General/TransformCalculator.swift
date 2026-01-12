@@ -48,6 +48,39 @@ enum TransformCalculator {
     static func getIdentityTransform() -> float4x4 {
         matrix_identity_float4x4
     }
+
+    static func getAnchorToImageOffset(
+        currentAnchorPoint: SIMD2<Float>,
+        newAnchorPoint: SIMD2<Float>,
+        anchorToImageOffset: SIMD2<Float>,
+        rotation: Float,
+        scale: Float,
+        canvasAspectRatio: Float,
+    ) -> SIMD2<Float> {
+        guard scale > 0 else {
+            assertionFailure()
+            return anchorToImageOffset
+        }
+        let canvasSize = SIMD2<Float>(1.0, canvasAspectRatio)
+
+        let scaledCanvasSize = canvasSize * scale
+        let inverseCanvasScale = SIMD2<Float>.one / scaledCanvasSize
+        
+
+        let rotationMatrix = rotationMatrixZ(rotation)
+        let inverseRotationMatrix = rotationMatrixZ(-rotation)
+        let scaledMatrix = scaleMatrix(scaledCanvasSize)
+        let inverseScaleMatrix = scaleMatrix(inverseCanvasScale)
+
+        let toCanvasMatrix = rotationMatrix * scaledMatrix
+        let fromCanvasMatrix = inverseScaleMatrix * inverseRotationMatrix
+
+        let deltaAnchor = (currentAnchorPoint - newAnchorPoint) * canvasSize
+        let currentOffset = transform2D(toCanvasMatrix, anchorToImageOffset)
+        let targetOffset = deltaAnchor + currentOffset
+
+        return transform2D(fromCanvasMatrix, targetOffset)
+    }
 }
 
 private extension TransformCalculator {
@@ -126,6 +159,7 @@ private extension TransformCalculator {
     }
 }
 
+// TODO: rename with pattern rotationMatrixX -> getRotationMatrixX . apply to all possible funcs here
 private extension TransformCalculator {
 
     // MARK: projection
@@ -225,5 +259,12 @@ private extension TransformCalculator {
             .init(0, 0, 1, 0),
             .init(translation.x, translation.y, 0, 1),
         )
+    }
+    
+    // MARK: helpers
+
+    static func transform2D(_ matrix: float4x4, _ vector: SIMD2<Float>) -> SIMD2<Float> {
+        let result = simd_mul(matrix, SIMD4<Float>(vector.x, vector.y, 0, 0))
+        return SIMD2<Float>(result.x, result.y)
     }
 }
