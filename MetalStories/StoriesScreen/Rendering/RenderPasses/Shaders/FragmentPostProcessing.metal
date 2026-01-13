@@ -47,20 +47,27 @@ float2 catmull_rom_5(float2 p0, float2 p1, float2 p2, float2 p3, float2 p4, floa
     // Each segment spans 0.25 of the value range
     
     // For boundary segments, extend control points by reflection
-    const float2 p_pre = 2.0f * p0 - p1;   // virtual point before p0
-    const float2 p_post = 2.0f * p4 - p3;  // virtual point after p4
+    const auto p_pre = 2.0f * p0 - p1;   // virtual point before p0
+    const auto p_post = 2.0f * p4 - p3;  // virtual point after p4
     
-    const float t = saturate(value) * 4.0f;
-    const short segment = min(short(t), short(3));
-    const float local_t = t - float(segment);
+    const auto t = saturate(value) * 4.0f;
+    const auto segment = min(short(t), short(3));
+    const auto t_res = t - float(segment);
     
+    float2 p0_res;
+    float2 p1_res;
+    float2 p2_res;
+    float2 p3_res;
+
     switch (segment) {
-        case 0: return catmull_rom_segment(p_pre, p0, p1, p2, local_t);
-        case 1: return catmull_rom_segment(p0, p1, p2, p3, local_t);
-        case 2: return catmull_rom_segment(p1, p2, p3, p4, local_t);
-        case 3: return catmull_rom_segment(p2, p3, p4, p_post, local_t);
+        case 0: p0_res = p_pre; p1_res = p0; p2_res = p1; p3_res = p2; break;
+        case 1: p0_res = p0; p1_res = p1; p2_res = p2; p3_res = p3; break;
+        case 2: p0_res = p1; p1_res = p2; p2_res = p3; p3_res = p4; break;
+        case 3: p0_res = p2; p1_res = p3; p2_res = p4; p3_res = p_post; break;
         default: return p4;
     }
+    
+    return catmull_rom_segment(p0_res, p1_res, p2_res, p3_res, t_res);
 }
 
 float3 catmull_rom_5_rgb(float2 p0, float2 p1, float2 p2, float2 p3, float2 p4, float3 rgb) {
