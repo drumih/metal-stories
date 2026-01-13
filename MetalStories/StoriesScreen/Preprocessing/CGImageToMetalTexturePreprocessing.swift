@@ -116,43 +116,42 @@ enum CGImageToMetalTexturePreprocessing {
         )
     }
 
-    // TODO: simplify
     private static func medianColor(from buffer: MTLBuffer) -> SIMD4<Float> {
         let histogramData = buffer.contents().bindMemory(
             to: UInt32.self,
             capacity: histogramBins * 4,
         )
         let channelStride = histogramBins
+        var medians = [Float](repeating: 0, count: 3)
 
-        func medianValue(for channelIndex: Int) -> Float {
+        for channelIndex in 0..<3 {
             let channelStart = histogramData.advanced(by: channelStride * channelIndex)
-            let channel = UnsafeBufferPointer(
-                start: channelStart,
-                count: channelStride,
-            )
+            var totalPixels: UInt64 = 0
 
-            let totalPixels = channel.reduce(into: UInt64(0)) { partial, value in
-                partial += UInt64(value)
+            for level in 0..<channelStride {
+                totalPixels += UInt64(channelStart[level])
             }
-            guard totalPixels > 0 else { return 0 }
+
+            if totalPixels == 0 {
+                continue
+            }
 
             let midpoint = (totalPixels + 1) / 2
             var cumulative: UInt64 = 0
 
-            for (level, count) in channel.enumerated() {
-                cumulative += UInt64(count)
+            for level in 0..<channelStride {
+                cumulative += UInt64(channelStart[level])
                 if cumulative >= midpoint {
-                    return Float(level) / Float(histogramBins - 1)
+                    medians[channelIndex] = Float(level) / Float(channelStride - 1)
+                    break
                 }
             }
-
-            return 0
         }
 
         return SIMD4<Float>(
-            medianValue(for: 0),
-            medianValue(for: 1),
-            medianValue(for: 2),
+            medians[0],
+            medians[1],
+            medians[2],
             1.0,
         )
     }

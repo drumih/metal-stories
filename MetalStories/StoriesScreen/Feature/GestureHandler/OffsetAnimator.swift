@@ -31,7 +31,12 @@ final class OffsetAnimator {
         }
 
         // Duration scales with distance for a consistent snap feel.
-        let clampedDuration = max(0.28, min(0.7, Double(distance) * 0.45))
+        
+        let clampedDuration = clamp(
+            value: Double(distance) * 0.45,
+            min: 0.28,
+            max: 0.7
+        )
 
         animation = Animation(
             startValue: startOffset,

@@ -65,7 +65,6 @@ final class RenderPassTileMemory {
 
     private let device: MTLDevice
 
-    // use another pixel format
     private let memorylessTexturePixelFormat: MTLPixelFormat
     private let depthTexturePixelFormat: MTLPixelFormat
 
@@ -108,9 +107,7 @@ extension RenderPassTileMemory: RenderPass {
         } catch {
             intermediateTexture = nil
             depthTexture = nil
-            #if DEBUG
             assertionFailure(error.localizedDescription)
-            #endif
         }
     }
 
@@ -136,7 +133,7 @@ extension RenderPassTileMemory: RenderPass {
 
         renderEncoder.setDepthStencilState(depthStencilState)
 
-        // TODO: write comment about order (we draw image and after what we draw backgrund)
+        // Draw the image first to write depth, then draw the background depth-tested so it stays behind.
 
         RenderPassHelper.drawImage(
             renderEncoder: renderEncoder,
@@ -156,13 +153,12 @@ extension RenderPassTileMemory: RenderPass {
 
         renderEncoder.setDepthStencilState(postProcessingDepthStencilState)
 
-        // pay attention on transform
         RenderPassHelper.drawPostProcessing(
             renderEncoder: renderEncoder,
             postProcessingPSO: postProcessingPSO,
             label: "Post Processing (Tile Memory)",
             texture: nil,
-            transform: nil,
+            transform: TransformCalculator.getIdentityTransform(),
             offset: input.filterPositionOffset,
         )
 

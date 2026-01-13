@@ -124,7 +124,7 @@ extension RenderPassWithRegularIntermediateTexture: RenderPass {
         )
         guard let renderEncoder else { return }
 
-        // TODO: write comment why this type of transform used
+        // Flip vertically to compensate for the render-to-texture Y orientation when sampling the intermediate texture.
         RenderPassHelper.drawPostProcessing(
             renderEncoder: renderEncoder,
             postProcessingPSO: postProcessingPSO,

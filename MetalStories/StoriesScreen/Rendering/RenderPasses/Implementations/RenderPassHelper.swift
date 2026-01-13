@@ -9,6 +9,7 @@ enum RenderPassHelper {
         texture: MTLTexture,
         transform: float4x4,
     ) {
+        renderEncoder.pushDebugGroup(label)
         renderEncoder.label = label
         renderEncoder.setRenderPipelineState(imageRenderPSO)
 
@@ -20,6 +21,7 @@ enum RenderPassHelper {
         )
         renderEncoder.setFragmentTexture(texture, index: 0)
         renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+        renderEncoder.popDebugGroup()
     }
 
     static func drawBackground(
@@ -29,6 +31,7 @@ enum RenderPassHelper {
         topColor: SIMD4<Float>,
         bottomColor: SIMD4<Float>,
     ) {
+        renderEncoder.pushDebugGroup(label)
         renderEncoder.label = label
         renderEncoder.setRenderPipelineState(backgroundPSO)
 
@@ -51,6 +54,7 @@ enum RenderPassHelper {
             index: 1,
         )
         renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+        renderEncoder.popDebugGroup()
     }
 
     static func drawPostProcessing(
@@ -58,19 +62,19 @@ enum RenderPassHelper {
         postProcessingPSO: MTLRenderPipelineState,
         label: String,
         texture: MTLTexture?,
-        transform: float4x4?,
+        transform: float4x4,
         offset: Float,
     ) {
+        renderEncoder.pushDebugGroup(label)
         renderEncoder.label = label
         renderEncoder.setRenderPipelineState(postProcessingPSO)
 
-        if var transform = transform {
-            renderEncoder.setVertexBytes(
-                &transform,
-                length: MemoryLayout<float4x4>.stride,
-                index: 0,
-            )
-        }
+        var transform = transform
+        renderEncoder.setVertexBytes(
+            &transform,
+            length: MemoryLayout<float4x4>.stride,
+            index: 0,
+        )
 
         var offset = offset
         renderEncoder.setFragmentBytes(
@@ -84,5 +88,6 @@ enum RenderPassHelper {
         }
 
         renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+        renderEncoder.popDebugGroup()
     }
 }
