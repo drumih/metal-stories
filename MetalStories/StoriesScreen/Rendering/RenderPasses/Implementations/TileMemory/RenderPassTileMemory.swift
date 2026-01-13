@@ -25,43 +25,48 @@ final class RenderPassTileMemory {
 
     init(
         device: MTLDevice,
-        pixelFormat: MTLPixelFormat,
+        drawablesPixelFormat: MTLPixelFormat,
     ) throws {
         self.device = device
-        self.pixelFormat = pixelFormat
 
-        intermediateTexturePixelFormat = pixelFormat
-        depthTexturePixelFormat = .depth32Float
+        let memorylessTexturePixelFormat: MTLPixelFormat = .bgra8Unorm
+        let depthTexturePixelFormat: MTLPixelFormat = .depth32Float
 
         let bundle = Bundle(for: Self.self)
         let library = try device.makeDefaultLibrary(bundle: bundle)
+
         imageRenderPSO = try PipelineStateObjectsFactory.imageTileMemoryPipeline(
             library: library,
-            pixelFormat: pixelFormat,
-            memorylessTexturePixelFormat: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
+            memorylessTexturePixelFormat: memorylessTexturePixelFormat,
+            depthAttachmentPixelFormat: depthTexturePixelFormat,
         )
         backgroundPSO = try PipelineStateObjectsFactory.backgroundTileMemoryPipeline(
             library: library,
-            pixelFormat: pixelFormat,
-            memorylessTexturePixelFormat: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
+            memorylessTexturePixelFormat: memorylessTexturePixelFormat,
+            depthAttachmentPixelFormat: depthTexturePixelFormat,
         )
         postProcessingPSO = try PipelineStateObjectsFactory.postProcessingTileMemoryPipeline(
             library: library,
-            pixelFormat: pixelFormat,
-            memorylessTexturePixelFormat: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
+            memorylessTexturePixelFormat: memorylessTexturePixelFormat,
+            depthAttachmentPixelFormat: depthTexturePixelFormat,
         )
 
         depthStencilState = try Self.makeDepthStencilState(device: device)
         postProcessingDepthStencilState = try Self.makePostProcessingDepthStencilState(device: device)
+
+        self.memorylessTexturePixelFormat = memorylessTexturePixelFormat
+        self.depthTexturePixelFormat = depthTexturePixelFormat
     }
 
     // MARK: Private
 
     private let device: MTLDevice
-    private let pixelFormat: MTLPixelFormat
 
     // use another pixel format
-    private let intermediateTexturePixelFormat: MTLPixelFormat
+    private let memorylessTexturePixelFormat: MTLPixelFormat
     private let depthTexturePixelFormat: MTLPixelFormat
 
     private let imageRenderPSO: MTLRenderPipelineState
@@ -74,71 +79,23 @@ final class RenderPassTileMemory {
     private var intermediateTexture: MTLTexture?
     private var depthTexture: MTLTexture?
 
-    private static func makeDepthStencilState(device: MTLDevice) throws -> MTLDepthStencilState {
-        let descriptor = MTLDepthStencilDescriptor()
-        descriptor.depthCompareFunction = .less
-        descriptor.isDepthWriteEnabled = true
-        guard let stencilState = device.makeDepthStencilState(descriptor: descriptor) else {
-            throw RenderPassTileMemoryError.failedToCreateStencilState
-        }
-        return stencilState
-    }
-
-    // TODO: do we really need it?
-    private static func makePostProcessingDepthStencilState(device: MTLDevice) throws -> MTLDepthStencilState {
-        let descriptor = MTLDepthStencilDescriptor()
-        descriptor.isDepthWriteEnabled = false
-        guard let stencilState = device.makeDepthStencilState(descriptor: descriptor) else {
-            throw RenderPassTileMemoryError.failedToCreateStencilState
-        }
-        return stencilState
-    }
-
-    private static func makeTexture(
-        device: MTLDevice,
-        pixelFormat: MTLPixelFormat,
-        width: Int,
-        height: Int,
-    ) -> MTLTexture? {
-        let descriptor = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: pixelFormat,
-            width: width,
-            height: height,
-            mipmapped: false,
-        )
-        descriptor.storageMode = .memoryless
-        descriptor.usage = [.shaderRead, .renderTarget]
-        return device.makeTexture(descriptor: descriptor)
-    }
-
     private func updateIntermediateTexture(forSize size: CGSize) throws {
         let width = Int(size.width)
         let height = Int(size.height)
-        guard width > 0, height > 0 else {
-            throw RenderPassTileMemoryError.failedToCreateTexture
-        }
-        let texture = Self.makeTexture(
-            device: device,
-            pixelFormat: pixelFormat,
-            width: width,
-            height: height,
-        )
-        let depthTexture = Self.makeTexture(
-            device: device,
-            pixelFormat: .depth32Float,
-            width: width,
-            height: height,
-        )
-        guard let texture else {
-            throw RenderPassTileMemoryError.failedToCreateTexture
-        }
-        guard let depthTexture else {
-            throw RenderPassTileMemoryError.failedToCreateTexture
-        }
-        intermediateTexture = texture
-        self.depthTexture = depthTexture
-    }
 
+        self.intermediateTexture = try Self.makeTexture(
+            device: device,
+            pixelFormat: memorylessTexturePixelFormat,
+            width: width,
+            height: height,
+        )
+        self.depthTexture = try Self.makeTexture(
+            device: device,
+            pixelFormat: depthTexturePixelFormat,
+            width: width,
+            height: height,
+        )
+    }
 }
 
 // MARK: RenderPass
@@ -159,28 +116,27 @@ extension RenderPassTileMemory: RenderPass {
 
     func draw(
         commandBuffer: MTLCommandBuffer,
-        renderPassDescriptor rpd: MTLRenderPassDescriptor,
+        renderPassDescriptor: MTLRenderPassDescriptor,
         input: RenderPassInput,
     ) {
         guard let intermediateTexture, let depthTexture else { return }
 
-        rpd.colorAttachments[1]?.texture = intermediateTexture
-        rpd.colorAttachments[1]?.loadAction = .dontCare
-        rpd.colorAttachments[1]?.storeAction = .dontCare
+        renderPassDescriptor.colorAttachments[1]?.texture = intermediateTexture
+        renderPassDescriptor.colorAttachments[1]?.loadAction = .dontCare
+        renderPassDescriptor.colorAttachments[1]?.storeAction = .dontCare
 
-        rpd.depthAttachment.texture = depthTexture
-        rpd.depthAttachment.loadAction = .clear
-        rpd.depthAttachment.storeAction = .dontCare
+        renderPassDescriptor.depthAttachment.texture = depthTexture
+        renderPassDescriptor.depthAttachment.loadAction = .clear
+        renderPassDescriptor.depthAttachment.storeAction = .dontCare
 
-        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: rpd) else {
-            return
-        }
+        let renderEncoder = commandBuffer.makeRenderCommandEncoder(
+            descriptor: renderPassDescriptor
+        )
+        guard let renderEncoder else { return }
 
         renderEncoder.setDepthStencilState(depthStencilState)
 
-        // pay attention to the order of image-background
-        
-        // TODO: check for depth!!
+        // TODO: write comment about order (we draw image and after what we draw backgrund)
 
         RenderPassHelper.drawImage(
             renderEncoder: renderEncoder,
@@ -211,5 +167,56 @@ extension RenderPassTileMemory: RenderPass {
         )
 
         renderEncoder.endEncoding()
+    }
+}
+
+// MARK: helpers
+
+extension RenderPassTileMemory {
+    // TODO: check for depth!!
+    private static func makeDepthStencilState(device: MTLDevice) throws -> MTLDepthStencilState {
+        let descriptor = MTLDepthStencilDescriptor()
+        descriptor.depthCompareFunction = .less
+        descriptor.isDepthWriteEnabled = true
+        guard let stencilState = device.makeDepthStencilState(descriptor: descriptor) else {
+            throw RenderPassTileMemoryError.failedToCreateStencilState
+        }
+        return stencilState
+    }
+
+    // TODO: do we really need it?
+    private static func makePostProcessingDepthStencilState(device: MTLDevice) throws -> MTLDepthStencilState {
+        let descriptor = MTLDepthStencilDescriptor()
+        descriptor.isDepthWriteEnabled = false
+        guard let stencilState = device.makeDepthStencilState(descriptor: descriptor) else {
+            throw RenderPassTileMemoryError.failedToCreateStencilState
+        }
+        return stencilState
+    }
+
+    private static func makeTexture(
+        device: MTLDevice,
+        pixelFormat: MTLPixelFormat,
+        width: Int,
+        height: Int,
+    ) throws -> MTLTexture {
+        guard width > 0, height > 0 else {
+            throw RenderPassTileMemoryError.failedToCreateTexture
+        }
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: pixelFormat,
+            width: width,
+            height: height,
+            mipmapped: false,
+        )
+        descriptor.storageMode = .memoryless
+        descriptor.usage = [.shaderRead, .renderTarget]
+        let texture = device.makeTexture(descriptor: descriptor)
+
+        guard let texture else {
+            throw RenderPassTileMemoryError.failedToCreateTexture
+        }
+
+        return texture
     }
 }

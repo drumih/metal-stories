@@ -9,24 +9,21 @@ final class RenderPassSimple {
 
     init(
         device: MTLDevice,
-        pixelFormat: MTLPixelFormat,
+        drawablesPixelFormat: MTLPixelFormat,
     ) throws {
-        self.pixelFormat = pixelFormat
         let bundle = Bundle(for: RenderPassSimple.self)
         let library = try device.makeDefaultLibrary(bundle: bundle)
         imageRenderPSO = try PipelineStateObjectsFactory.imageBasePipeline(
             library: library,
-            pixelFormat: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
         )
         backgroundPSO = try PipelineStateObjectsFactory.backgroundBasePipeline(
             library: library,
-            pixelFormat: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
         )
     }
 
     // MARK: Private
-
-    private let pixelFormat: MTLPixelFormat
 
     private let imageRenderPSO: MTLRenderPipelineState
     private let backgroundPSO: MTLRenderPipelineState
@@ -43,14 +40,13 @@ extension RenderPassSimple: RenderPass {
 
     func draw(
         commandBuffer: MTLCommandBuffer,
-        renderPassDescriptor rpd: MTLRenderPassDescriptor,
+        renderPassDescriptor: MTLRenderPassDescriptor,
         input: RenderPassInput,
     ) {
-        guard
-            let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: rpd)
-        else {
-            return
-        }
+        let renderEncoder = commandBuffer.makeRenderCommandEncoder(
+            descriptor: renderPassDescriptor
+        )
+        guard let renderEncoder else { return }
 
         RenderPassHelper.drawBackground(
             renderEncoder: renderEncoder,

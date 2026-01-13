@@ -29,7 +29,7 @@ final class RenderingView: UIView {
 
     weak var delegate: (any RenderingViewDelegate)?
 
-    var pixelFormat: MTLPixelFormat { metalView.colorPixelFormat }
+    var drawablesPixelFormat: MTLPixelFormat { metalView.colorPixelFormat }
 
     override func layoutSubviews() {
         super.layoutSubviews()

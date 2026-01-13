@@ -9,30 +9,30 @@ final class RenderPassWithRegularIntermediateTexture {
 
     init(
         device: MTLDevice,
-        pixelFormat: MTLPixelFormat,
+        drawablesPixelFormat: MTLPixelFormat,
     ) throws {
         self.device = device
-        self.pixelFormat = pixelFormat
+        self.intermediateTexturePixelFormat = .bgra8Unorm
         let bundle = Bundle(for: RenderPassSimple.self)
         let library = try device.makeDefaultLibrary(bundle: bundle)
         imageRenderPSO = try PipelineStateObjectsFactory.imageBasePipeline(
             library: library,
-            pixelFormat: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
         )
         backgroundPSO = try PipelineStateObjectsFactory.backgroundBasePipeline(
             library: library,
-            pixelFormat: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
         )
         postProcessingPSO = try PipelineStateObjectsFactory.postProcessingBasePipeline(
             library: library,
-            pixelFormat: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
         )
     }
 
     // MARK: Private
 
     private let device: MTLDevice
-    private let pixelFormat: MTLPixelFormat
+    private let intermediateTexturePixelFormat: MTLPixelFormat
 
     private let imageRenderPSO: MTLRenderPipelineState
     private let backgroundPSO: MTLRenderPipelineState
@@ -58,17 +58,17 @@ final class RenderPassWithRegularIntermediateTexture {
     }
 
     private func updateIntermediateTexture(forSize size: CGSize) {
-        let texture = Self.makeTexture(
+        let intermediateTexture = Self.makeTexture(
             device: device,
-            pixelFormat: pixelFormat,
+            pixelFormat: intermediateTexturePixelFormat,
             width: Int(size.width),
             height: Int(size.height),
         )
-        guard let texture else {
+        guard let intermediateTexture else {
             assertionFailure()
             return
         }
-        intermediateTexture = texture
+        self.intermediateTexture = intermediateTexture
     }
 
 }
@@ -83,7 +83,7 @@ extension RenderPassWithRegularIntermediateTexture: RenderPass {
 
     func draw(
         commandBuffer: MTLCommandBuffer,
-        renderPassDescriptor rpd: MTLRenderPassDescriptor,
+        renderPassDescriptor: MTLRenderPassDescriptor,
         input: RenderPassInput,
     ) {
         guard let intermediateTexture else {
@@ -92,15 +92,14 @@ extension RenderPassWithRegularIntermediateTexture: RenderPass {
         }
 
         let intermediatePassDescriptor = MTLRenderPassDescriptor()
-        let intermediateAttachment = intermediatePassDescriptor.colorAttachments[0]
-        intermediateAttachment?.texture = intermediateTexture
-        intermediateAttachment?.loadAction = .dontCare
-        intermediateAttachment?.storeAction = .store
+        intermediatePassDescriptor.colorAttachments[0]?.texture = intermediateTexture
+        intermediatePassDescriptor.colorAttachments[0]?.loadAction = .dontCare
+        intermediatePassDescriptor.colorAttachments[0]?.storeAction = .store
 
-        guard let intermediateRenderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: intermediatePassDescriptor)
-        else {
-            return
-        }
+        let intermediateRenderEncoder = commandBuffer.makeRenderCommandEncoder(
+            descriptor: intermediatePassDescriptor
+        )
+        guard let intermediateRenderEncoder else { return }
 
         RenderPassHelper.drawBackground(
             renderEncoder: intermediateRenderEncoder,
@@ -120,11 +119,12 @@ extension RenderPassWithRegularIntermediateTexture: RenderPass {
 
         intermediateRenderEncoder.endEncoding()
 
-        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: rpd) else {
-            return
-        }
+        let renderEncoder = commandBuffer.makeRenderCommandEncoder(
+            descriptor: renderPassDescriptor
+        )
+        guard let renderEncoder else { return }
 
-        // pay attention on transform
+        // TODO: write comment why this type of transform used
         RenderPassHelper.drawPostProcessing(
             renderEncoder: renderEncoder,
             postProcessingPSO: postProcessingPSO,

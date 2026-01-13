@@ -21,13 +21,13 @@ enum PipelineStateObjectsFactory {
 
     static func imageBasePipeline(
         library: MTLLibrary,
-        pixelFormat: MTLPixelFormat,
+        drawablesPixelFormat: MTLPixelFormat,
     ) throws -> MTLRenderPipelineState {
         let descriptor = try getBaseRenderPipelineDescriptor(
             vertexFunctionName: "vertex_general",
             fragmentFunctionName: "fragment_image",
             library: library,
-            pixelFormatForMainAttachment: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
         )
 
         return try library.device.makeRenderPipelineState(descriptor: descriptor)
@@ -35,13 +35,13 @@ enum PipelineStateObjectsFactory {
 
     static func backgroundBasePipeline(
         library: MTLLibrary,
-        pixelFormat: MTLPixelFormat,
+        drawablesPixelFormat: MTLPixelFormat,
     ) throws -> MTLRenderPipelineState {
         let descriptor = try getBaseRenderPipelineDescriptor(
             vertexFunctionName: "vertex_general",
             fragmentFunctionName: "fragment_background",
             library: library,
-            pixelFormatForMainAttachment: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
         )
 
         return try library.device.makeRenderPipelineState(descriptor: descriptor)
@@ -49,13 +49,13 @@ enum PipelineStateObjectsFactory {
 
     static func postProcessingBasePipeline(
         library: MTLLibrary,
-        pixelFormat: MTLPixelFormat,
+        drawablesPixelFormat: MTLPixelFormat,
     ) throws -> MTLRenderPipelineState {
         let descriptor = try getBaseRenderPipelineDescriptor(
             vertexFunctionName: "vertex_general",
             fragmentFunctionName: "fragment_post_processing",
             library: library,
-            pixelFormatForMainAttachment: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
         )
 
         return try library.device.makeRenderPipelineState(descriptor: descriptor)
@@ -63,54 +63,57 @@ enum PipelineStateObjectsFactory {
 
     static func imageTileMemoryPipeline(
         library: MTLLibrary,
-        pixelFormat: MTLPixelFormat,
+        drawablesPixelFormat: MTLPixelFormat,
         memorylessTexturePixelFormat: MTLPixelFormat,
+        depthAttachmentPixelFormat: MTLPixelFormat,
     ) throws -> MTLRenderPipelineState {
         let descriptor = try getBaseRenderPipelineDescriptor(
             vertexFunctionName: "vertex_general",
             fragmentFunctionName: "fragment_image_tile_memory",
             library: library,
-            pixelFormatForMainAttachment: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
         )
         descriptor.colorAttachments[1].pixelFormat = memorylessTexturePixelFormat
         descriptor.colorAttachments[1].isBlendingEnabled = false
-        descriptor.depthAttachmentPixelFormat = .depth32Float
+        descriptor.depthAttachmentPixelFormat = depthAttachmentPixelFormat
 
         return try library.device.makeRenderPipelineState(descriptor: descriptor)
     }
 
     static func backgroundTileMemoryPipeline(
         library: MTLLibrary,
-        pixelFormat: MTLPixelFormat,
+        drawablesPixelFormat: MTLPixelFormat,
         memorylessTexturePixelFormat: MTLPixelFormat,
+        depthAttachmentPixelFormat: MTLPixelFormat,
     ) throws -> MTLRenderPipelineState {
         let descriptor = try getBaseRenderPipelineDescriptor(
             vertexFunctionName: "vertex_general",
             fragmentFunctionName: "fragment_background_tile_memory",
             library: library,
-            pixelFormatForMainAttachment: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
         )
         descriptor.colorAttachments[1].pixelFormat = memorylessTexturePixelFormat
         descriptor.colorAttachments[1].isBlendingEnabled = false
-        descriptor.depthAttachmentPixelFormat = .depth32Float
+        descriptor.depthAttachmentPixelFormat = depthAttachmentPixelFormat
 
         return try library.device.makeRenderPipelineState(descriptor: descriptor)
     }
 
     static func postProcessingTileMemoryPipeline(
         library: MTLLibrary,
-        pixelFormat: MTLPixelFormat,
+        drawablesPixelFormat: MTLPixelFormat,
         memorylessTexturePixelFormat: MTLPixelFormat,
+        depthAttachmentPixelFormat: MTLPixelFormat,
     ) throws -> MTLRenderPipelineState {
         let descriptor = try getBaseRenderPipelineDescriptor(
             vertexFunctionName: "vertex_general",
             fragmentFunctionName: "fragment_post_processing_tile_memory",
             library: library,
-            pixelFormatForMainAttachment: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
         )
         descriptor.colorAttachments[1].pixelFormat = memorylessTexturePixelFormat
         descriptor.colorAttachments[1].isBlendingEnabled = false
-        descriptor.depthAttachmentPixelFormat = .depth32Float
+        descriptor.depthAttachmentPixelFormat = depthAttachmentPixelFormat
 
         return try library.device.makeRenderPipelineState(descriptor: descriptor)
     }
@@ -121,7 +124,7 @@ enum PipelineStateObjectsFactory {
         vertexFunctionName: String,
         fragmentFunctionName: String,
         library: MTLLibrary,
-        pixelFormatForMainAttachment: MTLPixelFormat,
+        drawablesPixelFormat: MTLPixelFormat,
     ) throws -> MTLRenderPipelineDescriptor {
         guard let vertexFunction = library.makeFunction(name: vertexFunctionName) else {
             throw PipelineStateObjectsFactoryError.failedToCreateFunction(name: vertexFunctionName)
@@ -135,7 +138,7 @@ enum PipelineStateObjectsFactory {
         descriptor.fragmentFunction = fragmentFunction
 
         descriptor.vertexBuffers[0].mutability = .immutable
-        descriptor.colorAttachments[0].pixelFormat = pixelFormatForMainAttachment
+        descriptor.colorAttachments[0].pixelFormat = drawablesPixelFormat
         descriptor.colorAttachments[0].isBlendingEnabled = false
 
         return descriptor

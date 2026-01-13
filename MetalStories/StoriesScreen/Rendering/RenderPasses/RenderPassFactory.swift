@@ -16,11 +16,11 @@ final class RenderPassFactory {
 
     init(
         device: MTLDevice,
-        pixelFormat: MTLPixelFormat,
+        drawablesPixelFormat: MTLPixelFormat,
         renderPassType: RenderPassType,
     ) {
         self.device = device
-        self.pixelFormat = pixelFormat
+        self.drawablesPixelFormat = drawablesPixelFormat
         self.renderPassType = renderPassType
     }
 
@@ -31,19 +31,19 @@ final class RenderPassFactory {
         case .simple:
             try RenderPassSimple(
                 device: device,
-                pixelFormat: pixelFormat,
+                drawablesPixelFormat: drawablesPixelFormat,
             )
 
         case .withIntermediateTexture:
             try RenderPassWithRegularIntermediateTexture(
                 device: device,
-                pixelFormat: pixelFormat,
+                drawablesPixelFormat: drawablesPixelFormat,
             )
 
         case .tileMemory:
             try RenderPassTileMemory(
                 device: device,
-                pixelFormat: pixelFormat,
+                drawablesPixelFormat: drawablesPixelFormat,
             )
         }
     }
@@ -52,7 +52,7 @@ final class RenderPassFactory {
 
     private let device: MTLDevice
 
-    private let pixelFormat: MTLPixelFormat
+    private let drawablesPixelFormat: MTLPixelFormat
     private let renderPassType: RenderPassType
 
 }

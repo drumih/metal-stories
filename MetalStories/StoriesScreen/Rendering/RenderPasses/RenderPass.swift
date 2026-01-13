@@ -4,7 +4,7 @@ protocol RenderPass: AnyObject {
     func resize(size: CGSize)
     func draw(
         commandBuffer: MTLCommandBuffer,
-        renderPassDescriptor rpd: MTLRenderPassDescriptor,
+        renderPassDescriptor: MTLRenderPassDescriptor,
         input: RenderPassInput,
     )
 }

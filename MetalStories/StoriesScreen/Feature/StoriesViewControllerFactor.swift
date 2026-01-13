@@ -12,10 +12,10 @@ enum StoriesViewControllerFactor {
         let gpu = try GPU()
 
         let renderingView = RenderingView(device: gpu.device)
-        let pixelFormat = renderingView.pixelFormat
+        let drawablesPixelFormat = renderingView.drawablesPixelFormat
         let renderPassFactory = RenderPassFactory(
             device: gpu.device,
-            pixelFormat: pixelFormat,
+            drawablesPixelFormat: drawablesPixelFormat,
             renderPassType: renderPassType,
         )
         let scene = Scene(
