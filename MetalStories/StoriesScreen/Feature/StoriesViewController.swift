@@ -2,6 +2,8 @@ import UIKit
 
 // MARK: - StoriesViewController
 
+// TODO: after gesture animation present and hide label with offset index in instagram style. 
+
 final class StoriesViewController: UIViewController {
 
     // MARK: Lifecycle
