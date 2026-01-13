@@ -49,6 +49,10 @@ enum TransformCalculator {
         matrix_identity_float4x4
     }
 
+    static func getZPlaneTransform(_ zOffset: Float) -> float4x4 {
+        getTranslationMatrix(.init(0, 0, zOffset))
+    }
+
     static func getAnchorToImageOffset(
         currentAnchorPoint: SIMD2<Float>,
         newAnchorPoint: SIMD2<Float>,
@@ -252,11 +256,15 @@ private extension TransformCalculator {
     // MARK: translation
 
     static func getTranslationMatrix(_ translation: SIMD2<Float>) -> float4x4 {
+        getTranslationMatrix(.init(translation, 0))
+    }
+    
+    static func getTranslationMatrix(_ translation: SIMD3<Float>) -> float4x4 {
         .init(
             .init(1, 0, 0, 0),
             .init(0, 1, 0, 0),
             .init(0, 0, 1, 0),
-            .init(translation.x, translation.y, 0, 1),
+            .init(translation.x, translation.y, translation.z, 1),
         )
     }
     

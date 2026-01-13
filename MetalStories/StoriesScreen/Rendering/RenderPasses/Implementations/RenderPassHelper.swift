@@ -32,8 +32,7 @@ enum RenderPassHelper {
         renderEncoder.label = label
         renderEncoder.setRenderPipelineState(backgroundPSO)
 
-        // TODO: check, if translation needed here
-        var transform = TransformCalculator.getIdentityTransform()
+        var transform = TransformCalculator.getZPlaneTransform(0.5)
         renderEncoder.setVertexBytes(
             &transform,
             length: MemoryLayout<float4x4>.stride,

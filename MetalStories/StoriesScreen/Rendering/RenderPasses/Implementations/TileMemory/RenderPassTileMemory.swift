@@ -5,13 +5,13 @@ import simd
 
 enum RenderPassTileMemoryError: LocalizedError {
     case failedToCreateTexture
-    case failedToCreateStensilState
+    case failedToCreateStencilState
 
     var errorDescription: String? {
         switch self {
         case .failedToCreateTexture:
             "Unable to create texture."
-        case .failedToCreateStensilState:
+        case .failedToCreateStencilState:
             "Unable to create stencil state."
         }
     }
@@ -76,10 +76,10 @@ final class RenderPassTileMemory {
 
     private static func makeDepthStencilState(device: MTLDevice) throws -> MTLDepthStencilState {
         let descriptor = MTLDepthStencilDescriptor()
-        descriptor.depthCompareFunction = .less // TODO: double check
+        descriptor.depthCompareFunction = .less
         descriptor.isDepthWriteEnabled = true
         guard let stencilState = device.makeDepthStencilState(descriptor: descriptor) else {
-            throw RenderPassTileMemoryError.failedToCreateStensilState
+            throw RenderPassTileMemoryError.failedToCreateStencilState
         }
         return stencilState
     }
@@ -89,7 +89,7 @@ final class RenderPassTileMemory {
         let descriptor = MTLDepthStencilDescriptor()
         descriptor.isDepthWriteEnabled = false
         guard let stencilState = device.makeDepthStencilState(descriptor: descriptor) else {
-            throw RenderPassTileMemoryError.failedToCreateStensilState
+            throw RenderPassTileMemoryError.failedToCreateStencilState
         }
         return stencilState
     }
@@ -169,6 +169,7 @@ extension RenderPassTileMemory: RenderPass {
         rpd.colorAttachments[1]?.storeAction = .dontCare
 
         rpd.depthAttachment.texture = depthTexture
+        rpd.depthAttachment.loadAction = .clear
         rpd.depthAttachment.storeAction = .dontCare
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: rpd) else {
