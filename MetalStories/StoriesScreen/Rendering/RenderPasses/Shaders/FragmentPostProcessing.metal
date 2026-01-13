@@ -1,6 +1,6 @@
 #include "Common.h"
 
-constant short kFiltersCount = 3;
+constant short kFiltersCount = 5;
 
 // MARK: adjustments
 
@@ -12,16 +12,16 @@ float luminance(float3 rgb) {
 }
 
 // TODO: write func documentation. explain what it does
-METAL_FUNC
-float3 adjust_brightness(float3 rgb, float value) {
-    return rgb + value;
-}
+//METAL_FUNC
+//float3 adjust_brightness(float3 rgb, float value) {
+//    return rgb + value;
+//}
 
 // TODO: write func documentation. value from 0.5 to 1.5. explain what it does. pivot in 0..1
-METAL_FUNC
-float3 adjust_contrast(float3 rgb, float value, float pivot) {
-    return (rgb - pivot) * value + pivot;
-}
+//METAL_FUNC
+//float3 adjust_contrast(float3 rgb, float value, float pivot) {
+//    return (rgb - pivot) * value + pivot;
+//}
 
 // TODO: write func documentation.
 
@@ -78,15 +78,44 @@ float3 catmull_rom_5_rgb(float2 p0, float2 p1, float2 p2, float2 p3, float2 p4, 
     );
 }
 
+// TODO: write func documentation.
+METAL_FUNC
+float3 desaturate(float3 rgb, float amount) {
+    const auto luma = luminance(rgb);
+    return mix(rgb, float3(luma), amount);
+}
+
+// TODO: write func documentation.
+METAL_FUNC
+float3 apply_channel_matrix(float3 rgb, float3x3 matrix) {
+    return float3(
+        dot(matrix[0], rgb),
+        dot(matrix[1], rgb),
+        dot(matrix[2], rgb)
+    );
+}
+
+// TODO: write func documentation.
+METAL_FUNC
+float3 saturate_color(float3 rgb, float amount) {
+    const auto luma = luminance(rgb);
+    return mix(float3(luma), rgb, amount);
+}
+
 // MARK: filters
 
 
 METAL_FUNC
 float3 dramatic_bw(float3 rgb) {
-    const auto lum = luminance(rgb);
-    const auto bw = float3(lum);
-    const auto dramaticBW = adjust_contrast(bw, 1.3, 0.4);
-    return saturate(dramaticBW);
+    const auto luma = luminance(rgb);
+//    const auto bw = float3(luma);
+    const auto curveContrast = catmull_rom_5(float2(0.f, 0.1f),
+                                             float2(0.25f, 0.2f),
+                                             float2(0.5f, 0.7f),
+                                             float2(0.75f, 0.8f),
+                                             float2(1.f, 0.9f),
+                                             luma).y;
+    return float3(curveContrast);
 }
 
 METAL_FUNC
@@ -122,11 +151,70 @@ float3 fire_and_ice(float3 rgb) {
     
 }
 
-// TODO: implement sepia filter
-// TODO: implement instagram Paris filter
-// TODO: implement instagram Fade Cold filter
-// TODO: implement Instagram Fade Warm filter
+METAL_FUNC
+float3 sepia(float3 rgb) {
+    const auto luma = luminance(rgb);
+    const auto curveContrast = catmull_rom_5(float2(0.f, 0.f),
+                                            float2(0.25f, 0.2f),
+                                            float2(0.5f, 0.5f),
+                                            float2(0.75f, 0.8f),
+                                            float2(1.f, 1.f),
+                                            luma);
+    const auto sepiaTint = float3(1.f, 0.92f, 0.78f);
+    return curveContrast.y * sepiaTint;
+}
 
+METAL_FUNC
+float3 cross_process_film(float3 rgb) {
+    // First, apply high contrast curve for dramatic film look
+    const auto contrastRGB = catmull_rom_5_rgb(float2(0.f, 0.f),
+                                              float2(0.25f, 0.15f),
+                                              float2(0.5f, 0.5f),
+                                              float2(0.75f, 0.85f),
+                                              float2(1.f, 1.f),
+                                              rgb);
+    
+    // Apply 3x3 channel mixing matrix for cross-processing effect
+    // This creates the characteristic color shifts (cyan/magenta/yellow)
+    // Matrix values create strong channel bleeding for that "popping" film look
+    const float3x3 crossProcessMatrix = float3x3(
+        float3(1.2f, 0.1f, -0.15f),   // Red channel: boost red, slight green bleed, reduce blue
+        float3(-0.05f, 1.15f, 0.2f),  // Green channel: slight red reduction, boost green, blue bleed
+        float3(0.1f, -0.1f, 1.25f)    // Blue channel: slight red bleed, green reduction, strong blue boost
+    );
+    
+    const auto mixed = apply_channel_matrix(contrastRGB, crossProcessMatrix);
+    
+    // Apply aggressive tone curves per channel for film character
+    const auto curveR = catmull_rom_5(float2(0.f, 0.f),
+                                     float2(0.25f, 0.18f),
+                                     float2(0.5f, 0.48f),
+                                     float2(0.75f, 0.82f),
+                                     float2(1.f, 1.f),
+                                     mixed.r);
+    const auto curveG = catmull_rom_5(float2(0.f, 0.f),
+                                     float2(0.25f, 0.2f),
+                                     float2(0.5f, 0.5f),
+                                     float2(0.75f, 0.8f),
+                                     float2(1.f, 1.f),
+                                     mixed.g);
+    const auto curveB = catmull_rom_5(float2(0.f, 0.05f),
+                                     float2(0.25f, 0.25f),
+                                     float2(0.5f, 0.52f),
+                                     float2(0.75f, 0.78f),
+                                     float2(1.f, 0.95f),
+                                     mixed.b);
+    
+    const auto curved = float3(curveR.y, curveG.y, curveB.y);
+    
+    // Boost saturation significantly for that vibrant, popping film look
+    const auto saturated = saturate_color(curved, 1.35f);
+    
+    // Final color grading tint for film warmth
+    const auto filmTint = float3(1.05f, 1.0f, 0.98f);
+    
+    return saturated * filmTint;
+}
 
 // MARK: filter selection
 
@@ -149,6 +237,8 @@ float3 process_rgb(float3 rgb, float2 uv, float offset) {
         case 0: targetColor = rgb; break;
         case 1: targetColor = dramatic_bw(rgb); break;
         case 2: targetColor = fire_and_ice(rgb); break;
+        case 3: targetColor = sepia(rgb); break;
+        case 6: targetColor = cross_process_film(rgb); break;
         default: targetColor = rgb; break;
     }
     
