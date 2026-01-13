@@ -56,7 +56,7 @@ final class PhotoSelectionView: UIView {
     }()
 
     private let renderPassSegmentedControl: UISegmentedControl = {
-        let control = UISegmentedControl(items: ["Simple", "Intermediate", "Tile"])
+        let control = UISegmentedControl(items: ["Simple", "Intermediate", "Tile", "Direct"])
         control.translatesAutoresizingMaskIntoConstraints = false
         return control
     }()

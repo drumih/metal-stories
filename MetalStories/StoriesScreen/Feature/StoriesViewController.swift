@@ -2,8 +2,6 @@ import UIKit
 
 // MARK: - StoriesViewController
 
-// TODO: after gesture animation present and hide label with offset index in instagram style. 
-
 final class StoriesViewController: UIViewController {
 
     // MARK: Lifecycle
@@ -63,6 +61,12 @@ final class StoriesViewController: UIViewController {
         view.translatesAutoresizingMaskIntoConstraints = false
         view.layer.zPosition = 1
         view.delegate = self
+        return view
+    }()
+
+    private lazy var offsetIndexView: StoriesOffsetIndexView = {
+        let view = StoriesOffsetIndexView()
+        view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
 
@@ -140,6 +144,7 @@ extension StoriesViewController {
             touchTrackingView: touchTrackingView,
             sceneInput: sceneInput,
         )
+        gestureHandler?.offsetAnimatorDelegate = self
     }
 
     private func setupUI() {
@@ -151,6 +156,8 @@ extension StoriesViewController {
 
         renderingView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(renderingView)
+
+        view.addSubview(offsetIndexView)
 
         touchTrackingView.translatesAutoresizingMaskIntoConstraints = false
         renderingView.addSubview(touchTrackingView)
@@ -179,6 +186,11 @@ extension StoriesViewController {
             touchTrackingView.bottomAnchor.constraint(equalTo: renderingView.bottomAnchor),
             touchTrackingView.leadingAnchor.constraint(equalTo: renderingView.leadingAnchor),
             touchTrackingView.trailingAnchor.constraint(equalTo: renderingView.trailingAnchor),
+
+            offsetIndexView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            offsetIndexView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            offsetIndexView.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
+            offsetIndexView.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20),
         ])
     }
 
@@ -233,5 +245,18 @@ extension StoriesViewController: StoriesTopPanelViewDelegate {
 extension StoriesViewController: StoriesFailureViewDelegate {
     func storiesFailureViewDidTapBack() {
         dismiss(animated: true)
+    }
+}
+
+// MARK: OffsetAnimatorDelegate
+
+extension StoriesViewController: OffsetAnimatorDelegate {
+    func offsetAnimatorDidStartAnimation(targetOffset: Float) {
+        let index = Int(round(targetOffset))
+        offsetIndexView.show(index: index)
+    }
+
+    func offsetAnimatorDidEndAnimation(targetOffset: Float) {
+        offsetIndexView.hide()
     }
 }

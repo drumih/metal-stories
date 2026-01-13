@@ -6,6 +6,7 @@ enum RenderPassType: Int {
     case simple
     case withIntermediateTexture
     case tileMemory
+    case tileMemoryFetch
 }
 
 // MARK: - RenderPassFactory
@@ -42,6 +43,12 @@ final class RenderPassFactory {
 
         case .tileMemory:
             try RenderPassTileMemory(
+                device: device,
+                drawablesPixelFormat: drawablesPixelFormat,
+            )
+
+        case .tileMemoryFetch:
+            try RenderPassDirect(
                 device: device,
                 drawablesPixelFormat: drawablesPixelFormat,
             )

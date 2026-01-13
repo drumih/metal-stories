@@ -118,6 +118,54 @@ enum PipelineStateObjectsFactory {
         return try library.device.makeRenderPipelineState(descriptor: descriptor)
     }
 
+    static func imageDirectPipeline(
+        library: MTLLibrary,
+        drawablesPixelFormat: MTLPixelFormat,
+        depthAttachmentPixelFormat: MTLPixelFormat,
+    ) throws -> MTLRenderPipelineState {
+        let descriptor = try getBaseRenderPipelineDescriptor(
+            vertexFunctionName: "vertex_general",
+            fragmentFunctionName: "fragment_image",
+            library: library,
+            drawablesPixelFormat: drawablesPixelFormat,
+        )
+        descriptor.depthAttachmentPixelFormat = depthAttachmentPixelFormat
+
+        return try library.device.makeRenderPipelineState(descriptor: descriptor)
+    }
+
+    static func backgroundDirectPipeline(
+        library: MTLLibrary,
+        drawablesPixelFormat: MTLPixelFormat,
+        depthAttachmentPixelFormat: MTLPixelFormat,
+    ) throws -> MTLRenderPipelineState {
+        let descriptor = try getBaseRenderPipelineDescriptor(
+            vertexFunctionName: "vertex_general",
+            fragmentFunctionName: "fragment_background",
+            library: library,
+            drawablesPixelFormat: drawablesPixelFormat,
+        )
+        descriptor.depthAttachmentPixelFormat = depthAttachmentPixelFormat
+
+        return try library.device.makeRenderPipelineState(descriptor: descriptor)
+    }
+
+    static func postProcessingDirectPipeline(
+        library: MTLLibrary,
+        drawablesPixelFormat: MTLPixelFormat,
+        depthAttachmentPixelFormat: MTLPixelFormat,
+    ) throws -> MTLRenderPipelineState {
+        let descriptor = try getBaseRenderPipelineDescriptor(
+            vertexFunctionName: "vertex_general",
+            fragmentFunctionName: "fragment_post_processing_tile_memory_fetch",
+            library: library,
+            drawablesPixelFormat: drawablesPixelFormat,
+        )
+        descriptor.depthAttachmentPixelFormat = depthAttachmentPixelFormat
+
+        return try library.device.makeRenderPipelineState(descriptor: descriptor)
+    }
+
     // MARK: Private
 
     private static func getBaseRenderPipelineDescriptor(

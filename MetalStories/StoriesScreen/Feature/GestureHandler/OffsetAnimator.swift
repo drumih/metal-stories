@@ -1,5 +1,14 @@
 import UIKit
 
+// MARK: - OffsetAnimatorDelegate
+
+protocol OffsetAnimatorDelegate: AnyObject {
+    func offsetAnimatorDidStartAnimation(targetOffset: Float)
+    func offsetAnimatorDidEndAnimation(targetOffset: Float)
+}
+
+// MARK: - OffsetAnimator
+
 final class OffsetAnimator {
 
     // MARK: Lifecycle
@@ -15,6 +24,8 @@ final class OffsetAnimator {
     }
 
     // MARK: Internal
+
+    weak var delegate: OffsetAnimatorDelegate?
 
     var isAnimating: Bool {
         animation != nil
@@ -45,16 +56,19 @@ final class OffsetAnimator {
             duration: clampedDuration
         )
 
-        displayLink?.invalidate()
-        let displayLink = CADisplayLink(target: self, selector: #selector(handleAnimation))
-        self.displayLink = displayLink
-        displayLink.add(to: .main, forMode: .common)
+        startDisplayLink()
+        delegate?.offsetAnimatorDidStartAnimation(targetOffset: targetOffset)
     }
 
     func cancel() {
-        displayLink?.invalidate()
-        displayLink = nil
-        animation = nil
+        let wasAnimating = animation != nil
+        let targetValue = animation?.targetValue
+        
+        stopDisplayLink()
+        
+        if wasAnimating, let targetValue {
+            delegate?.offsetAnimatorDidEndAnimation(targetOffset: targetValue)
+        }
     }
 
     // MARK: Private
@@ -68,6 +82,19 @@ final class OffsetAnimator {
 
     private var animation: Animation?
     private var displayLink: CADisplayLink?
+
+    private func stopDisplayLink() {
+        displayLink?.invalidate()
+        displayLink = nil
+        animation = nil
+    }
+
+    private func startDisplayLink() {
+        displayLink?.invalidate()
+        let link = CADisplayLink(target: self, selector: #selector(handleAnimation))
+        displayLink = link
+        link.add(to: .main, forMode: .common)
+    }
 
     @objc
     private func handleAnimation() {
@@ -86,8 +113,12 @@ final class OffsetAnimator {
         sceneInput.filterOffset = newOffset
 
         if progress >= 1.0 {
-            sceneInput.filterOffset = animation.targetValue
-            cancel()
+            let targetValue = animation.targetValue
+            sceneInput.filterOffset = targetValue
+            
+            stopDisplayLink()
+            
+            delegate?.offsetAnimatorDidEndAnimation(targetOffset: targetValue)
             return
         }
     }

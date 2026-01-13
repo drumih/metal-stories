@@ -24,6 +24,11 @@ final class StoriesGestureHandler {
 
     let sceneInput: SceneInput
 
+    weak var offsetAnimatorDelegate: OffsetAnimatorDelegate? {
+        get { offsetAnimator.delegate }
+        set { offsetAnimator.delegate = newValue }
+    }
+
     func resetTracking() {
         trackedTouches.removeAll()
 

@@ -50,6 +50,8 @@ enum StoriesViewControllerFactor {
             "Intermediate"
         case .tileMemory:
             "Tile"
+        case .tileMemoryFetch:
+            "Tile Fetch"
         }
     }
 }

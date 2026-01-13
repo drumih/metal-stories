@@ -2,7 +2,27 @@
 
 constant short kFiltersCount = 5;
 
+
 // MARK: adjustments
+
+// TODO: add highlights and shadows color grading filter
+
+// TODO: impl it
+//Teal & Orange Lite (cinematic but simple)
+//
+//Look: shadows drift teal, highlights drift warm; popular and recognizable.
+//Blocks: luma-based split toning + saturation + mild contrast.
+//
+//Recipe
+//    •    Compute luminance Y
+//    •    Shadow tint: apply teal when Y < t1 with smoothstep
+//    •    Highlight tint: apply warm when Y > t2
+//    •    Keep midtones mostly neutral
+//    •    Add small contrast bump
+//
+//This reads very well in an article because “split toning” is an intuitive concept.
+
+// TODO: implement vibrancy and saturation
 
 // TODO: write func documentation. explain what it does
 METAL_FUNC
@@ -101,6 +121,8 @@ float3 saturate_color(float3 rgb, float amount) {
     const auto luma = luminance(rgb);
     return mix(float3(luma), rgb, amount);
 }
+
+// TODO: implement vibrancy and saturation
 
 // MARK: filters
 
@@ -238,7 +260,7 @@ float3 process_rgb(float3 rgb, float2 uv, float offset) {
         case 1: targetColor = dramatic_bw(rgb); break;
         case 2: targetColor = fire_and_ice(rgb); break;
         case 3: targetColor = sepia(rgb); break;
-        case 6: targetColor = cross_process_film(rgb); break;
+        case 4: targetColor = cross_process_film(rgb); break;
         default: targetColor = rgb; break;
     }
     
@@ -267,4 +289,13 @@ float4 fragment_post_processing_tile_memory(VertexOut vertexIn [[ stage_in ]],
     const auto color = fragmentIn.color;
     const auto processedRGB = process_rgb(color.rgb, vertexIn.uv, offset);
     return float4(processedRGB, color.a);
+}
+
+fragment
+float4 fragment_post_processing_tile_memory_fetch(VertexOut vertexIn [[ stage_in ]],
+                                                  float4 colorIn [[color(0)]],
+                                                  constant float& offset [[ buffer(0) ]]
+                                                  ) {
+    const auto processedRGB = process_rgb(colorIn.rgb, vertexIn.uv, offset);
+    return float4(processedRGB, colorIn.a);
 }
