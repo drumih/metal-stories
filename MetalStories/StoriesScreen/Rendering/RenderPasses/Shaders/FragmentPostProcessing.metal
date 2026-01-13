@@ -24,6 +24,8 @@ float3 adjust_contrast(float3 rgb, float value, float pivot) {
 }
 
 // TODO: write func documentation.
+
+// TODO: switch to float as a return type.
 METAL_FUNC
 float2 catmull_rom_segment(float2 p0, float2 p1, float2 p2, float2 p3, float t)
 {
@@ -61,6 +63,14 @@ float2 catmull_rom_5(float2 p0, float2 p1, float2 p2, float2 p3, float2 p4, floa
     }
 }
 
+float3 catmull_rom_5_rgb(float2 p0, float2 p1, float2 p2, float2 p3, float2 p4, float3 rgb) {
+    return float3(
+        catmull_rom_5(p0, p1, p2, p3, p4, rgb.r).y,
+        catmull_rom_5(p0, p1, p2, p3, p4, rgb.g).y,
+        catmull_rom_5(p0, p1, p2, p3, p4, rgb.b).y
+    );
+}
+
 // MARK: filters
 
 
@@ -74,26 +84,33 @@ float3 dramatic_bw(float3 rgb) {
 
 METAL_FUNC
 float3 fire_and_ice(float3 rgb) {
+    // TODO: check it. can we reuse these values in direct color transfor
+    const auto contrastRGB = catmull_rom_5_rgb(float2(0.f, 0.f),
+                                               float2(0.25f, 0.22f),
+                                               float2(0.5f, 0.5f),
+                                               float2(0.75f, 0.78f),
+                                               float2(1.f, 1.f),
+                                               rgb);
+    
     const auto filteredR = catmull_rom_5(float2(0.f, 0.f),
                                          float2(0.25f, 0.22f),
                                          float2(0.5f, 0.5f),
                                          float2(0.75f, 0.78f),
                                          float2(1.f, 1.f),
-                                         rgb.r);
+                                         contrastRGB.r);
     const auto filteredG = catmull_rom_5(float2(0.f, 0.f),
                                          float2(0.25f, 0.21f),
                                          float2(0.5f, 0.5f),
                                          float2(0.75f, 0.79f),
                                          float2(1.f, 1.f),
-                                         rgb.g);
+                                         contrastRGB.g);
     const auto filteredB = catmull_rom_5(float2(0.f, 0.f),
                                          float2(0.25f, 0.3f),
                                          float2(0.5f, 0.48f),
                                          float2(0.75f, 0.7f),
                                          float2(1.f, 1.f),
-                                         rgb.b);
+                                         contrastRGB.b);
 
-    // TODO: add more contrast
     return float3(filteredR.y, filteredG.y, filteredB.y);
     
 }

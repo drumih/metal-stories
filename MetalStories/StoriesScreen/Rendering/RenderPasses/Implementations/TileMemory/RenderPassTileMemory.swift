@@ -178,6 +178,8 @@ extension RenderPassTileMemory: RenderPass {
         renderEncoder.setDepthStencilState(depthStencilState)
 
         // pay attention to the order of image-background
+        
+        // TODO: check for depth!!
 
         RenderPassHelper.drawImage(
             renderEncoder: renderEncoder,
