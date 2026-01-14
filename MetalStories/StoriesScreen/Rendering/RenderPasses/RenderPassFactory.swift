@@ -5,8 +5,8 @@ import Metal
 enum RenderPassType: Int {
     case simple
     case withIntermediateTexture
-    case tileMemory
-    case tileMemoryFetch
+    case tileMemory // TODO: remove
+    case tileMemoryFetch // TODO: rename?
 }
 
 // MARK: - RenderPassFactory

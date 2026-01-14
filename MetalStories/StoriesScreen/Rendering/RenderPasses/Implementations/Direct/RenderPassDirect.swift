@@ -29,7 +29,7 @@ final class RenderPassDirect {
     ) throws {
         self.device = device
 
-        let depthTexturePixelFormat: MTLPixelFormat = .depth32Float
+        let depthTexturePixelFormat: MTLPixelFormat = .depth16Unorm
 
         let bundle = Bundle(for: Self.self)
         let library = try device.makeDefaultLibrary(bundle: bundle)
@@ -102,15 +102,16 @@ extension RenderPassDirect: RenderPass {
         renderPassDescriptor: MTLRenderPassDescriptor,
         input: RenderPassInput,
     ) {
-        guard let depthTexture else { return }
 
         renderPassDescriptor.colorAttachments[0]?.loadAction = .dontCare
         renderPassDescriptor.colorAttachments[0]?.storeAction = .store
 
-        renderPassDescriptor.depthAttachment.texture = depthTexture
-        renderPassDescriptor.depthAttachment.loadAction = .clear
-        renderPassDescriptor.depthAttachment.clearDepth = 1.0
-        renderPassDescriptor.depthAttachment.storeAction = .dontCare
+        if let depthTexture {
+            renderPassDescriptor.depthAttachment.texture = depthTexture
+            renderPassDescriptor.depthAttachment.loadAction = .clear
+            renderPassDescriptor.depthAttachment.clearDepth = 1.0
+            renderPassDescriptor.depthAttachment.storeAction = .dontCare
+        }
 
         let renderEncoder = commandBuffer.makeRenderCommandEncoder(
             descriptor: renderPassDescriptor

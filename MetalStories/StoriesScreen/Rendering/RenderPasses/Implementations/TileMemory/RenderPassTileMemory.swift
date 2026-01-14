@@ -30,7 +30,7 @@ final class RenderPassTileMemory {
         self.device = device
 
         let memorylessTexturePixelFormat: MTLPixelFormat = .bgra8Unorm
-        let depthTexturePixelFormat: MTLPixelFormat = .depth32Float
+        let depthTexturePixelFormat: MTLPixelFormat = .depth16Unorm
 
         let bundle = Bundle(for: Self.self)
         let library = try device.makeDefaultLibrary(bundle: bundle)
