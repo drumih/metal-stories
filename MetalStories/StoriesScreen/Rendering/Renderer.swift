@@ -65,7 +65,7 @@ extension Renderer: RenderingViewDelegate {
         )
 
         guard
-            let input = scene.getRenderPassInput(renderingViewSize: drawableSize),
+            let input = scene.getRenderPassInput(renderingViewSize: drawableSize, isForSaving: false),
             let commandBuffer = gpu.renderingCommandQueue.makeCommandBuffer(),
             let descriptor = view.currentRenderPassDescriptor
         else {
@@ -94,7 +94,7 @@ extension Renderer: OffscreenRenderer {
     ) throws -> CGImage {
         let offscreenTextureSize = SIMD2<Float>(Float(size.width), Float(size.height))
         guard
-            let input = scene.getRenderPassInput(renderingViewSize: offscreenTextureSize),
+            let input = scene.getRenderPassInput(renderingViewSize: offscreenTextureSize, isForSaving: true),
             let commandBuffer = gpu.processingCommandQueue.makeCommandBuffer(),
             let offscreenTexture = getOffscreenTexture(for: offscreenTextureSize)
         else {

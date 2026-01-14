@@ -8,6 +8,8 @@ protocol SceneInput: AnyObject {
     var canvasAspectRatio: Float { get }
 
     var filterOffset: Float { get set }
+    
+    var showOriginal: Bool { get set }
 
     var scale: Float { get set }
     var rotationRadians: Float { get set }
@@ -23,7 +25,10 @@ protocol SceneInput: AnyObject {
 // MARK: - SceneOutput
 
 protocol SceneOutput: AnyObject {
-    func getRenderPassInput(renderingViewSize: SIMD2<Float>) -> RenderPassInput?
+    func getRenderPassInput(
+        renderingViewSize: SIMD2<Float>,
+        isForSaving: Bool,
+    ) -> RenderPassInput?
 }
 
 // MARK: - Scene
@@ -46,6 +51,7 @@ final class Scene {
     private var resolvedAspectMode = ImageAspectMode.scaleAspectFit
 
     private var imageFilterOffset: Float = 0
+    private var isShowingOriginal = false
 
     private var userScale: Float = 1
     private var rotation: Float = 0
@@ -80,6 +86,11 @@ extension Scene: SceneInput {
         set { imageFilterOffset = newValue }
     }
 
+    var showOriginal: Bool {
+        get { isShowingOriginal }
+        set { isShowingOriginal = newValue }
+    }
+
     func setPreparationResult(_ preparationResult: MetalPreparationResult) {
         self.preparationResult = preparationResult
         resolvedAspectMode = Self.targetAspectMode(
@@ -90,6 +101,7 @@ extension Scene: SceneInput {
 
     func reset() {
         imageFilterOffset = 0
+        isShowingOriginal = false
         
         anchorPoint = .init(0.5, 0.5)
         rotation = 0
@@ -144,20 +156,27 @@ extension Scene: SceneOutput {
 
     // MARK: Internal
 
-    func getRenderPassInput(renderingViewSize: SIMD2<Float>) -> RenderPassInput? {
+    func getRenderPassInput(
+        renderingViewSize: SIMD2<Float>,
+        isForSaving: Bool,
+    ) -> RenderPassInput? {
         guard let preparationResult else { return nil }
 
         let mvpTransform = getMVPTransform(
             textureSize: preparationResult.textureSize,
             renderingViewSize: renderingViewSize,
         )
-
+        let filterPositionOffset = if isForSaving {
+            imageFilterOffset.rounded()
+        } else {
+            isShowingOriginal ? 0 : imageFilterOffset
+        }
         return RenderPassInput(
             imageTexture: preparationResult.texture,
             mvpTransform: mvpTransform,
             bottomBackgroundColor: preparationResult.bottomColor,
             topBackgroundColor: preparationResult.topColor,
-            filterPositionOffset: imageFilterOffset,
+            filterPositionOffset: filterPositionOffset
         )
     }
 
