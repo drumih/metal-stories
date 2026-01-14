@@ -58,7 +58,6 @@ extension Renderer: RenderingViewDelegate {
         renderPass.resize(size: size)
     }
 
-    // TODO: do I need three texture here to reuse?
     func draw(in view: MTKView) {
         let drawableSize = SIMD2<Float>(
             Float(view.drawableSize.width),

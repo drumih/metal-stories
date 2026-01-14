@@ -106,6 +106,15 @@ extension StoriesViewController {
 
         let cgImage: CGImage
         do {
+            
+            // TODO: is it possible just hard finish gesture and set the value
+            let originalFilterOffset = sceneInput.filterOffset
+            let roundedFilterOffset = round(originalFilterOffset)
+            if roundedFilterOffset != originalFilterOffset {
+                sceneInput.filterOffset = roundedFilterOffset
+            }
+            defer { sceneInput.filterOffset = originalFilterOffset }
+
             let width = Self.maxExportImageWidth
             let height = round(width * CGFloat(sceneInput.canvasAspectRatio))
             cgImage = try offscreenRenderer.renderImageToOffscreenTexture(

@@ -2,8 +2,8 @@
 
 METAL_FUNC
 float4 process_bg_color(float4 top, float4 bottom, float2 uv) {
-    // TODO: use dithering
-    return saturate(mix(top, bottom, uv.y));
+    const auto color = mix(top, bottom, uv.y);
+    return saturate(color);
 }
 
 fragment
