@@ -55,6 +55,15 @@ final class StoriesViewController: UIViewController {
 
     private static let maxImageDimension: CGFloat = 2016
     private static let maxExportImageWidth: CGFloat = 1080
+    private static let filterNames: [String] = [
+        "Original",
+        "Very Simple",
+        "Sepia",
+        "Noir Chrome",
+        "Fire and Ice",
+        "Teal Orange Cinema",
+        "Cross Process",
+    ]
 
     private let gpu: GPU
     private let renderingView: RenderingView
@@ -74,16 +83,15 @@ final class StoriesViewController: UIViewController {
         return view
     }()
 
-    private lazy var offsetIndexView: StoriesOffsetIndexView = {
-        let view = StoriesOffsetIndexView()
+    private lazy var storiesFilterNameView: StoriesFilterNameView = {
+        let view = StoriesFilterNameView()
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
 
     private lazy var showOriginalButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "eye"), for: .normal)
-        button.setImage(UIImage(systemName: "eye.fill"), for: .highlighted)
+        button.setImage(UIImage(systemName: "circle.lefthalf.filled"), for: .normal)
         button.tintColor = .white
         button.backgroundColor = UIColor.white.withAlphaComponent(0.2)
         button.layer.cornerRadius = 20
@@ -182,7 +190,7 @@ extension StoriesViewController {
         renderingView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(renderingView)
 
-        view.addSubview(offsetIndexView)
+        view.addSubview(storiesFilterNameView)
         view.addSubview(showOriginalButton)
 
         touchTrackingView.translatesAutoresizingMaskIntoConstraints = false
@@ -213,10 +221,10 @@ extension StoriesViewController {
             touchTrackingView.leadingAnchor.constraint(equalTo: renderingView.leadingAnchor),
             touchTrackingView.trailingAnchor.constraint(equalTo: renderingView.trailingAnchor),
 
-            offsetIndexView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            offsetIndexView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            offsetIndexView.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
-            offsetIndexView.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20),
+            storiesFilterNameView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            storiesFilterNameView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            storiesFilterNameView.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
+            storiesFilterNameView.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20),
 
             showOriginalButton.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -16),
             showOriginalButton.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -16),
@@ -299,10 +307,13 @@ extension StoriesViewController: OffsetAnimatorDelegate {
         let normalizedIndex = filtersCount > 0
             ? (index % filtersCount + filtersCount) % filtersCount
             : index
-        offsetIndexView.show(index: normalizedIndex)
+        let filterName = normalizedIndex >= 0 && normalizedIndex < Self.filterNames.count
+            ? Self.filterNames[normalizedIndex]
+            : "Filter \(normalizedIndex)"
+        storiesFilterNameView.show(name: filterName)
     }
 
     func offsetAnimatorDidEndAnimation(targetOffset: Float) {
-        offsetIndexView.hide()
+        storiesFilterNameView.hide()
     }
 }

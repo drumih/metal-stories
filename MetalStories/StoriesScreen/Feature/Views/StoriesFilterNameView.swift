@@ -1,8 +1,8 @@
 import UIKit
 
-// MARK: - StoriesOffsetIndexView
+// MARK: - StoriesFilterNameView
 
-final class StoriesOffsetIndexView: UIView {
+final class StoriesFilterNameView: UIView {
 
     // MARK: Lifecycle
 
@@ -17,12 +17,12 @@ final class StoriesOffsetIndexView: UIView {
 
     // MARK: Internal
 
-    func show(index: Int) {
+    func show(name: String) {
         layer.removeAllAnimations()
         hideWorkItem?.cancel()
         hideWorkItem = nil
         
-        indexLabel.text = "\(index)"
+        indexLabel.text = name
         isHidden = false
         transform = .identity
 
@@ -69,7 +69,7 @@ final class StoriesOffsetIndexView: UIView {
 
     private lazy var indexLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 28, weight: .bold)
+        label.font = .systemFont(ofSize: 24, weight: .bold)
         label.textColor = .white
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -77,7 +77,7 @@ final class StoriesOffsetIndexView: UIView {
     }()
 
     private lazy var blurView: UIVisualEffectView = {
-        let blurEffect = UIBlurEffect(style: .systemMaterialDark)
+        let blurEffect = UIBlurEffect(style: .systemUltraThinMaterial)
         let view = UIVisualEffectView(effect: blurEffect)
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -91,7 +91,7 @@ final class StoriesOffsetIndexView: UIView {
         translatesAutoresizingMaskIntoConstraints = false
 
         addSubview(blurView)
-        addSubview(indexLabel)
+        blurView.contentView.addSubview(indexLabel)
 
         NSLayoutConstraint.activate([
             blurView.topAnchor.constraint(equalTo: topAnchor),
@@ -99,10 +99,10 @@ final class StoriesOffsetIndexView: UIView {
             blurView.trailingAnchor.constraint(equalTo: trailingAnchor),
             blurView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            indexLabel.topAnchor.constraint(equalTo: topAnchor, constant: 12),
-            indexLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 24),
-            indexLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -24),
-            indexLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12),
+            indexLabel.topAnchor.constraint(equalTo: blurView.topAnchor, constant: 12),
+            indexLabel.leadingAnchor.constraint(equalTo: blurView.leadingAnchor, constant: 24),
+            indexLabel.trailingAnchor.constraint(equalTo: blurView.trailingAnchor, constant: -24),
+            indexLabel.bottomAnchor.constraint(equalTo: blurView.bottomAnchor, constant: -12),
         ])
     }
 }
