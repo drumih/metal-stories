@@ -3,8 +3,7 @@
 // MARK: - Constants
 
 /// Number of filter variants available in `process_rgb`.
-constant short kFiltersCount = 8;
-
+constant short kFiltersCount [[function_constant(0)]];
 
 // MARK: - Utilities
 
@@ -13,18 +12,6 @@ METAL_FUNC
 float luminance(float3 rgb) {
     const float3 kRec709Coeff = float3(0.2126f, 0.7152f, 0.0722f);
     return dot(kRec709Coeff, rgb);
-}
-
-/// Smooth weight for shadow tones in the [start, end] luma range.
-METAL_FUNC
-float shadow_weight(float luma, float start, float end) {
-    return 1.0f - smoothstep(start, end, luma);
-}
-
-/// Smooth weight for highlight tones in the [start, end] luma range.
-METAL_FUNC
-float highlight_weight(float luma, float start, float end) {
-    return smoothstep(start, end, luma);
 }
 
 
@@ -78,17 +65,20 @@ float3 catmull_rom_5_rgb(float p000, float p025, float p050, float p075, float p
 
 // MARK: - Color Adjustments
 
-/// Blends a color toward grayscale by `amount` (0 = no change, 1 = full grayscale).
 METAL_FUNC
-float3 desaturate(float3 rgb, float amount) {
-    const auto luma = luminance(rgb);
-    return mix(rgb, float3(luma), amount);
+float3 brightness(float3 rgb, float amount) {
+    return rgb + amount;
+}
+
+METAL_FUNC
+float3 contrast(float3 rgb, float amount, float pivot) {
+    return (rgb - pivot) * amount + pivot;
 }
 
 /// Adjusts saturation around luminance.
 /// `amount` = 1 keeps original, 0 returns grayscale, >1 increases saturation.
 METAL_FUNC
-float3 saturate_color(float3 rgb, float amount) {
+float3 saturate(float3 rgb, float amount) {
     const auto luma = luminance(rgb);
     return mix(float3(luma), rgb, amount);
 }
@@ -129,7 +119,7 @@ METAL_FUNC
 float3 apply_split_tone(float3 rgb,
                         float3 shadowTint,
                         float3 highlightTint,
-                        float t1,
+                        float t1, // TODO: rework these params
                         float t2,
                         float softness) {
     const float luma = luminance(rgb);
@@ -141,27 +131,37 @@ float3 apply_split_tone(float3 rgb,
     return graded;
 }
 
-/// Applies shadow, midtone, and highlight tints with smooth roll-offs.
-/// The tint colors are multiplicative in linear space.
+// MARK: - Filters
+
 METAL_FUNC
-float3 apply_three_way_tint(float3 rgb,
-                            float3 shadowTint,
-                            float3 midTint,
-                            float3 highlightTint,
-                            float shadowStart,
-                            float shadowEnd,
-                            float highlightStart,
-                            float highlightEnd) {
-    const auto luma = luminance(rgb);
-    const auto shadowW = shadow_weight(luma, shadowStart, shadowEnd);
-    const auto highlightW = highlight_weight(luma, highlightStart, highlightEnd);
-    const auto midW = saturate(1.0f - shadowW - highlightW);
-    const auto tint = shadowTint * shadowW + midTint * midW + highlightTint * highlightW;
-    return rgb * tint;
+float3 very_simple(float3 rgb) {
+    const auto brighten = brightness(rgb, -0.1f);
+    const auto contrasted = contrast(brighten, 1.3f, 0.5f);
+    return contrasted;
 }
 
+/// Classic sepia look with a gentle contrast curve.
+METAL_FUNC
+float3 sepia(float3 rgb) {
+    const auto luma = luminance(rgb);
+    const auto contrasted = catmull_rom_5_single(0.f, 0.2f, 0.5f, 0.8f, 1.f, luma);
+    const auto sepiaTint = float3(1.f, 0.92f, 0.78f);
+    return contrasted * sepiaTint;
+}
 
-// MARK: - Filters
+/// Noir chrome: high-contrast monochrome with cool highlights.
+METAL_FUNC
+float3 noir_chrome(float3 rgb) {
+    const auto luma = luminance(rgb);
+    const auto bw = catmull_rom_5_single(0.1f, 0.2f, 0.7f, 0.8f, 0.9f, luma);
+    const auto toned = apply_split_tone(float3(bw),
+                                        float3(0.9f, 0.95f, 1.1f),
+                                        float3(1.02f, 1.0f, 0.98f),
+                                        0.3f,
+                                        0.7f,
+                                        0.1f);
+    return toned;
+}
 
 /// Fire and ice: high-contrast curve with cool/warm channel separation.
 METAL_FUNC
@@ -175,13 +175,18 @@ float3 fire_and_ice(float3 rgb) {
     return float3(filteredR, filteredG, filteredB);
 }
 
-/// Classic sepia look with a gentle contrast curve.
+/// Cinematic teal/orange grade with a split tone and vibrance boost.
 METAL_FUNC
-float3 sepia(float3 rgb) {
-    const auto luma = luminance(rgb);
-    const auto curveContrast = catmull_rom_5_single(0.f, 0.2f, 0.5f, 0.8f, 1.f, luma);
-    const auto sepiaTint = float3(1.f, 0.92f, 0.78f);
-    return curveContrast * sepiaTint;
+float3 teal_orange_cinema(float3 rgb) {
+    const auto curved = catmull_rom_5_rgb(0.f, 0.18f, 0.52f, 0.85f, 1.f, rgb);
+    const auto toned = apply_split_tone(curved,
+                                        float3(0.9f, 0.98f, 1.08f),
+                                        float3(1.08f, 1.02f, 0.95f),
+                                        0.35f,
+                                        0.65f,
+                                        0.1f);
+    const auto vib = vibrance(toned, 0.25f);
+    return saturate(vib, 1.08f);
 }
 
 /// Cross-processed film look: contrast curve, channel mixing, and warmth.
@@ -205,71 +210,10 @@ float3 cross_process_film(float3 rgb) {
     const auto curveB = catmull_rom_5_single(0.f, 0.24f, 0.5f, 0.76f, 1.f, mixed.b);
     
     const auto curved = float3(curveR, curveG, curveB);
-    const auto saturated = saturate_color(curved, 1.15f);
+    const auto saturated = saturate(curved, 1.15f);
     const auto filmTint = float3(1.03f, 1.0f, 0.99f);
     
     return saturated * filmTint;
-}
-
-/// Cinematic teal/orange grade with a split tone and vibrance boost.
-METAL_FUNC
-float3 teal_orange_cinema(float3 rgb) {
-    const auto curved = catmull_rom_5_rgb(0.f, 0.18f, 0.52f, 0.85f, 1.f, rgb);
-    const auto toned = apply_split_tone(curved,
-                                        float3(0.9f, 0.98f, 1.08f),
-                                        float3(1.08f, 1.02f, 0.95f),
-                                        0.35f,
-                                        0.65f,
-                                        0.1f);
-    const auto vib = vibrance(toned, 0.25f);
-    return saturate_color(vib, 1.08f);
-}
-
-/// Matte vintage look with lifted blacks and gentle warm highlights.
-METAL_FUNC
-float3 matte_vintage(float3 rgb) {
-    const auto lifted = apply_levels(rgb, 0.06f, 1.0f, 0.95f);
-    const auto flattened = catmull_rom_5_rgb(0.08f, 0.28f, 0.53f, 0.77f, 0.95f, lifted);
-    const auto toned = apply_three_way_tint(flattened,
-                                            float3(0.96f, 1.0f, 1.04f),
-                                            float3(1.0f, 1.0f, 0.98f),
-                                            float3(1.06f, 1.0f, 0.95f),
-                                            0.0f,
-                                            0.4f,
-                                            0.6f,
-                                            1.0f);
-    return desaturate(toned, 0.2f);
-}
-
-/// Bleach bypass: desaturated, high-contrast look with subtle cool shadows.
-METAL_FUNC
-float3 bleach_bypass(float3 rgb) {
-    const auto luma = luminance(rgb);
-    const auto bw = float3(luma);
-    const auto blended = mix(rgb, bw, 0.75f);
-    const auto contrast = catmull_rom_5_rgb(0.f, 0.16f, 0.5f, 0.88f, 1.f, blended);
-    const auto toned = apply_split_tone(contrast,
-                                        float3(0.92f, 0.98f, 1.06f),
-                                        float3(1.02f, 1.0f, 0.98f),
-                                        0.3f,
-                                        0.6f,
-                                        0.1f);
-    return toned;
-}
-
-/// Noir chrome: high-contrast monochrome with cool highlights.
-METAL_FUNC
-float3 noir_chrome(float3 rgb) {
-    const auto luma = luminance(rgb);
-    const auto bw = catmull_rom_5_single(0.1f, 0.2f, 0.7f, 0.8f, 0.9f, luma);
-    const auto toned = apply_split_tone(float3(bw),
-                                        float3(0.9f, 0.95f, 1.1f),
-                                        float3(1.02f, 1.0f, 0.98f),
-                                        0.3f,
-                                        0.7f,
-                                        0.1f);
-    const auto crushed = apply_levels(toned, 0.02f, 0.9f, 1.08f);
-    return crushed;
 }
 
 
@@ -296,13 +240,12 @@ float3 process_rgb(float3 rgb, float2 uv, float offset) {
     float3 targetColor;
     switch (targetMode) {
         case 0: targetColor = rgb; break;
-        case 1: targetColor = noir_chrome(rgb); break;
+        case 1: targetColor = very_simple(rgb); break;
         case 2: targetColor = sepia(rgb); break;
-        case 3: targetColor = fire_and_ice(rgb); break;
-        case 4: targetColor = cross_process_film(rgb); break;
+        case 3: targetColor = noir_chrome(rgb); break;
+        case 4: targetColor = fire_and_ice(rgb); break;
         case 5: targetColor = teal_orange_cinema(rgb); break;
-        case 6: targetColor = matte_vintage(rgb); break;
-        case 7: targetColor = bleach_bypass(rgb); break;
+        case 6: targetColor = cross_process_film(rgb); break;
         default: targetColor = rgb; break;
     }
     

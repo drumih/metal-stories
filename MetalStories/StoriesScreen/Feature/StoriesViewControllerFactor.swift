@@ -10,6 +10,7 @@ enum StoriesViewControllerFactor {
         renderPassType: RenderPassType,
     ) throws -> UIViewController {
         let gpu = try GPU()
+        let availableFiltersCount: Int16 = 7
 
         let renderingView = RenderingView(device: gpu.device)
         let drawablesPixelFormat = renderingView.drawablesPixelFormat
@@ -17,6 +18,7 @@ enum StoriesViewControllerFactor {
             device: gpu.device,
             drawablesPixelFormat: drawablesPixelFormat,
             renderPassType: renderPassType,
+            availableFilterCount: availableFiltersCount,
         )
         let scene = Scene(
             canvasAspectRatio: 16.0 / 9.0,
@@ -36,7 +38,8 @@ enum StoriesViewControllerFactor {
             sceneInput: scene,
             offscreenRenderer: renderer,
             inputImageData: imageData,
-            title: title,
+            titleString: title,
+            availableFiltersCount: availableFiltersCount,
         )
     }
 

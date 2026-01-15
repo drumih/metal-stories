@@ -50,12 +50,17 @@ enum PipelineStateObjectsFactory {
     static func postProcessingBasePipeline(
         library: MTLLibrary,
         drawablesPixelFormat: MTLPixelFormat,
+        filtersCount: Int16,
     ) throws -> MTLRenderPipelineState {
+        let functionConstants = MTLFunctionConstantValues()
+        var filtersCount = filtersCount
+        functionConstants.setConstantValue(&filtersCount, type: .short, index: 0)
         let descriptor = try getBaseRenderPipelineDescriptor(
             vertexFunctionName: "vertex_general",
             fragmentFunctionName: "fragment_post_processing",
             library: library,
             drawablesPixelFormat: drawablesPixelFormat,
+            fragmentConstantValues: functionConstants,
         )
 
         return try library.device.makeRenderPipelineState(descriptor: descriptor)
@@ -65,7 +70,6 @@ enum PipelineStateObjectsFactory {
         library: MTLLibrary,
         drawablesPixelFormat: MTLPixelFormat,
         memorylessTexturePixelFormat: MTLPixelFormat,
-        depthAttachmentPixelFormat: MTLPixelFormat,
     ) throws -> MTLRenderPipelineState {
         let descriptor = try getBaseRenderPipelineDescriptor(
             vertexFunctionName: "vertex_general",
@@ -75,7 +79,6 @@ enum PipelineStateObjectsFactory {
         )
         descriptor.colorAttachments[1].pixelFormat = memorylessTexturePixelFormat
         descriptor.colorAttachments[1].isBlendingEnabled = false
-        descriptor.depthAttachmentPixelFormat = depthAttachmentPixelFormat
 
         return try library.device.makeRenderPipelineState(descriptor: descriptor)
     }
@@ -84,7 +87,6 @@ enum PipelineStateObjectsFactory {
         library: MTLLibrary,
         drawablesPixelFormat: MTLPixelFormat,
         memorylessTexturePixelFormat: MTLPixelFormat,
-        depthAttachmentPixelFormat: MTLPixelFormat,
     ) throws -> MTLRenderPipelineState {
         let descriptor = try getBaseRenderPipelineDescriptor(
             vertexFunctionName: "vertex_general",
@@ -94,7 +96,6 @@ enum PipelineStateObjectsFactory {
         )
         descriptor.colorAttachments[1].pixelFormat = memorylessTexturePixelFormat
         descriptor.colorAttachments[1].isBlendingEnabled = false
-        descriptor.depthAttachmentPixelFormat = depthAttachmentPixelFormat
 
         return try library.device.makeRenderPipelineState(descriptor: descriptor)
     }
@@ -103,17 +104,20 @@ enum PipelineStateObjectsFactory {
         library: MTLLibrary,
         drawablesPixelFormat: MTLPixelFormat,
         memorylessTexturePixelFormat: MTLPixelFormat,
-        depthAttachmentPixelFormat: MTLPixelFormat,
+        filtersCount: Int16,
     ) throws -> MTLRenderPipelineState {
+        let functionConstants = MTLFunctionConstantValues()
+        var filtersCount = filtersCount
+        functionConstants.setConstantValue(&filtersCount, type: .short, index: 0)
         let descriptor = try getBaseRenderPipelineDescriptor(
             vertexFunctionName: "vertex_general",
             fragmentFunctionName: "fragment_post_processing_tile_memory",
             library: library,
             drawablesPixelFormat: drawablesPixelFormat,
+            fragmentConstantValues: functionConstants,
         )
         descriptor.colorAttachments[1].pixelFormat = memorylessTexturePixelFormat
         descriptor.colorAttachments[1].isBlendingEnabled = false
-        descriptor.depthAttachmentPixelFormat = depthAttachmentPixelFormat
 
         return try library.device.makeRenderPipelineState(descriptor: descriptor)
     }
@@ -154,12 +158,17 @@ enum PipelineStateObjectsFactory {
         library: MTLLibrary,
         drawablesPixelFormat: MTLPixelFormat,
         depthAttachmentPixelFormat: MTLPixelFormat,
+        filtersCount: Int16,
     ) throws -> MTLRenderPipelineState {
+        let functionConstants = MTLFunctionConstantValues()
+        var filtersCount = filtersCount
+        functionConstants.setConstantValue(&filtersCount, type: .short, index: 0)
         let descriptor = try getBaseRenderPipelineDescriptor(
             vertexFunctionName: "vertex_general",
             fragmentFunctionName: "fragment_post_processing_tile_memory_fetch",
             library: library,
             drawablesPixelFormat: drawablesPixelFormat,
+            fragmentConstantValues: functionConstants,
         )
         descriptor.depthAttachmentPixelFormat = depthAttachmentPixelFormat
 
@@ -173,13 +182,17 @@ enum PipelineStateObjectsFactory {
         fragmentFunctionName: String,
         library: MTLLibrary,
         drawablesPixelFormat: MTLPixelFormat,
+        fragmentConstantValues: MTLFunctionConstantValues? = nil,
     ) throws -> MTLRenderPipelineDescriptor {
-        guard let vertexFunction = library.makeFunction(name: vertexFunctionName) else {
-            throw PipelineStateObjectsFactoryError.failedToCreateFunction(name: vertexFunctionName)
-        }
-        guard let fragmentFunction = library.makeFunction(name: fragmentFunctionName) else {
-            throw PipelineStateObjectsFactoryError.failedToCreateFunction(name: fragmentFunctionName)
-        }
+        let vertexFunction = try makeFunction(
+            library: library,
+            name: vertexFunctionName
+        )
+        let fragmentFunction = try makeFunction(
+            library: library,
+            name: fragmentFunctionName,
+            constantValues: fragmentConstantValues
+        )
 
         let descriptor = MTLRenderPipelineDescriptor()
         descriptor.vertexFunction = vertexFunction
@@ -190,5 +203,21 @@ enum PipelineStateObjectsFactory {
         descriptor.colorAttachments[0].isBlendingEnabled = false
 
         return descriptor
+    }
+
+    private static func makeFunction(
+        library: MTLLibrary,
+        name: String,
+        constantValues: MTLFunctionConstantValues? = nil,
+    ) throws -> MTLFunction {
+        if let constantValues {
+            return try library.makeFunction(name: name, constantValues: constantValues)
+        } else {
+            if let function = library.makeFunction(name: name) {
+                return function
+            } else {
+                throw PipelineStateObjectsFactoryError.failedToCreateFunction(name: name)
+            }
+        }
     }
 }

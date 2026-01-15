@@ -5,7 +5,7 @@ import Metal
 enum RenderPassType: Int {
     case simple
     case withIntermediateTexture
-    case tileMemory // TODO: remove
+    case tileMemory
     case tileMemoryFetch // TODO: rename?
 }
 
@@ -19,10 +19,12 @@ final class RenderPassFactory {
         device: MTLDevice,
         drawablesPixelFormat: MTLPixelFormat,
         renderPassType: RenderPassType,
+        availableFilterCount: Int16
     ) {
         self.device = device
         self.drawablesPixelFormat = drawablesPixelFormat
         self.renderPassType = renderPassType
+        self.availableFilterCount = availableFilterCount
     }
 
     // MARK: Internal
@@ -39,18 +41,21 @@ final class RenderPassFactory {
             try RenderPassWithRegularIntermediateTexture(
                 device: device,
                 drawablesPixelFormat: drawablesPixelFormat,
+                availableFilterCount: availableFilterCount,
             )
 
         case .tileMemory:
             try RenderPassTileMemory(
                 device: device,
                 drawablesPixelFormat: drawablesPixelFormat,
+                availableFilterCount: availableFilterCount,
             )
 
         case .tileMemoryFetch:
             try RenderPassDirect(
                 device: device,
                 drawablesPixelFormat: drawablesPixelFormat,
+                availableFilterCount: availableFilterCount,
             )
         }
     }
@@ -61,5 +66,6 @@ final class RenderPassFactory {
 
     private let drawablesPixelFormat: MTLPixelFormat
     private let renderPassType: RenderPassType
+    private let availableFilterCount: Int16
 
 }

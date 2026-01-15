@@ -26,6 +26,7 @@ final class RenderPassDirect {
     init(
         device: MTLDevice,
         drawablesPixelFormat: MTLPixelFormat,
+        availableFilterCount: Int16,
     ) throws {
         self.device = device
 
@@ -48,6 +49,7 @@ final class RenderPassDirect {
             library: library,
             drawablesPixelFormat: drawablesPixelFormat,
             depthAttachmentPixelFormat: depthTexturePixelFormat,
+            filtersCount: availableFilterCount,
         )
 
         depthStencilState = try Self.makeDepthStencilState(device: device)

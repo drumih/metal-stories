@@ -2,6 +2,9 @@ import UIKit
 
 // MARK: - StoriesViewController
 
+// TODO: fix opposite filtering
+// TODO: add filters name
+
 final class StoriesViewController: UIViewController {
 
     // MARK: Lifecycle
@@ -12,14 +15,16 @@ final class StoriesViewController: UIViewController {
         sceneInput: SceneInput,
         offscreenRenderer: OffscreenRenderer,
         inputImageData: Data,
-        title: String,
+        titleString: String,
+        availableFiltersCount: Int16
     ) {
         self.gpu = gpu
         self.renderingView = renderingView
         self.sceneInput = sceneInput
         self.offscreenRenderer = offscreenRenderer
         self.inputImageData = inputImageData
-        titleString = title
+        self.titleString = titleString
+        self.availableFiltersCount = availableFiltersCount
 
         super.init(nibName: nil, bundle: nil)
     }
@@ -75,12 +80,27 @@ final class StoriesViewController: UIViewController {
         return view
     }()
 
+    private lazy var showOriginalButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "eye"), for: .normal)
+        button.setImage(UIImage(systemName: "eye.fill"), for: .highlighted)
+        button.tintColor = .white
+        button.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+        button.layer.cornerRadius = 20
+        button.clipsToBounds = true
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(showOriginalPressed), for: .touchDown)
+        button.addTarget(self, action: #selector(showOriginalReleased), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        return button
+    }()
+
     private let sceneInput: SceneInput
     private let offscreenRenderer: OffscreenRenderer
     private var gestureHandler: StoriesGestureHandler?
 
     private let inputImageData: Data
     private let titleString: String
+    private let availableFiltersCount: Int16
 
     private var isSavingEnabled = true {
         didSet {
@@ -163,6 +183,7 @@ extension StoriesViewController {
         view.addSubview(renderingView)
 
         view.addSubview(offsetIndexView)
+        view.addSubview(showOriginalButton)
 
         touchTrackingView.translatesAutoresizingMaskIntoConstraints = false
         renderingView.addSubview(touchTrackingView)
@@ -196,6 +217,11 @@ extension StoriesViewController {
             offsetIndexView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             offsetIndexView.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
             offsetIndexView.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20),
+
+            showOriginalButton.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -16),
+            showOriginalButton.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -16),
+            showOriginalButton.heightAnchor.constraint(equalToConstant: 40),
+            showOriginalButton.widthAnchor.constraint(equalTo: showOriginalButton.heightAnchor),
         ])
     }
 
@@ -226,6 +252,16 @@ extension StoriesViewController {
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
+
+    @objc
+    private func showOriginalPressed() {
+        sceneInput.showOriginal = true
+    }
+
+    @objc
+    private func showOriginalReleased() {
+        sceneInput.showOriginal = false
+    }
 }
 
 // MARK: StoriesTopPanelViewDelegate
@@ -244,9 +280,6 @@ extension StoriesViewController: StoriesTopPanelViewDelegate {
         saveImage()
     }
 
-    func storiesTopPanelDidChangeShowOriginal(isActive: Bool) {
-        sceneInput.showOriginal = isActive
-    }
 }
 
 // MARK: StoriesFailureViewDelegate
@@ -262,7 +295,11 @@ extension StoriesViewController: StoriesFailureViewDelegate {
 extension StoriesViewController: OffsetAnimatorDelegate {
     func offsetAnimatorDidStartAnimation(targetOffset: Float) {
         let index = Int(round(targetOffset))
-        offsetIndexView.show(index: index)
+        let filtersCount = Int(availableFiltersCount)
+        let normalizedIndex = filtersCount > 0
+            ? (index % filtersCount + filtersCount) % filtersCount
+            : index
+        offsetIndexView.show(index: normalizedIndex)
     }
 
     func offsetAnimatorDidEndAnimation(targetOffset: Float) {

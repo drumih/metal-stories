@@ -10,6 +10,7 @@ final class RenderPassWithRegularIntermediateTexture {
     init(
         device: MTLDevice,
         drawablesPixelFormat: MTLPixelFormat,
+        availableFilterCount: Int16,
     ) throws {
         self.device = device
         self.intermediateTexturePixelFormat = .bgra8Unorm
@@ -26,6 +27,7 @@ final class RenderPassWithRegularIntermediateTexture {
         postProcessingPSO = try PipelineStateObjectsFactory.postProcessingBasePipeline(
             library: library,
             drawablesPixelFormat: drawablesPixelFormat,
+            filtersCount: availableFilterCount,
         )
     }
 
