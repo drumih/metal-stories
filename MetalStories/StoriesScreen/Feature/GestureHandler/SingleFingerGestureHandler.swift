@@ -46,13 +46,13 @@ final class SingleFingerGestureHandler {
         guard bounds.width > 0 else { return }
         
         let currentPoint = touch.location(in: overlay)
-        let deltaX = Float((currentPoint.x - snapshot.startPoint.x) / bounds.width)
+        let deltaX = Float((snapshot.startPoint.x - currentPoint.x) / bounds.width)
         sceneInput.filterOffset = snapshot.initialFilterOffset + deltaX
-        
+
         let currentTime = touch.timestamp
         let dt = currentTime - snapshot.lastTimestamp
         if dt > 0 {
-            let velocity = Float((currentPoint.x - snapshot.lastPoint.x) / bounds.width) / Float(dt)
+            let velocity = Float((snapshot.lastPoint.x - currentPoint.x) / bounds.width) / Float(dt)
             snapshot.lastVelocity = velocity
         }
         snapshot.lastPoint = currentPoint

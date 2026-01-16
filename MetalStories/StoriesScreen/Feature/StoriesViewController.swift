@@ -2,8 +2,6 @@ import UIKit
 
 // MARK: - StoriesViewController
 
-// TODO: fix opposite filtering. Now, if i swap from right to left, i see the last filter and index is the maximum. filters should be from left to righ. analyze and find root cause. it might be in scene, gestue manager or shader.
-
 final class StoriesViewController: UIViewController {
 
     // MARK: Lifecycle
