@@ -76,33 +76,26 @@ final class StoriesFilterNameView: UIView {
         return label
     }()
 
-    private lazy var blurView: UIVisualEffectView = {
-        let blurEffect = UIBlurEffect(style: .systemUltraThinMaterial)
-        let view = UIVisualEffectView(effect: blurEffect)
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-
     private func setupUI() {
         alpha = 0
         isHidden = true
+        backgroundColor = .clear
         layer.cornerRadius = 20
-        clipsToBounds = true
+        layer.masksToBounds = true
         translatesAutoresizingMaskIntoConstraints = false
 
-        addSubview(blurView)
-        blurView.contentView.addSubview(indexLabel)
+        indexLabel.layer.shadowColor = UIColor.black.cgColor
+        indexLabel.layer.shadowOpacity = 0.25
+        indexLabel.layer.shadowRadius = 4
+        indexLabel.layer.shadowOffset = CGSize(width: 0, height: 2)
+        indexLabel.layer.masksToBounds = false
+        addSubview(indexLabel)
 
         NSLayoutConstraint.activate([
-            blurView.topAnchor.constraint(equalTo: topAnchor),
-            blurView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            blurView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            blurView.bottomAnchor.constraint(equalTo: bottomAnchor),
-
-            indexLabel.topAnchor.constraint(equalTo: blurView.topAnchor, constant: 12),
-            indexLabel.leadingAnchor.constraint(equalTo: blurView.leadingAnchor, constant: 24),
-            indexLabel.trailingAnchor.constraint(equalTo: blurView.trailingAnchor, constant: -24),
-            indexLabel.bottomAnchor.constraint(equalTo: blurView.bottomAnchor, constant: -12),
+            indexLabel.topAnchor.constraint(equalTo: topAnchor, constant: 12),
+            indexLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 24),
+            indexLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -24),
+            indexLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12),
         ])
     }
 }

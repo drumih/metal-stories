@@ -3,7 +3,9 @@
 // MARK: - Constants
 
 /// Number of filter variants available in `process_rgb`.
-constant short kFiltersCount [[function_constant(0)]];
+constant short kAvailableFiltersCount [[function_constant(0)]];
+
+constant short kTotalFiltersCount = 9;
 
 // MARK: - Utilities
 
@@ -83,23 +85,20 @@ float3 apply_levels(float3 rgb, float lift, float gamma, float gain) {
     return curved * gain;
 }
 
-/// Adjusts saturation around luminance.
-/// `amount` = 1 keeps original, 0 returns grayscale, >1 increases saturation.
+/// Mixes RGB toward grayscale.
+/// `amount` = 0 keeps original, 1 returns grayscale.
 METAL_FUNC
-float3 saturation(float3 rgb, float amount) {
-    const auto luma = luminance(rgb);
-    return mix(float3(luma), rgb, amount);
+float3 desaturate(float3 rgb, float amount) {
+    const float3 gray = float3(luminance(rgb));
+    return mix(rgb, gray, amount);
 }
 
-/// Boosts low-saturation colors more than already-saturated colors.
+// MARK: - Blend Modes
+
 METAL_FUNC
-float3 vibrance(float3 rgb, float amount) {
-    const auto luma = luminance(rgb);
-    const auto gray = float3(luma);
-    const auto diff = rgb - gray;
-    const auto sat = length(diff);
-    const auto boost = 1.0f + amount * (1.0f - saturate(sat * 2.0f));
-    return gray + diff * boost;
+float3 blend_linear_light(float3 base, float3 blend, float a) {
+    const auto linearLight = fma(blend, 2.f, base - 1.f);
+    return mix(base, saturate(linearLight), a);
 }
 
 /// Applies a 3x3 channel mixing matrix (column-major).
@@ -122,6 +121,15 @@ float3 apply_split_tone(float3 rgb, float3 shadowTint, float3 highlightTint) {
     float3 graded = mix(rgb, rgb * shadowTint, shadowW);
     graded = mix(graded, graded * highlightTint, highlightW);
     return graded;
+}
+
+/// Bilinear interpolation of 4 corner colors based on UV coordinates.
+/// Returns a smoothly blended color across the 2D surface.
+METAL_FUNC
+float3 gradient_2d(float3 bottomLeft, float3 bottomRight, float3 topLeft, float3 topRight, float2 uv) {
+    const float3 bottom = mix(bottomLeft, bottomRight, uv.x);
+    const float3 top = mix(topLeft, topRight, uv.x);
+    return mix(bottom, top, uv.y);
 }
 
 // MARK: - Filters
@@ -165,15 +173,13 @@ float3 fire_and_ice(float3 rgb) {
     return float3(filteredR, filteredG, filteredB);
 }
 
-/// Cinematic teal/orange grade with a split tone and vibrance boost.
+/// Cinematic teal/orange grade with a split tone.
 METAL_FUNC
 float3 teal_orange_cinema(float3 rgb) {
     const auto curved = catmull_rom_5_rgb(0.f, 0.18f, 0.52f, 0.85f, 1.f, rgb);
-    const auto toned = apply_split_tone(curved,
-                                        float3(0.9f, 0.98f, 1.08f),
-                                        float3(1.08f, 1.02f, 0.95f));
-    const auto vib = vibrance(toned, 0.25f);
-    return saturation(vib, 1.08f);
+    return apply_split_tone(curved,
+                            float3(0.9f, 0.98f, 1.08f),
+                            float3(1.08f, 1.02f, 0.95f));
 }
 
 /// Cross-processed film look: contrast curve, channel mixing, and warmth.
@@ -197,12 +203,35 @@ float3 cross_process(float3 rgb) {
     const auto curveB = catmull_rom_5_single(0.f, 0.24f, 0.5f, 0.76f, 1.f, mixed.b);
 
     const auto curved = float3(curveR, curveG, curveB);
-    const auto saturated = saturation(curved, 1.15f);
     const auto filmTint = float3(1.03f, 1.0f, 0.99f);
 
-    return saturated * filmTint;
+    return curved * filmTint;
 }
 
+/// Bleach bypass: film-like look with overlay blend and desaturation.
+METAL_FUNC
+float3 bleach_bypass(float3 rgb) { 
+    // TODO: implement good version, don't cut corners. if you need to use contrast - use catmull_rom_5_rgb(0.f, 0.22f, 0.5f, 0.78f, 1.f, rgb);
+    return rgb;
+}
+
+/// Orange Sunset style: warm 2D gradient overlay with Linear Light Blend Mode
+METAL_FUNC
+float3 orange_sunset(float3 rgb, float2 uv) {
+    const auto curved = catmull_rom_5_rgb(0.f, 0.22f, 0.5f, 0.78f, 1.f, rgb);
+
+    // 2D gradient with 4 corner colors
+    const auto topLeft = float3(1.0f, 0.52f, 0.2f);
+    const auto topRight = float3(1.0f, 0.46f, 0.6f);
+    const auto bottomLeft = float3(0.98f, 0.72f, 0.82f);
+    const auto bottomRight = float3(0.92f, 0.56f, 0.98f);
+
+    const auto gradient = gradient_2d(bottomLeft, bottomRight, topLeft, topRight, uv);
+
+    // Screen blend with intensity control
+    const auto blended = blend_linear_light(curved, gradient, 0.15f);
+    return gradient;
+}
 
 // MARK: - Filter Selection
 
@@ -211,11 +240,12 @@ float3 cross_process(float3 rgb) {
 /// fractional part defines the split position along `uv.x`.
 METAL_FUNC
 short target_mode(float2 uv, float offset) {
-    const auto filtersCount = float(kFiltersCount);
-    const auto normalizedOffset = offset - filtersCount * floor(offset / filtersCount);
+    const auto filtersCount = clamp(kAvailableFiltersCount, short(1), kTotalFiltersCount);
+    const auto filtersCountF = float(filtersCount);
+    const auto normalizedOffset = offset - filtersCountF * floor(offset / filtersCountF);
     const auto currentMode = short(normalizedOffset);
     const auto splitPoint = normalizedOffset - float(currentMode);
-    const auto nextMode = (currentMode + 1) % kFiltersCount;
+    const auto nextMode = (currentMode + 1) % filtersCount;
     const auto targetMode = uv.x > splitPoint ? currentMode : nextMode;
     return targetMode;
 }
@@ -233,9 +263,11 @@ float3 process_rgb(float3 rgb, float2 uv, float offset) {
         case 4: targetColor = fire_and_ice(rgb); break;
         case 5: targetColor = teal_orange_cinema(rgb); break;
         case 6: targetColor = cross_process(rgb); break;
+        case 7: targetColor = bleach_bypass(rgb); break;
+        case 8: targetColor = orange_sunset(rgb, uv); break;
         default: targetColor = rgb; break;
     }
-    
+
     return saturate(targetColor);
 }
 

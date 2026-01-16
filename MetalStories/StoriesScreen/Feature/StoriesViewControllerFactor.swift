@@ -10,7 +10,7 @@ enum StoriesViewControllerFactor {
         renderPassType: RenderPassType,
     ) throws -> UIViewController {
         let gpu = try GPU()
-        let availableFiltersCount: Int16 = 7
+        let availableFiltersCount: Int16 = 9
 
         let renderingView = RenderingView(device: gpu.device)
         let drawablesPixelFormat = renderingView.drawablesPixelFormat
