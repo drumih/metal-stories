@@ -2,8 +2,7 @@
 using namespace metal;
 
 kernel
-void imageTransform(
-                    texture2d<float, access::sample> source [[texture(0)]],
+void imageTransform(texture2d<float, access::sample> source [[texture(0)]],
                     texture2d<float, access::write> destination [[texture(1)]],
                     constant float4x4& uvTransform [[buffer(0)]],
                     ushort2 position [[thread_position_in_grid]]

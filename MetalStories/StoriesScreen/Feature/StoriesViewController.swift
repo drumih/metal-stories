@@ -52,9 +52,10 @@ final class StoriesViewController: UIViewController {
 
     // MARK: Private
 
-    private static let maxImageDimension: CGFloat = 2016
-    private static let minImageDimension: CGFloat = 128 
+    private static let targetImageDimension: Int = 2016
+    private static let minImageDimension: Int = 128
     private static let maxExportImageWidth: CGFloat = 1080
+
     private static let filterNames: [String] = [
         "Original",
         "Very Simple",
@@ -107,8 +108,8 @@ extension StoriesViewController {
         let preparationResult = try CGImageToMetalTexturePreprocessing.prepareCGImage(
             cgImage: cgImage,
             orientation: orientation,
-            maxDimension: Self.maxImageDimension,
-            minDimension: Self.minImageDimension,
+            targetDimension: Self.targetImageDimension,
+            minPossibleDimension: Self.minImageDimension,
             gpu: gpu,
         )
         sceneInput.setPreparationResult(preparationResult)

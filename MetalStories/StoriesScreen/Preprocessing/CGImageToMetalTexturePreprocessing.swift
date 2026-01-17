@@ -1,7 +1,6 @@
 import ImageIO
 import Metal
 import MetalKit
-import MetalPerformanceShaders
 
 // MARK: - MetalPreparationResult
 
@@ -16,12 +15,15 @@ struct MetalPreparationResult {
 // MARK: - PreprocessingError
 
 enum PreprocessingError: LocalizedError {
+    case imageTooSmall
     case failedToCreateTexture
     case failedToCreateBuffer
     case failedToCreateCommandBuffer
 
     var errorDescription: String? {
         switch self {
+        case .imageTooSmall:
+            "Image too small"
         case .failedToCreateTexture:
             "Failed to create Metal texture"
         case .failedToCreateBuffer:
@@ -41,12 +43,18 @@ enum CGImageToMetalTexturePreprocessing {
     static func prepareCGImage(
         cgImage: CGImage,
         orientation: CGImagePropertyOrientation,
-        maxDimension: CGFloat,
-        minDimension: CGFloat,
+        targetDimension: Int,
+        minPossibleDimension: Int,
         gpu: GPU,
     ) throws -> MetalPreparationResult {
-        let originalTexture = try getTexture(from: cgImage, device: gpu.device)
+        if cgImage.width < minPossibleDimension || cgImage.height < minPossibleDimension {
+            throw PreprocessingError.imageTooSmall
+        }
+        
+        let originalTexture = try getOriginalTexture(from: cgImage, device: gpu.device)
+
         let transformTool = try ImageTransformTool(device: gpu.device)
+        let colorExtractionTool = ColorExtractionTool(device: gpu.device)
 
         let transformParams = orientation.imageTransformParams()
 
@@ -54,8 +62,7 @@ enum CGImageToMetalTexturePreprocessing {
             originalWidth: originalTexture.width,
             originalHeight: originalTexture.height,
             swapsDimensions: transformParams.swapsDimensions,
-            maxDimension: maxDimension,
-            minDimension: minDimension,
+            targetDimension: targetDimension,
         )
 
         let destinationTexture = try TextureHelper.getTexture(
@@ -67,39 +74,14 @@ enum CGImageToMetalTexturePreprocessing {
             usage: [.shaderRead, .shaderWrite]
         )
 
-        let histogramTexture = try TextureHelper.getTexture(
-            device: gpu.device,
-            pixelFormat: destinationTexture.pixelFormat,
-            width: Self.histogramTextureSize,
-            height: Self.histogramTextureSize,
-            storageMode: .private,
-            usage: [.shaderWrite, .shaderRead]
+        let topHistogramBuffer = try colorExtractionTool.makeHistogramBuffer(
+            for: destinationTexture.pixelFormat
         )
 
-        var histogramInfo = makeHistogramInfo()
-        let histogram = MPSImageHistogram(
-            device: gpu.device,
-            histogramInfo: &histogramInfo,
+        let bottomHistogramBuffer = try colorExtractionTool.makeHistogramBuffer(
+            for: destinationTexture.pixelFormat
         )
 
-        let histogramSize = histogram.histogramSize(
-            forSourceFormat: histogramTexture.pixelFormat,
-        )
-
-        guard let topHistogramBuffer = gpu.device.makeBuffer(
-            length: histogramSize,
-            options: .storageModeShared,
-        ) else {
-            throw PreprocessingError.failedToCreateBuffer
-        }
-
-        guard let bottomHistogramBuffer = gpu.device.makeBuffer(
-            length: histogramSize,
-            options: .storageModeShared,
-        ) else {
-            throw PreprocessingError.failedToCreateBuffer
-        }
-        
         let uvTransform = TransformCalculator.getUVTransform(
             rotationRadians: transformParams.rotationRadians,
             isMirrored: transformParams.isMirrored,
@@ -116,36 +98,18 @@ enum CGImageToMetalTexturePreprocessing {
             uvTransform: uvTransform,
         )
 
-        scaleTexture(
-            from: destinationTexture,
-            to: histogramTexture,
-            device: gpu.device,
+        try colorExtractionTool.encode(
             commandBuffer: commandBuffer,
-        )
-
-        let regions = histogramRegions(for: histogramTexture)
-
-        encodeHistogram(
-            histogram,
-            region: regions.top,
-            commandBuffer: commandBuffer,
-            sourceTexture: histogramTexture,
-            destination: topHistogramBuffer,
-        )
-
-        encodeHistogram(
-            histogram,
-            region: regions.bottom,
-            commandBuffer: commandBuffer,
-            sourceTexture: histogramTexture,
-            destination: bottomHistogramBuffer,
+            sourceTexture: destinationTexture,
+            topHistogramBuffer: topHistogramBuffer,
+            bottomHistogramBuffer: bottomHistogramBuffer,
         )
 
         commandBuffer.commit()
         commandBuffer.waitUntilCompleted()
 
-        let topColor = medianColor(from: topHistogramBuffer)
-        let bottomColor = medianColor(from: bottomHistogramBuffer)
+        let topColor = ColorExtractionTool.medianColor(from: topHistogramBuffer)
+        let bottomColor = ColorExtractionTool.medianColor(from: bottomHistogramBuffer)
 
         let textureSize = SIMD2<Float>(
             Float(destinationTexture.width),
@@ -162,87 +126,36 @@ enum CGImageToMetalTexturePreprocessing {
 
     // MARK: Private
 
-    private static let histogramBins = 128
-    private static let histogramTextureSize = 256
-
     private static func calculateTargetSize(
         originalWidth: Int,
         originalHeight: Int,
         swapsDimensions: Bool,
-        maxDimension: CGFloat,
-        minDimension: CGFloat,
+        targetDimension: Int,
     ) -> (width: Int, height: Int) {
-        let rotatedWidth: Int
-        let rotatedHeight: Int
+        let rotatedWidth = swapsDimensions ? originalHeight : originalWidth
+        let rotatedHeight = swapsDimensions ? originalWidth : originalHeight
 
-        if swapsDimensions {
-            rotatedWidth = originalHeight
-            rotatedHeight = originalWidth
+        let rotatedWidthF = CGFloat(rotatedWidth)
+        let rotatedHeightF = CGFloat(rotatedHeight)
+        let targetDimensionF =  CGFloat(targetDimension)
+
+        let targetWidth: Int
+        let targetHeight: Int
+
+        if rotatedWidth >= rotatedHeight {
+            targetWidth = targetDimension
+            targetHeight = Int((rotatedHeightF * targetDimensionF / rotatedWidthF)
+                .rounded(.toNearestOrAwayFromZero))
         } else {
-            rotatedWidth = originalWidth
-            rotatedHeight = originalHeight
-        }
-
-        let widthScale = CGFloat(rotatedWidth) / maxDimension
-        let heightScale = CGFloat(rotatedHeight) / maxDimension
-        let scaleFactor = max(widthScale, heightScale)
-
-        var targetWidth = Int(CGFloat(rotatedWidth) / max(scaleFactor, 1.0))
-        var targetHeight = Int(CGFloat(rotatedHeight) / max(scaleFactor, 1.0))
-
-        let minScaleFactor = min(
-            CGFloat(targetWidth) / minDimension,
-            CGFloat(targetHeight) / minDimension,
-        )
-        if minScaleFactor < 1.0 {
-            targetWidth = Int(CGFloat(targetWidth) / minScaleFactor)
-            targetHeight = Int(CGFloat(targetHeight) / minScaleFactor)
+            targetWidth = Int((rotatedWidthF * targetDimensionF / rotatedHeightF)
+                .rounded(.toNearestOrAwayFromZero))
+            targetHeight = targetDimension
         }
 
         return (max(1, targetWidth), max(1, targetHeight))
     }
 
-    private static func medianColor(from buffer: MTLBuffer) -> SIMD4<Float> {
-        let histogramData = buffer.contents().bindMemory(
-            to: UInt32.self,
-            capacity: histogramBins * 4,
-        )
-        let channelStride = histogramBins
-        var medians = [Float](repeating: 0, count: 3)
-
-        for channelIndex in 0..<3 {
-            let channelStart = histogramData.advanced(by: channelStride * channelIndex)
-            var totalPixels: UInt64 = 0
-
-            for level in 0..<channelStride {
-                totalPixels += UInt64(channelStart[level])
-            }
-
-            if totalPixels == 0 {
-                continue
-            }
-
-            let midpoint = (totalPixels + 1) / 2
-            var cumulative: UInt64 = 0
-
-            for level in 0..<channelStride {
-                cumulative += UInt64(channelStart[level])
-                if cumulative >= midpoint {
-                    medians[channelIndex] = Float(level) / Float(channelStride - 1)
-                    break
-                }
-            }
-        }
-
-        return SIMD4<Float>(
-            medians[0],
-            medians[1],
-            medians[2],
-            1.0,
-        )
-    }
-
-    private static func getTexture(
+    private static func getOriginalTexture(
         from cgImage: CGImage,
         device: MTLDevice,
     ) throws -> MTLTexture {
@@ -259,63 +172,5 @@ enum CGImageToMetalTexturePreprocessing {
         )
 
         return originalTexture
-    }
-
-    private static func scaleTexture(
-        from sourceTexture: MTLTexture,
-        to destinationTexture: MTLTexture,
-        device: MTLDevice,
-        commandBuffer: MTLCommandBuffer,
-    ) {
-        let scaler = MPSImageBilinearScale(device: device)
-        scaler.encode(
-            commandBuffer: commandBuffer,
-            sourceTexture: sourceTexture,
-            destinationTexture: destinationTexture,
-        )
-    }
-
-    private static func makeHistogramInfo() -> MPSImageHistogramInfo {
-        MPSImageHistogramInfo(
-            numberOfHistogramEntries: histogramBins,
-            histogramForAlpha: false,
-            minPixelValue: vector_float4(0, 0, 0, 1),
-            maxPixelValue: vector_float4(1, 1, 1, 1),
-        )
-    }
-
-    private static func histogramRegions(
-        for texture: MTLTexture,
-    ) -> (top: MTLRegion, bottom: MTLRegion) {
-        let width = texture.width
-        let height = texture.height
-        let quarterHeight = height / 4
-
-        let topRegion = MTLRegion(
-            origin: .init(x: 0, y: 0, z: 0),
-            size: .init(width: width, height: quarterHeight, depth: 1),
-        )
-        let bottomRegion = MTLRegion(
-            origin: .init(x: 0, y: height - quarterHeight, z: 0),
-            size: .init(width: width, height: quarterHeight, depth: 1),
-        )
-
-        return (topRegion, bottomRegion)
-    }
-
-    private static func encodeHistogram(
-        _ histogram: MPSImageHistogram,
-        region: MTLRegion,
-        commandBuffer: MTLCommandBuffer,
-        sourceTexture: MTLTexture,
-        destination: MTLBuffer,
-    ) {
-        histogram.clipRectSource = region
-        histogram.encode(
-            to: commandBuffer,
-            sourceTexture: sourceTexture,
-            histogram: destination,
-            histogramOffset: 0,
-        )
     }
 }
