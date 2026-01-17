@@ -22,9 +22,7 @@ enum TransformCalculator {
         rotationRadians: Float,
         isMirrored: Bool,
     ) -> float4x4 {
-        // UV coordinates are normalized [0,1] regardless of texture dimensions,
-        // so no scaling is needed — rotation and mirroring alone map UVs correctly.
-        
+
         let translation = SIMD2<Float>(0.5, 0.5)
         let mirrorScale = SIMD2<Float>(isMirrored ? -1 : 1, 1)
         
@@ -103,16 +101,19 @@ enum TransformCalculator {
         let scaleMatrix = getScaleMatrix(scaledCanvasSize)
         let inverseScaleMatrix = getScaleMatrix(inverseCanvasScale)
 
-        let toCanvasMatrix = rotationMatrix * scaleMatrix
-        let fromCanvasMatrix = inverseScaleMatrix * inverseRotationMatrix
-
         let deltaAnchor = (currentAnchorPoint - newAnchorPoint) * canvasSize
-        let currentOffset = transform2D(toCanvasMatrix, anchorToImageOffset)
-        let targetOffset = deltaAnchor + currentOffset
+        let deltaAnchorMatrix = getTranslationMatrix(.init(deltaAnchor, 0))
 
-        // TODO: rebuild in style of getModelTransform. do not use transform2D. just calculate everithing in 3d and use x and y at the end!
-
-        return transform2D(fromCanvasMatrix, targetOffset)
+        let transformMatrices = [
+            scaleMatrix,
+            rotationMatrix,
+            deltaAnchorMatrix,
+            inverseRotationMatrix,
+            inverseScaleMatrix,
+        ]
+        let transformMatrix = combineMatrices(transformMatrices)
+        let result = transformMatrix * SIMD4<Float>(anchorToImageOffset.x, anchorToImageOffset.y, 0, 1)
+        return SIMD2<Float>(result.x, result.y)
     }
 }
 

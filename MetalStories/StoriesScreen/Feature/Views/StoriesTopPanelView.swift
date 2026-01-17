@@ -62,7 +62,6 @@ final class StoriesTopPanelView: UIView {
 
     let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = titleString
         label.font = .systemFont(ofSize: 17, weight: .semibold)
         label.textColor = .white
         label.textAlignment = .center
@@ -72,6 +71,7 @@ final class StoriesTopPanelView: UIView {
 
     private func setupUI() {
         backgroundColor = .clear
+        titleLabel.text = titleString
 
         addSubview(closeButton)
         addSubview(resetButton)
