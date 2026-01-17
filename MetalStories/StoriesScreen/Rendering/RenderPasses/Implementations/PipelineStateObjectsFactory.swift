@@ -186,12 +186,12 @@ enum PipelineStateObjectsFactory {
     ) throws -> MTLRenderPipelineDescriptor {
         let vertexFunction = try makeFunction(
             library: library,
-            name: vertexFunctionName
+            name: vertexFunctionName,
         )
         let fragmentFunction = try makeFunction(
             library: library,
             name: fragmentFunctionName,
-            constantValues: fragmentConstantValues
+            constantValues: fragmentConstantValues,
         )
 
         let descriptor = MTLRenderPipelineDescriptor()

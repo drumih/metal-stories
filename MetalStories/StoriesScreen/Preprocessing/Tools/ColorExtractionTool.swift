@@ -22,10 +22,10 @@ final class ColorExtractionTool {
 
     init(device: MTLDevice) {
         self.device = device
-        self.scaler = MPSImageBilinearScale(device: device)
+        scaler = MPSImageBilinearScale(device: device)
 
         var histogramInfo = Self.makeHistogramInfo()
-        self.histogram = MPSImageHistogram(
+        histogram = MPSImageHistogram(
             device: device,
             histogramInfo: &histogramInfo,
         )
@@ -34,6 +34,45 @@ final class ColorExtractionTool {
     // MARK: Internal
 
     static let histogramBins = 128
+
+    static func medianColor(from buffer: MTLBuffer) -> SIMD4<Float> {
+        let histogramData = buffer.contents().bindMemory(
+            to: UInt32.self,
+            capacity: histogramBins * 4,
+        )
+        var medians = [Float](repeating: 0, count: 3)
+
+        for channelIndex in 0..<3 {
+            let channelStart = histogramData.advanced(by: histogramBins * channelIndex)
+            var totalPixels: UInt64 = 0
+
+            for level in 0..<histogramBins {
+                totalPixels += UInt64(channelStart[level])
+            }
+
+            if totalPixels == 0 {
+                continue
+            }
+
+            let midpoint = (totalPixels + 1) / 2
+            var cumulative: UInt64 = 0
+
+            for level in 0..<histogramBins {
+                cumulative += UInt64(channelStart[level])
+                if cumulative >= midpoint {
+                    medians[channelIndex] = Float(level) / Float(histogramBins - 1)
+                    break
+                }
+            }
+        }
+
+        return SIMD4<Float>(
+            medians[0],
+            medians[1],
+            medians[2],
+            1.0,
+        )
+    }
 
     func makeHistogramBuffer(for pixelFormat: MTLPixelFormat) throws -> MTLBuffer {
         let size = histogram.histogramSize(forSourceFormat: pixelFormat)
@@ -50,7 +89,7 @@ final class ColorExtractionTool {
         bottomHistogramBuffer: MTLBuffer,
     ) throws {
         let histogramTexture = try createHistogramTexture(
-            pixelFormat: sourceTexture.pixelFormat,
+            pixelFormat: sourceTexture.pixelFormat
         )
 
         scaler.encode(
@@ -94,7 +133,7 @@ final class ColorExtractionTool {
     }
 
     private func createHistogramTexture(
-        pixelFormat: MTLPixelFormat,
+        pixelFormat: MTLPixelFormat
     ) throws -> MTLTexture {
         try TextureHelper.getTexture(
             device: device,
@@ -102,12 +141,12 @@ final class ColorExtractionTool {
             width: Self.histogramTextureSize,
             height: Self.histogramTextureSize,
             storageMode: .private,
-            usage: [.shaderWrite, .shaderRead]
+            usage: [.shaderWrite, .shaderRead],
         )
     }
 
     private func histogramRegions(
-        for texture: MTLTexture,
+        for texture: MTLTexture
     ) -> (top: MTLRegion, bottom: MTLRegion) {
         let width = texture.width
         let height = texture.height
@@ -140,42 +179,4 @@ final class ColorExtractionTool {
         )
     }
 
-    static func medianColor(from buffer: MTLBuffer) -> SIMD4<Float> {
-        let histogramData = buffer.contents().bindMemory(
-            to: UInt32.self,
-            capacity: histogramBins * 4,
-        )
-        var medians = [Float](repeating: 0, count: 3)
-
-        for channelIndex in 0..<3 {
-            let channelStart = histogramData.advanced(by: histogramBins * channelIndex)
-            var totalPixels: UInt64 = 0
-
-            for level in 0..<histogramBins {
-                totalPixels += UInt64(channelStart[level])
-            }
-
-            if totalPixels == 0 {
-                continue
-            }
-
-            let midpoint = (totalPixels + 1) / 2
-            var cumulative: UInt64 = 0
-
-            for level in 0..<histogramBins {
-                cumulative += UInt64(channelStart[level])
-                if cumulative >= midpoint {
-                    medians[channelIndex] = Float(level) / Float(histogramBins - 1)
-                    break
-                }
-            }
-        }
-
-        return SIMD4<Float>(
-            medians[0],
-            medians[1],
-            medians[2],
-            1.0,
-        )
-    }
 }

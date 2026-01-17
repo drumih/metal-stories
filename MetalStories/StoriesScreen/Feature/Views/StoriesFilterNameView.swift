@@ -21,7 +21,7 @@ final class StoriesFilterNameView: UIView {
         layer.removeAllAnimations()
         hideWorkItem?.cancel()
         hideWorkItem = nil
-        
+
         indexLabel.text = name
         isHidden = false
         transform = .identity
@@ -31,7 +31,7 @@ final class StoriesFilterNameView: UIView {
             delay: 0,
             usingSpringWithDamping: 0.8,
             initialSpringVelocity: 0.5,
-            options: [.beginFromCurrentState, .allowUserInteraction]
+            options: [.beginFromCurrentState, .allowUserInteraction],
         ) {
             self.alpha = 1.0
         }
@@ -40,10 +40,10 @@ final class StoriesFilterNameView: UIView {
     func hide() {
         layer.removeAllAnimations()
         hideWorkItem?.cancel()
-        
+
         let workItem = DispatchWorkItem { [weak self] in
             guard let self else { return }
-            
+
             UIView.animate(
                 withDuration: 0.25,
                 delay: 0,
@@ -55,10 +55,10 @@ final class StoriesFilterNameView: UIView {
                     if finished {
                         self.isHidden = true
                     }
-                }
+                },
             )
         }
-        
+
         hideWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: workItem)
     }

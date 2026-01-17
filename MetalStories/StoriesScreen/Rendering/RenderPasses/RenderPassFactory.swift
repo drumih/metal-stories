@@ -19,7 +19,7 @@ final class RenderPassFactory {
         device: MTLDevice,
         drawablesPixelFormat: MTLPixelFormat,
         renderPassType: RenderPassType,
-        availableFilterCount: Int16
+        availableFilterCount: Int16,
     ) {
         self.device = device
         self.drawablesPixelFormat = drawablesPixelFormat

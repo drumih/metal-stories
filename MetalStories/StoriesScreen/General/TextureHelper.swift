@@ -1,5 +1,7 @@
 import Metal
 
+// MARK: - TextureHelper
+
 enum TextureHelper {
     enum TextureHelperError: LocalizedError {
         case failedToCreateTexture

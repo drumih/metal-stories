@@ -17,18 +17,17 @@ enum ImageAspectModeType {
 // MARK: - TransformCalculator
 
 enum TransformCalculator {
-    
+
     static func getUVTransform(
         rotationRadians: Float,
         isMirrored: Bool,
     ) -> float4x4 {
-
         let translation = SIMD2<Float>(0.5, 0.5)
         let mirrorScale = SIMD2<Float>(isMirrored ? -1 : 1, 1)
-        
+
         let toCenterMatrix = getTranslationMatrix(.init(-translation, 0))
         let fromCenterMatrix = getTranslationMatrix(.init(translation, 0))
-        
+
         let rotationMatrix = getRotationMatrixZ(-rotationRadians)
         let mirrorMatrix = getScaleMatrix(mirrorScale)
 
@@ -36,12 +35,12 @@ enum TransformCalculator {
             toCenterMatrix,
             mirrorMatrix,
             rotationMatrix,
-            fromCenterMatrix
+            fromCenterMatrix,
         ]
-        
+
         return combineMatrices(transformMatrices)
     }
-    
+
     static func getMVPTransform(
         textureSize: SIMD2<Float>,
         canvasSize: SIMD2<Float>,
@@ -58,7 +57,7 @@ enum TransformCalculator {
             anchorToImageOffset: anchorToImageOffset,
             rotation: rotation,
             scale: scale,
-            aspectMode: aspectMode
+            aspectMode: aspectMode,
         )
         let viewTransform = getViewTransform()
         let projectionTransform = getProjectionTransform(canvasSize: canvasSize)
@@ -94,7 +93,6 @@ enum TransformCalculator {
 
         let scaledCanvasSize = canvasSize * scale
         let inverseCanvasScale = SIMD2<Float>.one / scaledCanvasSize
-        
 
         let rotationMatrix = getRotationMatrixZ(rotation)
         let inverseRotationMatrix = getRotationMatrixZ(-rotation)
@@ -117,8 +115,11 @@ enum TransformCalculator {
     }
 }
 
-private extension TransformCalculator {
-    static func getModelTransform(
+extension TransformCalculator {
+
+    // MARK: Fileprivate
+
+    fileprivate static func getModelTransform(
         textureSize: SIMD2<Float>,
         canvasSize: SIMD2<Float>,
         anchorPoint: SIMD2<Float>,
@@ -127,7 +128,6 @@ private extension TransformCalculator {
         scale: Float,
         aspectMode: ImageAspectMode,
     ) -> float4x4 {
-
         let aspectScale = getAspectScale(
             canvasSize: canvasSize,
             textureSize: textureSize,
@@ -145,7 +145,7 @@ private extension TransformCalculator {
         let toAnchorMatrix = getTranslationMatrix(.init(-anchorOffset, 0))
         let fromAnchorMatrix = getTranslationMatrix(.init(anchorOffset, 0))
         let toTargetMatrix = getTranslationMatrix(.init(targetPosition, 0))
-        
+
         let transformMatrices = [
             baseScaleMatrix,
             fromAnchorMatrix,
@@ -158,11 +158,11 @@ private extension TransformCalculator {
         return combineMatrices(transformMatrices)
     }
 
-    static func getViewTransform() -> float4x4 {
+    fileprivate static func getViewTransform() -> float4x4 {
         matrix_identity_float4x4 // camera only looking forward
     }
 
-    static func getProjectionTransform(canvasSize: SIMD2<Float>) -> float4x4 {
+    fileprivate static func getProjectionTransform(canvasSize: SIMD2<Float>) -> float4x4 {
         let halfWidth = canvasSize.x / 2.0
         let halfHeight = canvasSize.y / 2.0
         return orthographicProjection(
@@ -175,7 +175,7 @@ private extension TransformCalculator {
         )
     }
 
-    static func targetAspectMode(
+    fileprivate static func targetAspectMode(
         for aspectModeType: ImageAspectModeType,
         textureSize: SIMD2<Float>,
     ) -> ImageAspectMode {
@@ -187,7 +187,9 @@ private extension TransformCalculator {
             return aspectMode
         }
     }
-    
+
+    // MARK: Private
+
     private static func combineMatrices(_ matrices: [float4x4]) -> float4x4 {
         var resultMatrix = matrix_identity_float4x4
         for transformMatrix in matrices.reversed() {
@@ -197,11 +199,9 @@ private extension TransformCalculator {
     }
 }
 
-private extension TransformCalculator {
+extension TransformCalculator {
 
-    // MARK: projection
-
-    static func orthographicProjection(
+    fileprivate static func orthographicProjection(
         left: Float,
         right: Float,
         bottom: Float,
@@ -224,9 +224,7 @@ private extension TransformCalculator {
         )
     }
 
-    // MARK: rotation
-
-    static func getRotationMatrixX(_ radians: Float) -> float4x4 {
+    fileprivate static func getRotationMatrixX(_ radians: Float) -> float4x4 {
         let s = sin(radians)
         let c = cos(radians)
 
@@ -238,7 +236,7 @@ private extension TransformCalculator {
         )
     }
 
-    static func getRotationMatrixY(_ radians: Float) -> float4x4 {
+    fileprivate static func getRotationMatrixY(_ radians: Float) -> float4x4 {
         let s = sin(radians)
         let c = cos(radians)
 
@@ -250,7 +248,7 @@ private extension TransformCalculator {
         )
     }
 
-    static func getRotationMatrixZ(_ radians: Float) -> float4x4 {
+    fileprivate static func getRotationMatrixZ(_ radians: Float) -> float4x4 {
         let s = sin(radians)
         let c = cos(radians)
 
@@ -262,9 +260,7 @@ private extension TransformCalculator {
         )
     }
 
-    // MARK: scale
-
-    static func getAspectScale(
+    fileprivate static func getAspectScale(
         canvasSize: SIMD2<Float>,
         textureSize: SIMD2<Float>,
         aspectMode: ImageAspectMode,
@@ -278,7 +274,7 @@ private extension TransformCalculator {
         }
     }
 
-    static func getScaleMatrix(_ scale: SIMD2<Float>) -> float4x4 {
+    fileprivate static func getScaleMatrix(_ scale: SIMD2<Float>) -> float4x4 {
         .init(
             .init(scale.x, 0, 0, 0),
             .init(0, scale.y, 0, 0),
@@ -287,9 +283,7 @@ private extension TransformCalculator {
         )
     }
 
-    // MARK: translation
-    
-    static func getTranslationMatrix(_ translation: SIMD3<Float>) -> float4x4 {
+    fileprivate static func getTranslationMatrix(_ translation: SIMD3<Float>) -> float4x4 {
         .init(
             .init(1, 0, 0, 0),
             .init(0, 1, 0, 0),
@@ -297,10 +291,8 @@ private extension TransformCalculator {
             .init(translation.x, translation.y, translation.z, 1),
         )
     }
-    
-    // MARK: helpers
 
-    static func transform2D(_ matrix: float4x4, _ vector: SIMD2<Float>) -> SIMD2<Float> {
+    fileprivate static func transform2D(_ matrix: float4x4, _ vector: SIMD2<Float>) -> SIMD2<Float> {
         let result = matrix * SIMD4<Float>(vector.x, vector.y, 0, 1)
         return SIMD2<Float>(result.x, result.y)
     }

@@ -13,7 +13,7 @@ final class RenderPassWithRegularIntermediateTexture {
         availableFilterCount: Int16,
     ) throws {
         self.device = device
-        self.intermediateTexturePixelFormat = .bgra8Unorm
+        intermediateTexturePixelFormat = .bgra8Unorm
         let bundle = Bundle(for: RenderPassSimple.self)
         let library = try device.makeDefaultLibrary(bundle: bundle)
         imageRenderPSO = try PipelineStateObjectsFactory.imageBasePipeline(
@@ -33,6 +33,8 @@ final class RenderPassWithRegularIntermediateTexture {
 
     // MARK: Private
 
+    private static let flippedIntermediateTextureTransform = TransformCalculator.getFlippedVerticallyTransform()
+
     private let device: MTLDevice
     private let intermediateTexturePixelFormat: MTLPixelFormat
 
@@ -41,17 +43,16 @@ final class RenderPassWithRegularIntermediateTexture {
     private let postProcessingPSO: MTLRenderPipelineState
 
     private var intermediateTexture: MTLTexture?
-    private static let flippedIntermediateTextureTransform = TransformCalculator.getFlippedVerticallyTransform()
 
     private func updateIntermediateTexture(forSize size: CGSize) {
         do {
-            self.intermediateTexture = try TextureHelper.getTexture(
+            intermediateTexture = try TextureHelper.getTexture(
                 device: device,
                 pixelFormat: intermediateTexturePixelFormat,
                 width: Int(size.width),
                 height: Int(size.height),
                 storageMode: .private,
-                usage: [.shaderRead, .renderTarget]
+                usage: [.shaderRead, .renderTarget],
             )
         } catch {
             assertionFailure(error.localizedDescription)

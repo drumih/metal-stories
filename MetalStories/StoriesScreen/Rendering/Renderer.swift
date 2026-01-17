@@ -8,7 +8,7 @@ enum RendererError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .failedToRenderOffscreenImage:
-            return "Failed to render offscreen image"
+            "Failed to render offscreen image"
         }
     }
 }
@@ -88,6 +88,8 @@ extension Renderer: RenderingViewDelegate {
 
 extension Renderer: OffscreenRenderer {
 
+    // MARK: Internal
+
     func renderImageToOffscreenTexture(
         size: CGSize,
         colorSpace: CGColorSpace,
@@ -104,7 +106,7 @@ extension Renderer: OffscreenRenderer {
 
         let offscreenRenderPass = try renderPassFactory.createNewRenderPass()
         offscreenRenderPass.resize(size: size)
-        
+
         let renderPassDescriptor = getOffscreenRenderPassDescriptor(texture: offscreenTexture)
         offscreenRenderPass.draw(
             commandBuffer: commandBuffer,
@@ -120,7 +122,9 @@ extension Renderer: OffscreenRenderer {
             colorSpace: colorSpace,
         )
     }
-    
+
+    // MARK: Private
+
     private func getOffscreenTexture(for size: SIMD2<Float>) throws -> MTLTexture {
         guard
             size.x >= Self.minOffscreenTextureSize.x,
@@ -135,7 +139,7 @@ extension Renderer: OffscreenRenderer {
             width: Int(size.x),
             height: Int(size.y),
             storageMode: .shared,
-            usage: [.renderTarget, .shaderRead]
+            usage: [.renderTarget, .shaderRead],
         )
     }
 

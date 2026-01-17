@@ -1,24 +1,26 @@
 import UIKit
 
+// MARK: - SingleFingerGestureHandler
+
 final class SingleFingerGestureHandler {
-    
+
+    // MARK: Lifecycle
+
+    init(sceneInput: SceneInput) {
+        self.sceneInput = sceneInput
+    }
+
+    // MARK: Internal
+
     struct AnimationPositions {
         let from: Float
         let to: Float
     }
-    
-    // MARK: Lifecycle
-    
-    init(sceneInput: SceneInput) {
-        self.sceneInput = sceneInput
-    }
-    
-    // MARK: Internal
-    
+
     var isGestureActive: Bool {
         snapshot != nil
     }
-    
+
     func startGesture(
         with touch: UITouch,
         in overlay: UIView,
@@ -32,7 +34,7 @@ final class SingleFingerGestureHandler {
             lastVelocity: 0,
         )
     }
-    
+
     func updateGesture(
         with touch: UITouch,
         in overlay: UIView,
@@ -41,10 +43,10 @@ final class SingleFingerGestureHandler {
             startGesture(with: touch, in: overlay)
         }
         guard var snapshot else { return }
-        
+
         let bounds = overlay.bounds
         guard bounds.width > 0 else { return }
-        
+
         let currentPoint = touch.location(in: overlay)
         let deltaX = Float((snapshot.startPoint.x - currentPoint.x) / bounds.width)
         sceneInput.filterOffset = snapshot.initialFilterOffset + deltaX
@@ -59,7 +61,7 @@ final class SingleFingerGestureHandler {
         snapshot.lastTimestamp = currentTime
         self.snapshot = snapshot
     }
-    
+
     func getAnimationSpecIfPossible() -> AnimationPositions? {
         guard let snapshot else { return nil }
         let currentOffset = sceneInput.filterOffset
@@ -70,13 +72,13 @@ final class SingleFingerGestureHandler {
         )
         return .init(from: currentOffset, to: targetOffset)
     }
-    
+
     func resetTracking() {
         snapshot = nil
     }
-    
+
     // MARK: Private
-    
+
     private struct Snapshot {
         let startPoint: CGPoint
         let initialFilterOffset: Float
@@ -84,14 +86,14 @@ final class SingleFingerGestureHandler {
         var lastTimestamp: TimeInterval
         var lastVelocity: Float
     }
-    
+
     private let sceneInput: SceneInput
     private var snapshot: Snapshot?
 }
 
-private extension SingleFingerGestureHandler {
+extension SingleFingerGestureHandler {
 
-    static func calculateAnimationTarget(
+    fileprivate static func calculateAnimationTarget(
         currentPosition: Float,
         velocity: Float,
     ) -> Float {

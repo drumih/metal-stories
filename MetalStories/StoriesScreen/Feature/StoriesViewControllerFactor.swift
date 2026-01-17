@@ -22,7 +22,7 @@ enum StoriesViewControllerFactor {
         )
         let scene = Scene(
             canvasAspectRatio: 16.0 / 9.0,
-            imageAspectModeType: .automatic(threshold: 4.0 / 5.0)
+            imageAspectModeType: .automatic(threshold: 4.0 / 5.0),
         )
         let renderer = try Renderer(
             gpu: gpu,

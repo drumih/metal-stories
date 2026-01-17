@@ -8,7 +8,7 @@ protocol SceneInput: AnyObject {
     var canvasAspectRatio: Float { get }
 
     var filterOffset: Float { get set }
-    
+
     var showOriginal: Bool { get set }
 
     var scale: Float { get set }
@@ -34,7 +34,9 @@ protocol SceneOutput: AnyObject {
 // MARK: - Scene
 
 final class Scene {
-    
+
+    // MARK: Lifecycle
+
     init(
         canvasAspectRatio: Float,
         imageAspectModeType: ImageAspectModeType,
@@ -43,7 +45,11 @@ final class Scene {
         self.imageAspectModeType = imageAspectModeType
     }
 
+    // MARK: Internal
+
     let canvasAspectRatio: Float
+
+    // MARK: Private
 
     private let imageAspectModeType: ImageAspectModeType
 
@@ -102,7 +108,7 @@ extension Scene: SceneInput {
     func reset() {
         imageFilterOffset = 0
         isShowingOriginal = false
-        
+
         anchorPoint = .init(0.5, 0.5)
         rotation = 0
         userScale = 1
@@ -112,7 +118,7 @@ extension Scene: SceneInput {
     func didStartNewGesture(newAnchorPoint: SIMD2<Float>) {
         let clampedAnchor = SIMD2<Float>(
             clamp01(newAnchorPoint.x),
-            clamp01(newAnchorPoint.y)
+            clamp01(newAnchorPoint.y),
         )
         anchorToImageOffset = TransformCalculator.getAnchorToImageOffset(
             currentAnchorPoint: anchorPoint,
@@ -120,7 +126,7 @@ extension Scene: SceneInput {
             anchorToImageOffset: anchorToImageOffset,
             rotation: rotation,
             scale: userScale,
-            canvasAspectRatio: canvasAspectRatio
+            canvasAspectRatio: canvasAspectRatio,
         )
         anchorPoint = clampedAnchor
     }
@@ -166,17 +172,18 @@ extension Scene: SceneOutput {
             textureSize: preparationResult.textureSize,
             renderingViewSize: renderingViewSize,
         )
-        let filterPositionOffset = if isForSaving {
-            imageFilterOffset.rounded()
-        } else {
-            isShowingOriginal ? 0 : imageFilterOffset
-        }
+        let filterPositionOffset =
+            if isForSaving {
+                imageFilterOffset.rounded()
+            } else {
+                isShowingOriginal ? 0 : imageFilterOffset
+            }
         return RenderPassInput(
             imageTexture: preparationResult.texture,
             mvpTransform: mvpTransform,
             bottomBackgroundColor: preparationResult.bottomColor,
             topBackgroundColor: preparationResult.topColor,
-            filterPositionOffset: filterPositionOffset
+            filterPositionOffset: filterPositionOffset,
         )
     }
 
@@ -193,7 +200,7 @@ extension Scene: SceneOutput {
             anchorToImageOffset: anchorToImageOffset,
             rotation: rotation,
             scale: userScale,
-            aspectMode: resolvedAspectMode
+            aspectMode: resolvedAspectMode,
         )
     }
 }

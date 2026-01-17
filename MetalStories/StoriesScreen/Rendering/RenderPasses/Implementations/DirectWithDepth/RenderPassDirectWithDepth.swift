@@ -1,7 +1,7 @@
 import Metal
 import simd
 
-// MARK: - RenderPassDirectError
+// MARK: - RenderPassDirectWithDepthError
 
 enum RenderPassDirectWithDepthError: LocalizedError {
     case failedToCreateTexture
@@ -30,7 +30,7 @@ final class RenderPassDirectWithDepth {
     ) throws {
         self.device = device
 
-        let depthTexturePixelFormat: MTLPixelFormat = .depth16Unorm
+        let depthTexturePixelFormat = MTLPixelFormat.depth16Unorm
 
         let bundle = Bundle(for: Self.self)
         let library = try device.makeDefaultLibrary(bundle: bundle)
@@ -104,7 +104,6 @@ extension RenderPassDirectWithDepth: RenderPass {
         renderPassDescriptor: MTLRenderPassDescriptor,
         input: RenderPassInput,
     ) {
-
         renderPassDescriptor.colorAttachments[0]?.loadAction = .dontCare
         renderPassDescriptor.colorAttachments[0]?.storeAction = .store
 
@@ -188,7 +187,7 @@ extension RenderPassDirectWithDepth {
             width: width,
             height: height,
             storageMode: .memoryless,
-            usage: [.renderTarget]
+            usage: [.renderTarget],
         )
     }
 }

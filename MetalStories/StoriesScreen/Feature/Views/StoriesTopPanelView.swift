@@ -18,15 +18,6 @@ final class StoriesTopPanelView: UIView {
 
     // MARK: Internal
 
-    var isSaveButtonEnabled: Bool {
-        get { saveButton.isUserInteractionEnabled }
-        set { saveButton.isUserInteractionEnabled = newValue }
-    }
-
-    // MARK: Private
-
-    private let titleString: String
-
     let closeButton: UIButton = {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "xmark"), for: .normal)
@@ -68,6 +59,15 @@ final class StoriesTopPanelView: UIView {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
+
+    var isSaveButtonEnabled: Bool {
+        get { saveButton.isUserInteractionEnabled }
+        set { saveButton.isUserInteractionEnabled = newValue }
+    }
+
+    // MARK: Private
+
+    private let titleString: String
 
     private func setupUI() {
         backgroundColor = .clear

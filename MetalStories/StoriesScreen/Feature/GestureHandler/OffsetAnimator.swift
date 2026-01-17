@@ -12,8 +12,6 @@ protocol OffsetAnimatorDelegate: AnyObject {
 final class OffsetAnimator {
 
     // MARK: Lifecycle
-    
-    private let sceneInput: SceneInput
 
     init(sceneInput: SceneInput) {
         self.sceneInput = sceneInput
@@ -42,18 +40,18 @@ final class OffsetAnimator {
         }
 
         // Duration scales with distance for a consistent snap feel.
-        
+
         let clampedDuration = clamp(
             value: Double(distance) * 0.45,
             min: 0.28,
-            max: 0.7
+            max: 0.7,
         )
 
         animation = Animation(
             startValue: startOffset,
             targetValue: targetOffset,
             startTime: CACurrentMediaTime(),
-            duration: clampedDuration
+            duration: clampedDuration,
         )
 
         startDisplayLink()
@@ -63,9 +61,9 @@ final class OffsetAnimator {
     func cancel() {
         let wasAnimating = animation != nil
         let targetValue = animation?.targetValue
-        
+
         stopDisplayLink()
-        
+
         if wasAnimating, let targetValue {
             delegate?.offsetAnimatorDidEndAnimation(targetOffset: targetValue)
         }
@@ -79,6 +77,8 @@ final class OffsetAnimator {
         let startTime: CFTimeInterval
         let duration: CFTimeInterval
     }
+
+    private let sceneInput: SceneInput
 
     private var animation: Animation?
     private var displayLink: CADisplayLink?
@@ -109,15 +109,15 @@ final class OffsetAnimator {
         // Ease-out cubic for a smooth finish.
         let eased = 1.0 - pow(1.0 - progress, 3.0)
         let newOffset = animation.startValue + Float(eased) * (animation.targetValue - animation.startValue)
-        
+
         sceneInput.filterOffset = newOffset
 
         if progress >= 1.0 {
             let targetValue = animation.targetValue
             sceneInput.filterOffset = targetValue
-            
+
             stopDisplayLink()
-            
+
             delegate?.offsetAnimatorDidEndAnimation(targetOffset: targetValue)
             return
         }

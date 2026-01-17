@@ -30,7 +30,7 @@ final class RenderPassTileMemory {
     ) throws {
         self.device = device
 
-        let memorylessTexturePixelFormat: MTLPixelFormat = .bgra8Unorm
+        let memorylessTexturePixelFormat = MTLPixelFormat.bgra8Unorm
 
         let bundle = Bundle(for: Self.self)
         let library = try device.makeDefaultLibrary(bundle: bundle)
@@ -71,7 +71,7 @@ final class RenderPassTileMemory {
         let width = Int(size.width)
         let height = Int(size.height)
 
-        self.intermediateTexture = try Self.makeTexture(
+        intermediateTexture = try Self.makeTexture(
             device: device,
             pixelFormat: memorylessTexturePixelFormat,
             width: width,
@@ -152,7 +152,7 @@ extension RenderPassTileMemory {
             width: width,
             height: height,
             storageMode: .memoryless,
-            usage: [.renderTarget]
+            usage: [.renderTarget],
         )
     }
 }

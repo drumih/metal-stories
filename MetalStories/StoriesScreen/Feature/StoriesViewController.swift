@@ -52,8 +52,8 @@ final class StoriesViewController: UIViewController {
 
     // MARK: Private
 
-    private static let targetImageDimension: Int = 2016
-    private static let minImageDimension: Int = 128
+    private static let targetImageDimension = 2016
+    private static let minImageDimension = 128
     private static let maxExportImageWidth: CGFloat = 1080
 
     private static let filterNames: [String] = [
@@ -75,7 +75,7 @@ final class StoriesViewController: UIViewController {
         let view = StoriesContentView(
             title: titleString,
             renderingView: renderingView,
-            canvasAspectRatio: CGFloat(sceneInput.canvasAspectRatio)
+            canvasAspectRatio: CGFloat(sceneInput.canvasAspectRatio),
         )
         view.translatesAutoresizingMaskIntoConstraints = false
         view.delegate = self
@@ -225,7 +225,7 @@ extension StoriesViewController: OffsetAnimatorDelegate {
         contentView.showFilterName(filterName)
     }
 
-    func offsetAnimatorDidEndAnimation(targetOffset: Float) {
+    func offsetAnimatorDidEndAnimation(targetOffset _: Float) {
         contentView.hideFilterName()
     }
 }

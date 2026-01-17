@@ -1,11 +1,9 @@
 import Metal
 import MetalKit
 
+// MARK: - GPU
+
 final class GPU {
-    
-    enum GPUError: LocalizedError {
-        case cantInitiateGPU
-    }
 
     // MARK: Lifecycle
 
@@ -24,6 +22,10 @@ final class GPU {
 
     // MARK: Internal
 
+    enum GPUError: LocalizedError {
+        case cantInitiateGPU
+    }
+
     let device: MTLDevice
     let renderingCommandQueue: MTLCommandQueue
     let processingCommandQueue: MTLCommandQueue
@@ -33,7 +35,7 @@ extension GPU.GPUError {
     var errorDescription: String? {
         switch self {
         case .cantInitiateGPU:
-            return "Can't initiate GPU"
+            "Can't initiate GPU"
         }
     }
 }

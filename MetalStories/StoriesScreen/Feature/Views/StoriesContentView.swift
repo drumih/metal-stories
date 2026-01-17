@@ -90,7 +90,7 @@ final class StoriesContentView: UIView {
         button.addTarget(
             self,
             action: #selector(showOriginalReleased),
-            for: [.touchUpInside, .touchUpOutside, .touchCancel]
+            for: [.touchUpInside, .touchUpOutside, .touchCancel],
         )
         return button
     }()
@@ -116,7 +116,7 @@ final class StoriesContentView: UIView {
 
         let aspectRatio = renderingView.heightAnchor.constraint(
             equalTo: renderingView.widthAnchor,
-            multiplier: canvasAspectRatio
+            multiplier: canvasAspectRatio,
         )
         let preferredWidth = renderingView.widthAnchor.constraint(equalTo: safeArea.widthAnchor)
         preferredWidth.priority = .defaultHigh

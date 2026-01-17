@@ -14,6 +14,7 @@ enum ImageTransformToolError: LocalizedError {
     }
 }
 
+// MARK: - ImageTransformTool
 
 final class ImageTransformTool {
 
@@ -30,6 +31,8 @@ final class ImageTransformTool {
 
         computePipeline = try device.makeComputePipelineState(function: function)
     }
+
+    // MARK: Internal
 
     func encode(
         commandBuffer: MTLCommandBuffer,
@@ -49,7 +52,7 @@ final class ImageTransformTool {
         encoder.setBytes(
             &transform,
             length: MemoryLayout<float4x4>.stride,
-            index: 0
+            index: 0,
         )
 
         let gridSize = MTLSize(
@@ -62,7 +65,7 @@ final class ImageTransformTool {
 
         encoder.dispatchThreads(
             gridSize,
-            threadsPerThreadgroup: threadGroupSize
+            threadsPerThreadgroup: threadGroupSize,
         )
         encoder.endEncoding()
     }
@@ -70,15 +73,14 @@ final class ImageTransformTool {
     // MARK: Private
 
     private let computePipeline: MTLComputePipelineState
-    
+
     private func getThreadGroupSize() -> MTLSize {
         let threadGroupWidth = computePipeline.threadExecutionWidth
         let threadGroupHeight = computePipeline.maxTotalThreadsPerThreadgroup / threadGroupWidth
-        let threadGroupSize = MTLSize(
+        return MTLSize(
             width: threadGroupWidth,
             height: threadGroupHeight,
             depth: 1,
         )
-        return threadGroupSize
     }
 }

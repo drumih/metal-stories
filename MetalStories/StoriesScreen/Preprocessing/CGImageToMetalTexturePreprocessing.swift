@@ -50,7 +50,7 @@ enum CGImageToMetalTexturePreprocessing {
         if cgImage.width < minPossibleDimension || cgImage.height < minPossibleDimension {
             throw PreprocessingError.imageTooSmall
         }
-        
+
         let originalTexture = try getOriginalTexture(from: cgImage, device: gpu.device)
 
         let transformTool = try ImageTransformTool(device: gpu.device)
@@ -71,7 +71,7 @@ enum CGImageToMetalTexturePreprocessing {
             width: targetSize.width,
             height: targetSize.height,
             storageMode: .private,
-            usage: [.shaderRead, .shaderWrite]
+            usage: [.shaderRead, .shaderWrite],
         )
 
         let topHistogramBuffer = try colorExtractionTool.makeHistogramBuffer(
@@ -137,7 +137,7 @@ enum CGImageToMetalTexturePreprocessing {
 
         let rotatedWidthF = CGFloat(rotatedWidth)
         let rotatedHeightF = CGFloat(rotatedHeight)
-        let targetDimensionF =  CGFloat(targetDimension)
+        let targetDimensionF = CGFloat(targetDimension)
 
         let targetWidth: Int
         let targetHeight: Int
@@ -161,7 +161,7 @@ enum CGImageToMetalTexturePreprocessing {
     ) throws -> MTLTexture {
         let textureLoader = MTKTextureLoader(device: device)
 
-        let originalTexture = try textureLoader.newTexture(
+        return try textureLoader.newTexture(
             cgImage: cgImage,
             options: [
                 .SRGB: NSNumber(false),
@@ -170,7 +170,5 @@ enum CGImageToMetalTexturePreprocessing {
                 .origin: MTKTextureLoader.Origin.flippedVertically.rawValue as NSString,
             ],
         )
-
-        return originalTexture
     }
 }
