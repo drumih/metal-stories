@@ -1,13 +1,5 @@
 import UIKit
 
-// MARK: - StoriesTopPanelViewDelegate
-
-protocol StoriesTopPanelViewDelegate: AnyObject {
-    func storiesTopPanelDidTapClose()
-    func storiesTopPanelDidTapReset()
-    func storiesTopPanelDidTapSave()
-}
-
 // MARK: - StoriesTopPanelView
 
 final class StoriesTopPanelView: UIView {
@@ -26,8 +18,6 @@ final class StoriesTopPanelView: UIView {
 
     // MARK: Internal
 
-    weak var delegate: StoriesTopPanelViewDelegate?
-
     var isSaveButtonEnabled: Bool {
         get { saveButton.isUserInteractionEnabled }
         set { saveButton.isUserInteractionEnabled = newValue }
@@ -37,7 +27,7 @@ final class StoriesTopPanelView: UIView {
 
     private let titleString: String
 
-    private lazy var closeButton: UIButton = {
+    let closeButton: UIButton = {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "xmark"), for: .normal)
         button.tintColor = .white
@@ -45,11 +35,10 @@ final class StoriesTopPanelView: UIView {
         button.layer.cornerRadius = 20
         button.clipsToBounds = true
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
         return button
     }()
 
-    private lazy var resetButton: UIButton = {
+    let resetButton: UIButton = {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "arrow.circlepath"), for: .normal)
         button.tintColor = .white
@@ -57,11 +46,10 @@ final class StoriesTopPanelView: UIView {
         button.layer.cornerRadius = 20
         button.clipsToBounds = true
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.addTarget(self, action: #selector(resetButtonTapped), for: .touchUpInside)
         return button
     }()
 
-    private lazy var saveButton: UIButton = {
+    let saveButton: UIButton = {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "arrowshape.down.circle"), for: .normal)
         button.tintColor = .white
@@ -69,11 +57,10 @@ final class StoriesTopPanelView: UIView {
         button.layer.cornerRadius = 20
         button.clipsToBounds = true
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.addTarget(self, action: #selector(saveButtonTapped), for: .touchUpInside)
         return button
     }()
 
-    private lazy var titleLabel: UILabel = {
+    let titleLabel: UILabel = {
         let label = UILabel()
         label.text = titleString
         label.font = .systemFont(ofSize: 17, weight: .semibold)
@@ -112,20 +99,4 @@ final class StoriesTopPanelView: UIView {
             saveButton.widthAnchor.constraint(equalTo: saveButton.heightAnchor),
         ])
     }
-
-    @objc
-    private func closeButtonTapped() {
-        delegate?.storiesTopPanelDidTapClose()
-    }
-
-    @objc
-    private func resetButtonTapped() {
-        delegate?.storiesTopPanelDidTapReset()
-    }
-
-    @objc
-    private func saveButtonTapped() {
-        delegate?.storiesTopPanelDidTapSave()
-    }
-
 }

@@ -11,7 +11,7 @@ kernel void imageTransform(
     if (position.x >= targetTextureSize.x || position.y >= targetTextureSize.y) {
         return;
     }
-    constexpr sampler textureSampler(filter::linear, address::clamp_to_edge);
+    constexpr sampler textureSampler(filter::bicubic, address::clamp_to_edge);
     const auto uv = (float2(position) + 0.5f) / float2(targetTextureSize);
     const auto targetUV = uvTransform * float4(uv, 0.f, 1.f);
     const auto resultColor = source.sample(textureSampler, targetUV.xy);

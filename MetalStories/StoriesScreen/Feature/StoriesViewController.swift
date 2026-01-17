@@ -2,8 +2,6 @@ import UIKit
 
 // MARK: - StoriesViewController
 
-// TODO: move ui view related things to special view StoriesContentView.
-
 final class StoriesViewController: UIViewController {
 
     // MARK: Lifecycle
@@ -55,6 +53,7 @@ final class StoriesViewController: UIViewController {
     // MARK: Private
 
     private static let maxImageDimension: CGFloat = 2016
+    private static let minImageDimension: CGFloat = 128 
     private static let maxExportImageWidth: CGFloat = 1080
     private static let filterNames: [String] = [
         "Original",
@@ -71,38 +70,15 @@ final class StoriesViewController: UIViewController {
     private let gpu: GPU
     private let renderingView: RenderingView
 
-    private lazy var touchTrackingView: TouchTrackingView = {
-        let view = TouchTrackingView()
-        view.isMultipleTouchEnabled = true
-        view.backgroundColor = .clear
-        return view
-    }()
-
-    private lazy var topPanelView: StoriesTopPanelView = {
-        let view = StoriesTopPanelView(title: titleString)
+    private lazy var contentView: StoriesContentView = {
+        let view = StoriesContentView(
+            title: titleString,
+            renderingView: renderingView,
+            canvasAspectRatio: CGFloat(sceneInput.canvasAspectRatio)
+        )
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.layer.zPosition = 1
         view.delegate = self
         return view
-    }()
-
-    private lazy var storiesFilterNameView: StoriesFilterNameView = {
-        let view = StoriesFilterNameView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-
-    private lazy var showOriginalButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "circle.lefthalf.filled"), for: .normal)
-        button.tintColor = .white
-        button.backgroundColor = UIColor.white.withAlphaComponent(0.2)
-        button.layer.cornerRadius = 20
-        button.clipsToBounds = true
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.addTarget(self, action: #selector(showOriginalPressed), for: .touchDown)
-        button.addTarget(self, action: #selector(showOriginalReleased), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        return button
     }()
 
     private let sceneInput: SceneInput
@@ -115,7 +91,7 @@ final class StoriesViewController: UIViewController {
 
     private var isSavingEnabled = true {
         didSet {
-            topPanelView.isSaveButtonEnabled = isSavingEnabled
+            contentView.isSaveButtonEnabled = isSavingEnabled
         }
     }
 
@@ -132,7 +108,7 @@ extension StoriesViewController {
             cgImage: cgImage,
             orientation: orientation,
             maxDimension: Self.maxImageDimension,
-            minDimension: 100,
+            minDimension: Self.minImageDimension,
             gpu: gpu,
         )
         sceneInput.setPreparationResult(preparationResult)
@@ -179,62 +155,19 @@ extension StoriesViewController {
 
     private func setupGestureHandler() {
         gestureHandler = StoriesGestureHandler(
-            touchTrackingView: touchTrackingView,
+            touchTrackingView: contentView.touchTrackingView,
             sceneInput: sceneInput,
         )
         gestureHandler?.offsetAnimatorDelegate = self
     }
 
     private func setupUI() {
-        view.backgroundColor = .black
-
-        let safeArea = view.safeAreaLayoutGuide
-
-        view.addSubview(topPanelView)
-
-        renderingView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(renderingView)
-
-        view.addSubview(storiesFilterNameView)
-        view.addSubview(showOriginalButton)
-
-        touchTrackingView.translatesAutoresizingMaskIntoConstraints = false
-        renderingView.addSubview(touchTrackingView)
-
-        let aspectRatio = renderingView.heightAnchor.constraint(
-            equalTo: renderingView.widthAnchor,
-            multiplier: .init(sceneInput.canvasAspectRatio)
-        )
-        let preferredWidth = renderingView.widthAnchor.constraint(equalTo: safeArea.widthAnchor)
-        preferredWidth.priority = .defaultHigh
-
+        view.addSubview(contentView)
         NSLayoutConstraint.activate([
-            topPanelView.topAnchor.constraint(equalTo: safeArea.topAnchor),
-            topPanelView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor),
-            topPanelView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor),
-
-            renderingView.topAnchor.constraint(equalTo: topPanelView.bottomAnchor, constant: 12),
-            renderingView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            renderingView.widthAnchor.constraint(lessThanOrEqualTo: safeArea.widthAnchor),
-            preferredWidth,
-            renderingView.heightAnchor.constraint(lessThanOrEqualTo: safeArea.heightAnchor),
-            renderingView.bottomAnchor.constraint(lessThanOrEqualTo: safeArea.bottomAnchor),
-            aspectRatio,
-
-            touchTrackingView.topAnchor.constraint(equalTo: renderingView.topAnchor),
-            touchTrackingView.bottomAnchor.constraint(equalTo: renderingView.bottomAnchor),
-            touchTrackingView.leadingAnchor.constraint(equalTo: renderingView.leadingAnchor),
-            touchTrackingView.trailingAnchor.constraint(equalTo: renderingView.trailingAnchor),
-
-            storiesFilterNameView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            storiesFilterNameView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            storiesFilterNameView.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
-            storiesFilterNameView.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20),
-
-            showOriginalButton.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -16),
-            showOriginalButton.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -16),
-            showOriginalButton.heightAnchor.constraint(equalToConstant: 40),
-            showOriginalButton.widthAnchor.constraint(equalTo: showOriginalButton.heightAnchor),
+            contentView.topAnchor.constraint(equalTo: view.topAnchor),
+            contentView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            contentView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
     }
 
@@ -266,33 +199,6 @@ extension StoriesViewController {
         present(alert, animated: true)
     }
 
-    @objc
-    private func showOriginalPressed() {
-        sceneInput.showOriginal = true
-    }
-
-    @objc
-    private func showOriginalReleased() {
-        sceneInput.showOriginal = false
-    }
-}
-
-// MARK: StoriesTopPanelViewDelegate
-
-extension StoriesViewController: StoriesTopPanelViewDelegate {
-    func storiesTopPanelDidTapClose() {
-        dismiss(animated: true)
-    }
-
-    func storiesTopPanelDidTapReset() {
-        gestureHandler?.resetTracking()
-        sceneInput.reset()
-    }
-
-    func storiesTopPanelDidTapSave() {
-        saveImage()
-    }
-
 }
 
 // MARK: StoriesFailureViewDelegate
@@ -315,10 +221,35 @@ extension StoriesViewController: OffsetAnimatorDelegate {
         let filterName = normalizedIndex >= 0 && normalizedIndex < Self.filterNames.count
             ? Self.filterNames[normalizedIndex]
             : "Filter \(normalizedIndex)"
-        storiesFilterNameView.show(name: filterName)
+        contentView.showFilterName(filterName)
     }
 
     func offsetAnimatorDidEndAnimation(targetOffset: Float) {
-        storiesFilterNameView.hide()
+        contentView.hideFilterName()
+    }
+}
+
+// MARK: StoriesContentViewDelegate
+
+extension StoriesViewController: StoriesContentViewDelegate {
+    func storiesContentViewDidTapClose(_: StoriesContentView) {
+        dismiss(animated: true)
+    }
+
+    func storiesContentViewDidTapReset(_: StoriesContentView) {
+        gestureHandler?.resetTracking()
+        sceneInput.reset()
+    }
+
+    func storiesContentViewDidTapSave(_: StoriesContentView) {
+        saveImage()
+    }
+
+    func storiesContentViewDidPressShowOriginal(_: StoriesContentView) {
+        sceneInput.showOriginal = true
+    }
+
+    func storiesContentViewDidReleaseShowOriginal(_: StoriesContentView) {
+        sceneInput.showOriginal = false
     }
 }

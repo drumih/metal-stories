@@ -19,32 +19,25 @@ enum ImageAspectModeType {
 enum TransformCalculator {
     
     static func getUVTransform(
-        sourceSize: SIMD2<Float>,
-        destinationSize: SIMD2<Float>,
         rotationRadians: Float,
         isMirrored: Bool,
     ) -> float4x4 {
+        // UV coordinates are normalized [0,1] regardless of texture dimensions,
+        // so no scaling is needed — rotation and mirroring alone map UVs correctly.
         
         let translation = SIMD2<Float>(0.5, 0.5)
-        
-        // TODO: most likely there is an error because destinationSize already flipped. fix it
-        let imageScale = destinationSize / sourceSize
-        
         let mirrorScale = SIMD2<Float>(isMirrored ? -1 : 1, 1)
         
         let toCenterMatrix = getTranslationMatrix(.init(-translation, 0))
         let fromCenterMatrix = getTranslationMatrix(.init(translation, 0))
         
         let rotationMatrix = getRotationMatrixZ(-rotationRadians)
-
-        let scaleMatrix = getScaleMatrix(imageScale)
         let mirrorMatrix = getScaleMatrix(mirrorScale)
 
         let transformMatrices = [
             toCenterMatrix,
             mirrorMatrix,
             rotationMatrix,
-            scaleMatrix,
             fromCenterMatrix
         ]
         

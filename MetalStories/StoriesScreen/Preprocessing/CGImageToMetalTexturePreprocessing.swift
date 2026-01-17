@@ -97,23 +97,15 @@ enum CGImageToMetalTexturePreprocessing {
         ) else {
             throw PreprocessingError.failedToCreateBuffer
         }
+        
+        let uvTransform = TransformCalculator.getUVTransform(
+            rotationRadians: transformParams.rotationRadians,
+            isMirrored: transformParams.isMirrored,
+        )
 
         guard let commandBuffer = gpu.processingCommandQueue.makeCommandBuffer() else {
             throw PreprocessingError.failedToCreateCommandBuffer
         }
-
-        let uvTransform = TransformCalculator.getUVTransform(
-            sourceSize: SIMD2<Float>(
-                Float(originalTexture.width),
-                Float(originalTexture.height),
-            ),
-            destinationSize: SIMD2<Float>(
-                Float(destinationTexture.width),
-                Float(destinationTexture.height),
-            ),
-            rotationRadians: transformParams.rotationRadians,
-            isMirrored: transformParams.isMirrored,
-        )
 
         transformTool.encode(
             commandBuffer: commandBuffer,
