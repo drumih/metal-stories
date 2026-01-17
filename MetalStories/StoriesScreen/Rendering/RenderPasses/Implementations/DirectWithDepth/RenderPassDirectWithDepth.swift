@@ -3,7 +3,7 @@ import simd
 
 // MARK: - RenderPassDirectError
 
-enum RenderPassDirectError: LocalizedError {
+enum RenderPassDirectWithDepthError: LocalizedError {
     case failedToCreateTexture
     case failedToCreateStencilState
 
@@ -17,9 +17,9 @@ enum RenderPassDirectError: LocalizedError {
     }
 }
 
-// MARK: - RenderPassDirect
+// MARK: - RenderPassDirectWithDepth
 
-final class RenderPassDirect {
+final class RenderPassDirectWithDepth {
 
     // MARK: Lifecycle
 
@@ -88,7 +88,7 @@ final class RenderPassDirect {
 
 // MARK: RenderPass
 
-extension RenderPassDirect: RenderPass {
+extension RenderPassDirectWithDepth: RenderPass {
 
     func resize(size: CGSize) {
         do {
@@ -125,7 +125,7 @@ extension RenderPassDirect: RenderPass {
         RenderPassHelper.drawImage(
             renderEncoder: renderEncoder,
             imageRenderPSO: imageRenderPSO,
-            label: "Draw Image (Tile Memory Fetch)",
+            label: "Draw Image (Direct With Depth)",
             texture: input.imageTexture,
             transform: input.mvpTransform,
         )
@@ -133,7 +133,7 @@ extension RenderPassDirect: RenderPass {
         RenderPassHelper.drawBackground(
             renderEncoder: renderEncoder,
             backgroundPSO: backgroundPSO,
-            label: "Draw Background (Tile Memory Fetch)",
+            label: "Draw Background (Direct With Depth)",
             topColor: input.topBackgroundColor,
             bottomColor: input.bottomBackgroundColor,
         )
@@ -143,7 +143,7 @@ extension RenderPassDirect: RenderPass {
         RenderPassHelper.drawPostProcessing(
             renderEncoder: renderEncoder,
             postProcessingPSO: postProcessingPSO,
-            label: "Post Processing (Tile Memory Fetch)",
+            label: "Post Processing (Direct With Depth)",
             texture: nil,
             transform: TransformCalculator.getIdentityTransform(),
             offset: input.filterPositionOffset,
@@ -155,13 +155,13 @@ extension RenderPassDirect: RenderPass {
 
 // MARK: helpers
 
-extension RenderPassDirect {
+extension RenderPassDirectWithDepth {
     private static func makeDepthStencilState(device: MTLDevice) throws -> MTLDepthStencilState {
         let descriptor = MTLDepthStencilDescriptor()
         descriptor.depthCompareFunction = .less
         descriptor.isDepthWriteEnabled = true
         guard let stencilState = device.makeDepthStencilState(descriptor: descriptor) else {
-            throw RenderPassDirectError.failedToCreateStencilState
+            throw RenderPassDirectWithDepthError.failedToCreateStencilState
         }
         return stencilState
     }
@@ -171,7 +171,7 @@ extension RenderPassDirect {
         descriptor.depthCompareFunction = .always
         descriptor.isDepthWriteEnabled = false
         guard let stencilState = device.makeDepthStencilState(descriptor: descriptor) else {
-            throw RenderPassDirectError.failedToCreateStencilState
+            throw RenderPassDirectWithDepthError.failedToCreateStencilState
         }
         return stencilState
     }

@@ -6,7 +6,7 @@ enum RenderPassType: Int {
     case simple
     case withIntermediateTexture
     case tileMemory
-    case tileMemoryFetch // TODO: rename?
+    case directWithDepth
 }
 
 // MARK: - RenderPassFactory
@@ -51,8 +51,8 @@ final class RenderPassFactory {
                 availableFilterCount: availableFilterCount,
             )
 
-        case .tileMemoryFetch:
-            try RenderPassDirect(
+        case .directWithDepth:
+            try RenderPassDirectWithDepth(
                 device: device,
                 drawablesPixelFormat: drawablesPixelFormat,
                 availableFilterCount: availableFilterCount,

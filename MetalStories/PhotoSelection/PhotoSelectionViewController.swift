@@ -31,7 +31,7 @@ final class PhotoSelectionViewController: UIViewController {
         return contentView
     }()
 
-    private var selectedRenderPassType = RenderPassType.tileMemoryFetch
+    private var selectedRenderPassType = RenderPassType.directWithDepth
     private var previewImage: UIImage?
 
     private func setupUI() {

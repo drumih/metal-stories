@@ -165,7 +165,7 @@ enum PipelineStateObjectsFactory {
         functionConstants.setConstantValue(&filtersCount, type: .short, index: 0)
         let descriptor = try getBaseRenderPipelineDescriptor(
             vertexFunctionName: "vertex_general",
-            fragmentFunctionName: "fragment_post_processing_tile_memory_fetch",
+            fragmentFunctionName: "fragment_post_processing_tile_memory_direct",
             library: library,
             drawablesPixelFormat: drawablesPixelFormat,
             fragmentConstantValues: functionConstants,

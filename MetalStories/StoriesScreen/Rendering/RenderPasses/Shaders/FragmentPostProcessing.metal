@@ -40,7 +40,7 @@ float3 apply_split_tone(float3 rgb, float3 shadowTint, float3 highlightTint) {
     const float luma = luminance(rgb);
     const float shadowW = 1.0f - smoothstep(0.2f, 0.4f, luma);
     const float highlightW = smoothstep(0.6f, 0.8f, luma);
-
+    
     float3 graded = mix(rgb, rgb * shadowTint, shadowW);
     graded = mix(graded, graded * highlightTint, highlightW);
     return graded;
@@ -67,7 +67,7 @@ float catmull_rom_5_single(float p000, float p025, float p050, float p075, float
     const auto t = saturate(value) * 4.0f;
     const auto segment = min(short(t), short(3));
     const auto t_res = t - float(segment);
-
+    
     float p0_res; float p1_res; float p2_res; float p3_res;
     
     switch (segment) {
@@ -163,7 +163,7 @@ METAL_FUNC
 float3 cross_process(float3 rgb) {
     // TODO: do better and more clear!
     const auto contrastRGB = catmull_rom_5_rgb(0.f, 0.2f, 0.5f, 0.8f, 1.f, rgb);
-
+    
     const float3 rowR = float3(1.1f, 0.05f, -0.08f);
     const float3 rowG = float3(-0.03f, 1.08f, 0.1f);
     const float3 rowB = float3(0.05f, -0.05f, 1.08f);
@@ -172,9 +172,9 @@ float3 cross_process(float3 rgb) {
                                                  float3(rowR.y, rowG.y, rowB.y),
                                                  float3(rowR.z, rowG.z, rowB.z)
                                                  );
-
+    
     const auto mixed = apply_channel_matrix(contrastRGB, crossProcessMatrix);
-
+    
     return mixed;
 }
 
@@ -182,16 +182,16 @@ float3 cross_process(float3 rgb) {
 
 // TODO: redo
 METAL_FUNC
-float3 bleach_bypass(float3 rgb) { 
-
+float3 bleach_bypass(float3 rgb) {
+    
     const float lum = luminance(rgb);
     const auto blend = float3(lum);
     const auto mask = saturate(10.0f * (lum - 0.45f));
-
+    
     const auto result1 = 2.0f * rgb * blend;
     const auto result2 = 1.0f - 2.0f * (1.0f - blend) * (1.0f - rgb);
     const auto newColor = mix(result1, result2, mask);
-
+    
     return mix(rgb, newColor, 0.8);
 }
 
@@ -199,14 +199,14 @@ float3 bleach_bypass(float3 rgb) {
 METAL_FUNC
 float3 orange_sunset(float3 rgb, float2 uv) {
     const auto curved = catmull_rom_5_rgb(0.f, 0.22f, 0.5f, 0.78f, 1.f, rgb);
-
+    
     const auto topLeft = float3(1.0f, 0.52f, 0.2f);
     const auto topRight = float3(1.0f, 0.46f, 0.6f);
     const auto bottomLeft = float3(0.98f, 0.72f, 0.82f);
     const auto bottomRight = float3(0.92f, 0.56f, 0.98f);
-
+    
     const auto gradient = gradient_2d(bottomLeft, bottomRight, topLeft, topRight, uv);
-
+    
     const auto blended = linear_light_blend(curved, gradient, 0.15f);
     return blended;
 }
@@ -220,13 +220,13 @@ METAL_FUNC
 short target_mode(float2 uv, float offset) {
     const auto filtersCount = clamp(kAvailableFiltersCount, short(1), kTotalFiltersCount);
     const auto filtersCountF = float(filtersCount);
-
+    
     const auto normalizedOffset = offset - filtersCountF * floor(offset / filtersCountF);
     const auto currentMode = short(normalizedOffset);
     const auto fraction = normalizedOffset - float(currentMode);
-
+    
     const auto nextMode = (currentMode + 1) % filtersCount;
-
+    
     const auto splitPoint = 1.f - fraction;
     return uv.x >= splitPoint ? nextMode : currentMode;
 }
@@ -248,7 +248,7 @@ float3 process_rgb(float3 rgb, float2 uv, float offset) {
         case 8: targetColor = orange_sunset(rgb, uv); break;
         default: targetColor = rgb; break;
     }
-
+    
     return saturate(targetColor);
 }
 
@@ -281,10 +281,10 @@ float4 fragment_post_processing_tile_memory(VertexOut vertexIn [[ stage_in ]],
 
 /// Post-processing path when tile memory color is provided via color attachment.
 fragment
-float4 fragment_post_processing_tile_memory_fetch(VertexOut vertexIn [[ stage_in ]],
-                                                  float4 colorIn [[color(0)]],
-                                                  constant float& offset [[ buffer(0) ]]
-                                                  ) {
+float4 fragment_post_processing_tile_memory_direct(VertexOut vertexIn [[ stage_in ]],
+                                                   float4 colorIn [[color(0)]],
+                                                   constant float& offset [[ buffer(0) ]]
+                                                   ) {
     const auto processedRGB = process_rgb(colorIn.rgb, vertexIn.uv, offset);
     return float4(processedRGB, colorIn.a);
 }

@@ -41,6 +41,7 @@ final class RenderPassWithRegularIntermediateTexture {
     private let postProcessingPSO: MTLRenderPipelineState
 
     private var intermediateTexture: MTLTexture?
+    private static let flippedIntermediateTextureTransform = TransformCalculator.getFlippedVerticallyTransform()
 
     private func updateIntermediateTexture(forSize size: CGSize) {
         do {
@@ -110,14 +111,12 @@ extension RenderPassWithRegularIntermediateTexture: RenderPass {
         )
         guard let renderEncoder else { return }
 
-        // TODO: write better comment and format comment better
-        // Flip vertically to compensate for the render-to-texture Y orientation when sampling the intermediate texture.
         RenderPassHelper.drawPostProcessing(
             renderEncoder: renderEncoder,
             postProcessingPSO: postProcessingPSO,
             label: "Post Processing (intermediate texture)",
             texture: intermediateTexture,
-            transform: TransformCalculator.getFlippedVerticallyTransform(),
+            transform: Self.flippedIntermediateTextureTransform,
             offset: input.filterPositionOffset,
         )
 
