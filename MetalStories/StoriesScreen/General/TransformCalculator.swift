@@ -17,6 +17,40 @@ enum ImageAspectModeType {
 // MARK: - TransformCalculator
 
 enum TransformCalculator {
+    
+    static func getUVTransform(
+        sourceSize: SIMD2<Float>,
+        destinationSize: SIMD2<Float>,
+        rotationRadians: Float,
+        isMirrored: Bool,
+    ) -> float4x4 {
+        
+        let translation = SIMD2<Float>(0.5, 0.5)
+        
+        // TODO: most likely there is an error because destinationSize already flipped. fix it
+        let imageScale = destinationSize / sourceSize
+        
+        let mirrorScale = SIMD2<Float>(isMirrored ? -1 : 1, 1)
+        
+        let toCenterMatrix = getTranslationMatrix(.init(-translation, 0))
+        let fromCenterMatrix = getTranslationMatrix(.init(translation, 0))
+        
+        let rotationMatrix = getRotationMatrixZ(-rotationRadians)
+
+        let scaleMatrix = getScaleMatrix(imageScale)
+        let mirrorMatrix = getScaleMatrix(mirrorScale)
+
+        let transformMatrices = [
+            toCenterMatrix,
+            mirrorMatrix,
+            rotationMatrix,
+            scaleMatrix,
+            fromCenterMatrix
+        ]
+        
+        return combineMatrices(transformMatrices)
+    }
+    
     static func getMVPTransform(
         textureSize: SIMD2<Float>,
         canvasSize: SIMD2<Float>,
@@ -83,6 +117,8 @@ enum TransformCalculator {
         let currentOffset = transform2D(toCanvasMatrix, anchorToImageOffset)
         let targetOffset = deltaAnchor + currentOffset
 
+        // TODO: rebuild in style of getModelTransform. do not use transform2D. just calculate everithing in 3d and use x and y at the end!
+
         return transform2D(fromCanvasMatrix, targetOffset)
     }
 }
@@ -112,9 +148,9 @@ private extension TransformCalculator {
         let baseScaleMatrix = getScaleMatrix(scaledTextureSize / 2.0)
         let rotationMatrix = getRotationMatrixZ(rotation)
 
-        let toAnchorMatrix = getTranslationMatrix(-anchorOffset)
-        let fromAnchorMatrix = getTranslationMatrix(anchorOffset)
-        let toTargetMatrix = getTranslationMatrix(targetPosition)
+        let toAnchorMatrix = getTranslationMatrix(.init(-anchorOffset, 0))
+        let fromAnchorMatrix = getTranslationMatrix(.init(anchorOffset, 0))
+        let toTargetMatrix = getTranslationMatrix(.init(targetPosition, 0))
         
         let transformMatrices = [
             baseScaleMatrix,
@@ -125,11 +161,7 @@ private extension TransformCalculator {
             toTargetMatrix,
         ]
 
-        var resultMatrix = matrix_identity_float4x4
-        for transformMatrix in transformMatrices.reversed() {
-            resultMatrix *= transformMatrix
-        }
-        return resultMatrix
+        return combineMatrices(transformMatrices)
     }
 
     static func getViewTransform() -> float4x4 {
@@ -160,6 +192,14 @@ private extension TransformCalculator {
         case .specific(let aspectMode):
             return aspectMode
         }
+    }
+    
+    private static func combineMatrices(_ matrices: [float4x4]) -> float4x4 {
+        var resultMatrix = matrix_identity_float4x4
+        for transformMatrix in matrices.reversed() {
+            resultMatrix *= transformMatrix
+        }
+        return resultMatrix
     }
 }
 
@@ -254,10 +294,6 @@ private extension TransformCalculator {
     }
 
     // MARK: translation
-
-    static func getTranslationMatrix(_ translation: SIMD2<Float>) -> float4x4 {
-        getTranslationMatrix(.init(translation, 0))
-    }
     
     static func getTranslationMatrix(_ translation: SIMD3<Float>) -> float4x4 {
         .init(
@@ -271,7 +307,7 @@ private extension TransformCalculator {
     // MARK: helpers
 
     static func transform2D(_ matrix: float4x4, _ vector: SIMD2<Float>) -> SIMD2<Float> {
-        let result = simd_mul(matrix, SIMD4<Float>(vector.x, vector.y, 0, 0))
+        let result = matrix * SIMD4<Float>(vector.x, vector.y, 0, 1)
         return SIMD2<Float>(result.x, result.y)
     }
 }

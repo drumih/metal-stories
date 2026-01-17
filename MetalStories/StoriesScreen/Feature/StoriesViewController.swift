@@ -2,6 +2,8 @@ import UIKit
 
 // MARK: - StoriesViewController
 
+// TODO: move ui view related things to special view StoriesContentView.
+
 final class StoriesViewController: UIViewController {
 
     // MARK: Lifecycle
@@ -13,7 +15,7 @@ final class StoriesViewController: UIViewController {
         offscreenRenderer: OffscreenRenderer,
         inputImageData: Data,
         titleString: String,
-        availableFiltersCount: Int16
+        availableFiltersCount: Int16,
     ) {
         self.gpu = gpu
         self.renderingView = renderingView
@@ -34,6 +36,8 @@ final class StoriesViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        view.overrideUserInterfaceStyle = .dark
         do {
             try prepareImage()
             setupUI()
@@ -121,12 +125,14 @@ final class StoriesViewController: UIViewController {
 
 extension StoriesViewController {
     private func prepareImage() throws {
-        let cgImage = try DataToCGImagePreprocessing.loadCGImage(
-            from: inputImageData,
-            maxPixelSize: Self.maxImageDimension,
+        let (cgImage, orientation) = try DataToCGImagePreprocessing.loadCGImage(
+            from: inputImageData
         )
         let preparationResult = try CGImageToMetalTexturePreprocessing.prepareCGImage(
-            cgImage: cgImage.0,
+            cgImage: cgImage,
+            orientation: orientation,
+            maxDimension: Self.maxImageDimension,
+            minDimension: 100,
             gpu: gpu,
         )
         sceneInput.setPreparationResult(preparationResult)

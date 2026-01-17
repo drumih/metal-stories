@@ -50,7 +50,7 @@ final class PhotoSelectionView: UIView {
         button.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
         button.backgroundColor = .systemBlue
         button.setTitleColor(.white, for: .normal)
-        button.layer.cornerRadius = 12
+        button.layer.cornerRadius = 14
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -63,6 +63,7 @@ final class PhotoSelectionView: UIView {
 
     private let previousImageContainerView: UIView = {
         let view = UIView()
+        view.backgroundColor = .systemBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isHidden = true
         return view
@@ -84,7 +85,7 @@ final class PhotoSelectionView: UIView {
         button.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
         button.backgroundColor = .systemGreen
         button.setTitleColor(.white, for: .normal)
-        button.layer.cornerRadius = 12
+        button.layer.cornerRadius = 14
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -92,11 +93,11 @@ final class PhotoSelectionView: UIView {
     private let deleteCachedImageButton: UIButton = {
         let button = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
-        let image = UIImage(systemName: "xmark.circle.fill", withConfiguration: config)
+        let image = UIImage(systemName: "xmark", withConfiguration: config)
         button.setImage(image, for: .normal)
-        button.backgroundColor = .systemRed
         button.tintColor = .white
-        button.layer.cornerRadius = 15
+        button.backgroundColor = .systemRed
+        button.layer.cornerRadius = 16
         button.clipsToBounds = true
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -121,8 +122,8 @@ final class PhotoSelectionView: UIView {
         useCachedImageButton.setContentCompressionResistancePriority(.required, for: .vertical)
 
         previousImageContainerView.addSubview(previewImageView)
-        previousImageContainerView.addSubview(deleteCachedImageButton)
         previousImageContainerView.addSubview(useCachedImageButton)
+        previousImageContainerView.addSubview(deleteCachedImageButton)
 
         addSubview(selectPhotoButton)
         addSubview(previousImageContainerView)
@@ -149,17 +150,17 @@ final class PhotoSelectionView: UIView {
             previewImageView.topAnchor.constraint(equalTo: previousImageContainerView.topAnchor),
             previewImageView.leadingAnchor.constraint(equalTo: previousImageContainerView.leadingAnchor),
             previewImageView.trailingAnchor.constraint(equalTo: previousImageContainerView.trailingAnchor),
-            previewImageView.bottomAnchor.constraint(equalTo: useCachedImageButton.topAnchor),
+            previewImageView.bottomAnchor.constraint(equalTo: useCachedImageButton.topAnchor, constant: -12),
 
             useCachedImageButton.leadingAnchor.constraint(equalTo: previousImageContainerView.leadingAnchor),
-            useCachedImageButton.trailingAnchor.constraint(equalTo: previousImageContainerView.trailingAnchor),
+            useCachedImageButton.trailingAnchor.constraint(equalTo: deleteCachedImageButton.leadingAnchor, constant: -12),
             useCachedImageButton.bottomAnchor.constraint(equalTo: previousImageContainerView.bottomAnchor),
             useCachedImageButton.heightAnchor.constraint(equalToConstant: 50),
 
-            deleteCachedImageButton.topAnchor.constraint(equalTo: previewImageView.topAnchor, constant: 8),
-            deleteCachedImageButton.trailingAnchor.constraint(equalTo: previewImageView.trailingAnchor, constant: -8),
-            deleteCachedImageButton.widthAnchor.constraint(equalToConstant: 30),
-            deleteCachedImageButton.heightAnchor.constraint(equalToConstant: 30),
+            deleteCachedImageButton.trailingAnchor.constraint(equalTo: previousImageContainerView.trailingAnchor),
+            deleteCachedImageButton.bottomAnchor.constraint(equalTo: previousImageContainerView.bottomAnchor),
+            deleteCachedImageButton.widthAnchor.constraint(equalToConstant: 50),
+            deleteCachedImageButton.heightAnchor.constraint(equalToConstant: 50),
         ])
     }
 

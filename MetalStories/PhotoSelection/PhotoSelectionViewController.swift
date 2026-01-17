@@ -35,6 +35,8 @@ final class PhotoSelectionViewController: UIViewController {
     private var previewImage: UIImage?
 
     private func setupUI() {
+        view.backgroundColor = .systemBackground
+        view.overrideUserInterfaceStyle = .dark
         view.addSubview(contentView)
         contentView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -97,16 +99,7 @@ final class PhotoSelectionViewController: UIViewController {
             previewImage = nil
             return
         }
-
-        do {
-            let (cgImage, _) = try DataToCGImagePreprocessing.loadCGImage(
-                from: imageData,
-                maxPixelSize: Constants.previewMaxDimensionSize,
-            )
-            previewImage = UIImage(cgImage: cgImage)
-        } catch {
-            previewImage = nil
-        }
+        previewImage = UIImage(data: imageData)
     }
 
     private func deleteSavedImage() {

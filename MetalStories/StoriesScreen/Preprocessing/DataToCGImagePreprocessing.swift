@@ -6,11 +6,10 @@ import ImageIO
 
 enum DataToCGImagePreprocessing {
     static func loadCGImage(
-        from data: Data,
-        maxPixelSize: CGFloat,
+        from data: Data
     ) throws -> (CGImage, CGImagePropertyOrientation) {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
-            throw ImagePreprocessingError.failedToCreateImageSource
+            throw ImagePreprocessingError.failedToCreateImage
         }
 
         let orientation: CGImagePropertyOrientation =
@@ -23,14 +22,8 @@ enum DataToCGImagePreprocessing {
                 .up
             }
 
-        let options: [CFString: Any] = [
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
-        ]
-
-        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
-            throw ImagePreprocessingError.failedToCreateThumbnail
+        guard let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+            throw ImagePreprocessingError.failedToCreateImage
         }
 
         return (cgImage, orientation)
@@ -40,21 +33,15 @@ enum DataToCGImagePreprocessing {
 // MARK: - ImagePreprocessingError
 
 enum ImagePreprocessingError: LocalizedError {
-    case failedToCreateImageSource
-    case failedToCreateThumbnail
-    case failedToCreateTexture
+    case failedToCreateImage
 }
 
 extension ImagePreprocessingError {
 
     var errorDescription: String? {
         switch self {
-        case .failedToCreateImageSource:
-            "Unable to read image data. The file may be corrupted or in an unsupported format."
-        case .failedToCreateThumbnail:
-            "Unable to process the image. Please try a different image."
-        case .failedToCreateTexture:
-            "Unable to create GPU texture from image. The device may be low on memory."
+        case .failedToCreateImage:
+            "Unable to create image from data. The file may be corrupted or in an unsupported format."
         }
     }
 }
