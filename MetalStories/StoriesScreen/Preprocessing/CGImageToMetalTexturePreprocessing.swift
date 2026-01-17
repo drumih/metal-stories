@@ -58,21 +58,23 @@ enum CGImageToMetalTexturePreprocessing {
             minDimension: minDimension,
         )
 
-        guard let destinationTexture = makeDestinationTexture(
+        let destinationTexture = try TextureHelper.getTexture(
             device: gpu.device,
+            pixelFormat: originalTexture.pixelFormat,
             width: targetSize.width,
             height: targetSize.height,
-            pixelFormat: originalTexture.pixelFormat,
-        ) else {
-            throw PreprocessingError.failedToCreateTexture
-        }
+            storageMode: .private,
+            usage: [.shaderRead, .shaderWrite]
+        )
 
-        guard let histogramTexture = makeHistogramTexture(
+        let histogramTexture = try TextureHelper.getTexture(
             device: gpu.device,
             pixelFormat: destinationTexture.pixelFormat,
-        ) else {
-            throw PreprocessingError.failedToCreateTexture
-        }
+            width: Self.histogramTextureSize,
+            height: Self.histogramTextureSize,
+            storageMode: .private,
+            usage: [.shaderWrite, .shaderRead]
+        )
 
         var histogramInfo = makeHistogramInfo()
         let histogram = MPSImageHistogram(
@@ -200,24 +202,6 @@ enum CGImageToMetalTexturePreprocessing {
         return (max(1, targetWidth), max(1, targetHeight))
     }
 
-    private static func makeDestinationTexture(
-        device: MTLDevice,
-        width: Int,
-        height: Int,
-        pixelFormat: MTLPixelFormat,
-    ) -> MTLTexture? {
-        let descriptor = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: pixelFormat,
-            width: width,
-            height: height,
-            mipmapped: false,
-        )
-        descriptor.storageMode = .private
-        descriptor.usage = [.shaderRead, .shaderWrite]
-
-        return device.makeTexture(descriptor: descriptor)
-    }
-
     private static func medianColor(from buffer: MTLBuffer) -> SIMD4<Float> {
         let histogramData = buffer.contents().bindMemory(
             to: UInt32.self,
@@ -275,23 +259,6 @@ enum CGImageToMetalTexturePreprocessing {
         )
 
         return originalTexture
-    }
-
-    // TODO: unify with makeDestinationTexture. extract to special TextureHelper. use enum with static func. Find other places in app where texture creation is used. understand possible parameters. 
-    private static func makeHistogramTexture(
-        device: MTLDevice,
-        pixelFormat: MTLPixelFormat,
-    ) -> MTLTexture? {
-        let descriptor = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: pixelFormat,
-            width: histogramTextureSize,
-            height: histogramTextureSize,
-            mipmapped: false,
-        )
-        descriptor.storageMode = .private
-        descriptor.usage = [.shaderWrite, .shaderRead]
-
-        return device.makeTexture(descriptor: descriptor)
     }
 
     private static func scaleTexture(

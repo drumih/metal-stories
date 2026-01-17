@@ -95,11 +95,12 @@ extension Renderer: OffscreenRenderer {
         let offscreenTextureSize = SIMD2<Float>(Float(size.width), Float(size.height))
         guard
             let input = scene.getRenderPassInput(renderingViewSize: offscreenTextureSize, isForSaving: true),
-            let commandBuffer = gpu.processingCommandQueue.makeCommandBuffer(),
-            let offscreenTexture = getOffscreenTexture(for: offscreenTextureSize)
+            let commandBuffer = gpu.processingCommandQueue.makeCommandBuffer()
         else {
             throw RendererError.failedToRenderOffscreenImage
         }
+
+        let offscreenTexture = try getOffscreenTexture(for: offscreenTextureSize)
 
         let offscreenRenderPass = try renderPassFactory.createNewRenderPass()
         offscreenRenderPass.resize(size: size)
@@ -120,24 +121,22 @@ extension Renderer: OffscreenRenderer {
         )
     }
     
-    private func getOffscreenTexture(for size: SIMD2<Float>) -> MTLTexture? {
+    private func getOffscreenTexture(for size: SIMD2<Float>) throws -> MTLTexture {
         guard
             size.x >= Self.minOffscreenTextureSize.x,
             size.y >= Self.minOffscreenTextureSize.y
         else {
-            return nil
+            throw RendererError.failedToRenderOffscreenImage
         }
 
-        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+        return try TextureHelper.getTexture(
+            device: gpu.device,
             pixelFormat: .bgra8Unorm,
             width: Int(size.x),
             height: Int(size.y),
-            mipmapped: false,
+            storageMode: .shared,
+            usage: [.renderTarget, .shaderRead]
         )
-
-        textureDescriptor.usage = [.renderTarget, .shaderRead]
-        textureDescriptor.storageMode = .shared
-        return gpu.device.makeTexture(descriptor: textureDescriptor)
     }
 
     private func getOffscreenRenderPassDescriptor(texture: MTLTexture) -> MTLRenderPassDescriptor {

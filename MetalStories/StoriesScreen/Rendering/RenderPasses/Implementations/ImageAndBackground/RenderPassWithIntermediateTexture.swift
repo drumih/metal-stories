@@ -42,35 +42,19 @@ final class RenderPassWithRegularIntermediateTexture {
 
     private var intermediateTexture: MTLTexture?
 
-    private static func makeTexture(
-        device: MTLDevice,
-        pixelFormat: MTLPixelFormat,
-        width: Int,
-        height: Int,
-    ) -> MTLTexture? {
-        let descriptor = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: pixelFormat,
-            width: width,
-            height: height,
-            mipmapped: false,
-        )
-        descriptor.storageMode = .private
-        descriptor.usage = [.shaderRead, .renderTarget]
-        return device.makeTexture(descriptor: descriptor)
-    }
-
     private func updateIntermediateTexture(forSize size: CGSize) {
-        let intermediateTexture = Self.makeTexture(
-            device: device,
-            pixelFormat: intermediateTexturePixelFormat,
-            width: Int(size.width),
-            height: Int(size.height),
-        )
-        guard let intermediateTexture else {
-            assertionFailure()
-            return
+        do {
+            self.intermediateTexture = try TextureHelper.getTexture(
+                device: device,
+                pixelFormat: intermediateTexturePixelFormat,
+                width: Int(size.width),
+                height: Int(size.height),
+                storageMode: .private,
+                usage: [.shaderRead, .renderTarget]
+            )
+        } catch {
+            assertionFailure(error.localizedDescription)
         }
-        self.intermediateTexture = intermediateTexture
     }
 
 }
@@ -126,6 +110,7 @@ extension RenderPassWithRegularIntermediateTexture: RenderPass {
         )
         guard let renderEncoder else { return }
 
+        // TODO: write better comment and format comment better
         // Flip vertically to compensate for the render-to-texture Y orientation when sampling the intermediate texture.
         RenderPassHelper.drawPostProcessing(
             renderEncoder: renderEncoder,

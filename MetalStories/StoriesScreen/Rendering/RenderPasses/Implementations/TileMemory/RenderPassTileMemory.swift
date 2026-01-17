@@ -146,23 +146,13 @@ extension RenderPassTileMemory {
         width: Int,
         height: Int,
     ) throws -> MTLTexture {
-        guard width > 0, height > 0 else {
-            throw RenderPassTileMemoryError.failedToCreateTexture
-        }
-        let descriptor = MTLTextureDescriptor.texture2DDescriptor(
+        try TextureHelper.getTexture(
+            device: device,
             pixelFormat: pixelFormat,
             width: width,
             height: height,
-            mipmapped: false,
+            storageMode: .memoryless,
+            usage: [.renderTarget]
         )
-        descriptor.storageMode = .memoryless
-        descriptor.usage = [.renderTarget]
-        let texture = device.makeTexture(descriptor: descriptor)
-
-        guard let texture else {
-            throw RenderPassTileMemoryError.failedToCreateTexture
-        }
-
-        return texture
     }
 }
