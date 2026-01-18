@@ -163,12 +163,26 @@ float3 sepia(float3 rgb) {
 METAL_FUNC
 float3 noir_chrome(float3 rgb) {
     const auto luma = luminance(rgb);
-    const auto bw = catmull_rom_5_single(0.1f, 0.2f, 0.7f, 0.8f, 0.9f, luma);
-    // TODO: get better split tone?
-    const auto toned = apply_split_tone(float3(bw),
-                                        float3(0.9f, 0.95f, 1.1f),
-                                        float3(1.02f, 1.0f, 0.98f));
-    return toned;
+
+    const auto contrastedLuma = catmull_rom_5_single(0.06f, 0.2f, 0.6f, 0.88f, 0.99f, luma);
+    const auto mono = float3(contrastedLuma);
+
+    // TODO: rebuild using another functions for masks
+    const auto shadowMask = catmull_rom_5_single(1.0f, 0.9f, 0.4f, 0.1f, 0.0f, contrastedLuma);
+    const auto highlightMask = catmull_rom_5_single(0.0f, 0.0f, 0.2f, 0.8f, 1.0f, contrastedLuma);
+    const auto sheenMask = catmull_rom_5_single(0.0f, 0.0f, 0.15f, 0.85f, 1.0f, contrastedLuma);
+    const auto midMask = catmull_rom_5_single(0.0f, 0.7f, 1.0f, 0.4f, 0.0f, contrastedLuma);
+
+    const auto shadowTint = float3(0.94f, 0.96f, 1.02f);
+    const auto highlightTint = float3(0.98f, 1.01f, 1.06f);
+    const auto sheenTint = float3(0.01f, 0.015f, 0.03f);
+
+    auto graded = mono;
+    graded = mix(graded, graded * shadowTint, shadowMask);
+    graded = mix(graded, graded * highlightTint, highlightMask);
+    graded = graded + sheenTint * sheenMask;
+
+    return mix(graded, mono, midMask * 0.2f);
 }
 
 /// Fire and ice: contrast curve with cool/warm channel separation.
@@ -218,38 +232,17 @@ float3 cross_process(float3 rgb) {
     return mixed;
 }
 
-static inline float referenceNeutralCurve(float x)
-{
-    x = saturate(x);
-
-    // Same transition mask as your reference (0 at 0.45, 1 at 0.55)
-    float m = saturate(10.0f * (x - 0.45f));
-
-    // For neutral rgb=x:
-    // result1 = 2*x*x
-    // result2 = -1 + 4*x - 2*x*x
-    float a = 2.0f * x * x;
-    float b = -1.0f + 4.0f * x - 2.0f * x * x;
-
-    float newColor = mix(a, b, m);
-
-    // Final mix strength 0.8 like your reference: out = mix(x, newColor, 0.8)
-    float outY = mix(x, newColor, 0.8f);
-    return saturate(outY);
-}
-
 /// Bleach bypass: desaturated and high contrast. Based on NVIDIA implementation
 /// https://developer.download.nvidia.com/shaderlibrary/webpages/screenshots/cgfx/post_bleach_bypass.html
 METAL_FUNC
 float3 bleach_bypass(float3 rgb) {
     
-    const auto lum = luminance(rgb);
-    const auto blend = float3(lum);
-    const auto mask = saturate(10.f * (lum - 0.45f));
+    const auto luma = luminance(rgb);
+    const auto mask = saturate(10.f * (luma - 0.45f));
     
-    const auto result1 = 2.f * rgb * blend;
-    const auto result2 = 1.f - 2.f * (1.f - blend) * (1.f - rgb);
-    const auto newColor = mix(result1, result2, mask);
+    const auto newColor = mix(2.f * rgb * luma,
+                              1.f - 2.f * (1.f - luma) * (1.f - rgb),
+                              mask);
     
     return mix(rgb, newColor, 0.8f);
 }
@@ -298,9 +291,9 @@ float3 process_rgb(float3 rgb, float2 uv, float offset) {
         case 2: targetColor = sepia(rgb); break; // done
         case 3: targetColor = noir_chrome(rgb); break; // todo
         case 4: targetColor = fire_and_ice(rgb); break; // done
-        case 5: targetColor = teal_orange_cinema(rgb); break; // todo
-        case 6: targetColor = cross_process(rgb); break; // todo
-        case 7: targetColor = bleach_bypass(rgb); break; // done
+        case 5: targetColor = bleach_bypass(rgb); break; // done
+        case 6: targetColor = teal_orange_cinema(rgb); break; // todo
+        case 7: targetColor = cross_process(rgb); break; // todo
         case 8: targetColor = orange_sunset(rgb, uv); break; // done
         default: targetColor = rgb; break;
     }
