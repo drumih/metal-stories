@@ -1,14 +1,5 @@
 import Metal
 
-// MARK: - RenderPassType
-
-enum RenderPassType: Int {
-    case simple
-    case withIntermediateTexture
-    case tileMemory
-    case directWithDepth
-}
-
 // MARK: - RenderPassFactory
 
 final class RenderPassFactory {
