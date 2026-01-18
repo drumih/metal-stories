@@ -12,7 +12,7 @@ constant short kTotalFiltersCount = 9;
 /// Computes Rec. 709 luminance for a linear RGB color.
 METAL_FUNC
 float luminance(float3 rgb) {
-    const float3 kRec709Coeff = float3(0.2126f, 0.7152f, 0.0722f);
+    const auto kRec709Coeff = float3(0.2126f, 0.7152f, 0.0722f);
     return dot(kRec709Coeff, rgb);
 }
 
@@ -36,10 +36,14 @@ float3 apply_channel_matrix(float3 rgb, float3x3 matrix) {
 /// Applies split toning with separate tints for shadows and highlights.
 /// `shadowTint` and `highlightTint` are multiplicative (1 = no change).
 METAL_FUNC
-float3 apply_split_tone(float3 rgb, float3 shadowTint, float3 highlightTint) {
-    const float luma = luminance(rgb);
-    const float shadowW = 1.0f - smoothstep(0.2f, 0.4f, luma);
-    const float highlightW = smoothstep(0.6f, 0.8f, luma);
+float3 apply_split_tone(float3 rgb,
+                        float3 shadowTint,
+                        float3 highlightTint
+                        ) {
+    // TODO: update it
+    const auto luma = luminance(rgb);
+    const auto shadowW = 1.0f - smoothstep(0.2f, 0.4f, luma);
+    const auto highlightW = smoothstep(0.6f, 0.8f, luma);
     
     float3 graded = mix(rgb, rgb * shadowTint, shadowW);
     graded = mix(graded, graded * highlightTint, highlightW);
@@ -49,9 +53,14 @@ float3 apply_split_tone(float3 rgb, float3 shadowTint, float3 highlightTint) {
 /// Bilinear interpolation of 4 corner colors based on UV coordinates.
 /// Returns a smoothly blended color across the 2D surface.
 METAL_FUNC
-float3 gradient_2d(float3 bottomLeft, float3 bottomRight, float3 topLeft, float3 topRight, float2 uv) {
-    const float3 bottom = mix(bottomLeft, bottomRight, uv.x);
-    const float3 top = mix(topLeft, topRight, uv.x);
+float3 gradient_2d(float3 bottomLeft,
+                   float3 bottomRight,
+                   float3 topLeft,
+                   float3 topRight,
+                   float2 uv
+                   ) {
+    const auto bottom = mix(bottomLeft, bottomRight, uv.x);
+    const auto top = mix(topLeft, topRight, uv.x);
     return mix(bottom, top, uv.y);
 }
 
@@ -60,7 +69,13 @@ float3 gradient_2d(float3 bottomLeft, float3 bottomRight, float3 topLeft, float3
 /// Evaluates a 5-point Catmull-Rom spline at `value`.
 /// Control points are sampled at 0.0, 0.25, 0.5, 0.75, and 1.0.
 METAL_FUNC
-float catmull_rom_5_single(float p000, float p025, float p050, float p075, float p100, float value) {
+float catmull_rom_5_single(float p000,
+                           float p025,
+                           float p050,
+                           float p075,
+                           float p100,
+                           float value
+                           ) {
     const auto p_pre = 2.0f * p000 - p025;
     const auto p_post = 2.0f * p100 - p075;
     
@@ -91,12 +106,15 @@ float catmull_rom_5_single(float p000, float p025, float p050, float p075, float
 
 /// Applies the 5-point Catmull-Rom spline to each RGB channel.
 METAL_FUNC
-float3 catmull_rom_5_rgb(float p000, float p025, float p050, float p075, float p100, float3 rgb) {
-    return float3(
-                  catmull_rom_5_single(p000, p025, p050, p075, p100, rgb.r),
+float3 catmull_rom_5_rgb(float p000,
+                         float p025,
+                         float p050,
+                         float p075,
+                         float p100,
+                         float3 rgb) {
+    return float3(catmull_rom_5_single(p000, p025, p050, p075, p100, rgb.r),
                   catmull_rom_5_single(p000, p025, p050, p075, p100, rgb.g),
-                  catmull_rom_5_single(p000, p025, p050, p075, p100, rgb.b)
-                  );
+                  catmull_rom_5_single(p000, p025, p050, p075, p100, rgb.b));
 }
 
 // MARK: - Blend Modes
@@ -167,11 +185,9 @@ float3 cross_process(float3 rgb) {
     const float3 rowR = float3(1.1f, 0.05f, -0.08f);
     const float3 rowG = float3(-0.03f, 1.08f, 0.1f);
     const float3 rowB = float3(0.05f, -0.05f, 1.08f);
-    const float3x3 crossProcessMatrix = float3x3(
-                                                 float3(rowR.x, rowG.x, rowB.x),
+    const float3x3 crossProcessMatrix = float3x3(float3(rowR.x, rowG.x, rowB.x),
                                                  float3(rowR.y, rowG.y, rowB.y),
-                                                 float3(rowR.z, rowG.z, rowB.z)
-                                                 );
+                                                 float3(rowR.z, rowG.z, rowB.z));
     
     const auto mixed = apply_channel_matrix(contrastRGB, crossProcessMatrix);
     

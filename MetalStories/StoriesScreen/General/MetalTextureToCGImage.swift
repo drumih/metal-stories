@@ -29,13 +29,14 @@ enum MetalTextureToCGImage {
 
         var pixelData = Data(count: byteCount)
         pixelData.withUnsafeMutableBytes { buffer in
-            guard let pointer = buffer.baseAddress else { return }
-            metalTexture.getBytes(
-                pointer,
-                bytesPerRow: bytesPerRow,
-                from: region,
-                mipmapLevel: 0,
-            )
+            if let pointer = buffer.baseAddress {
+                metalTexture.getBytes(
+                    pointer,
+                    bytesPerRow: bytesPerRow,
+                    from: region,
+                    mipmapLevel: 0,
+                )
+            }
         }
 
         guard let dataProvider = CGDataProvider(data: pixelData as CFData) else {

@@ -2,6 +2,12 @@ import CoreGraphics
 import Foundation
 import ImageIO
 
+// MARK: - DataToCGImagePreprocessingError
+
+enum DataToCGImagePreprocessingError: LocalizedError {
+    case failedToCreateImage
+}
+
 // MARK: - DataToCGImagePreprocessing
 
 enum DataToCGImagePreprocessing {
@@ -34,12 +40,6 @@ enum DataToCGImagePreprocessing {
 
         return (cgImage, orientation)
     }
-}
-
-// MARK: - DataToCGImagePreprocessingError
-
-enum DataToCGImagePreprocessingError: LocalizedError {
-    case failedToCreateImage
 }
 
 extension DataToCGImagePreprocessingError {
