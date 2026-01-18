@@ -1,10 +1,21 @@
 #include "Common.h"
 
+// TODO list
+
+// fix teal and orange
+// fix bleach bypass
+// better cross process
+// better cross process
+// tweak fire and ice
+// write meaningful comments and MARKs
+// arrange code in the better order
+
 // MARK: - Constants
 
-/// Number of filter variants available in `process_rgb`.
+/// Number of filter variants available
 constant short kAvailableFiltersCount [[function_constant(0)]];
 
+/// Total number of filters available
 constant short kTotalFiltersCount = 9;
 
 // MARK: - Utilities
@@ -16,17 +27,19 @@ float luminance(float3 rgb) {
     return dot(kRec709Coeff, rgb);
 }
 
+// TODO: write comment
 METAL_FUNC
 float3 brightness(float3 rgb, float amount) {
     return rgb + amount;
 }
 
+// TODO: write comment
 METAL_FUNC
 float3 contrast(float3 rgb, float amount, float pivot) {
     return (rgb - pivot) * amount + pivot;
 }
 
-/// Applies a 3x3 channel mixing matrix (column-major).
+/// Applies a 3x3 channel mixing matrix
 /// Each column defines the contribution of the input R/G/B to the output RGB.
 METAL_FUNC
 float3 apply_channel_matrix(float3 rgb, float3x3 matrix) {
@@ -57,8 +70,7 @@ float3 gradient_2d(float3 bottomLeft,
                    float3 bottomRight,
                    float3 topLeft,
                    float3 topRight,
-                   float2 uv
-                   ) {
+                   float2 uv) {
     const auto bottom = mix(bottomLeft, bottomRight, uv.x);
     const auto top = mix(topLeft, topRight, uv.x);
     return mix(bottom, top, uv.y);
@@ -74,8 +86,7 @@ float catmull_rom_5_single(float p000,
                            float p050,
                            float p075,
                            float p100,
-                           float value
-                           ) {
+                           float value) {
     const auto p_pre = 2.0f * p000 - p025;
     const auto p_post = 2.0f * p100 - p075;
     
@@ -96,12 +107,10 @@ float catmull_rom_5_single(float p000,
     const auto t2 = t_res * t_res;
     const auto t3 = t2 * t_res;
     
-    return 0.5f * (
-                   2.f * p1_res +
+    return 0.5f * (2.f * p1_res +
                    (p2_res - p0_res) * t_res +
                    (2.f * p0_res - 5.f * p1_res + 4.f * p2_res - p3_res) * t2 +
-                   (-p0_res + 3.f * p1_res - 3.f * p2_res + p3_res) * t3
-                   );
+                   (-p0_res + 3.f * p1_res - 3.f * p2_res + p3_res) * t3);
 }
 
 /// Applies the 5-point Catmull-Rom spline to each RGB channel.
@@ -154,21 +163,28 @@ float3 noir_chrome(float3 rgb) {
     return toned;
 }
 
-/// Fire and ice: high-contrast curve with cool/warm channel separation.
+/// Fire and ice: contrast curve with cool/warm channel separation.
 METAL_FUNC
 float3 fire_and_ice(float3 rgb) {
-    const auto contrastRGB = catmull_rom_5_rgb(0.f, 0.22f, 0.5f, 0.78f, 1.f, rgb);
+    const auto contrastRGB = catmull_rom_5_rgb(0.f, 0.21f, 0.47f, 0.75f, 1.f, rgb);
     
-    const auto filteredR = catmull_rom_5_single(0.f, 0.22f, 0.5f, 0.78f, 1.f, contrastRGB.r);
-    const auto filteredG = catmull_rom_5_single(0.f, 0.21f, 0.5f, 0.79f, 1.f, contrastRGB.g);
-    const auto filteredB = catmull_rom_5_single(0.f, 0.3f, 0.48f, 0.7f, 1.f, contrastRGB.b);
+    const auto filteredR = catmull_rom_5_single(0.f, 0.22f, 0.48f, 0.81f, 1.f, contrastRGB.r);
+    const auto filteredG = catmull_rom_5_single(0.f, 0.21f, 0.5f, 0.77f, 1.f, contrastRGB.g);
+    const auto filteredB = catmull_rom_5_single(0.f, 0.28f, 0.48f, 0.7f, 1.f, contrastRGB.b);
     
     return float3(filteredR, filteredG, filteredB);
 }
 
-/// Cinematic teal/orange grade with highlight/shadow pushes and saturation.
+/// Cinematic teal/orange grade.
 METAL_FUNC
 float3 teal_orange_cinema(float3 rgb) {
+    // const auto tealColor
+    // const auto orangeColor
+    
+    // TODO: work with curves. add orange for highlights and midtones. add teal for shadows
+    
+    // TODO: desaturate shadows
+    
     // TODO: update it as well!
     const auto curved = catmull_rom_5_rgb(0.f, 0.18f, 0.52f, 0.85f, 1.f, rgb);
     return apply_split_tone(curved,
@@ -208,22 +224,19 @@ float3 bleach_bypass(float3 rgb) {
     const auto result2 = 1.0f - 2.0f * (1.0f - blend) * (1.0f - rgb);
     const auto newColor = mix(result1, result2, mask);
     
-    return mix(rgb, newColor, 0.8);
+    return mix(rgb, newColor, 0.8f);
 }
 
 /// Orange Sunset style: warm 2D gradient overlay with Linear Light Blend Mode
 METAL_FUNC
 float3 orange_sunset(float3 rgb, float2 uv) {
-    const auto curved = catmull_rom_5_rgb(0.f, 0.22f, 0.5f, 0.78f, 1.f, rgb);
-    
-    const auto topLeft = float3(1.0f, 0.52f, 0.2f);
-    const auto topRight = float3(1.0f, 0.46f, 0.6f);
-    const auto bottomLeft = float3(0.98f, 0.72f, 0.82f);
-    const auto bottomRight = float3(0.92f, 0.56f, 0.98f);
-    
-    const auto gradient = gradient_2d(bottomLeft, bottomRight, topLeft, topRight, uv);
-    
-    const auto blended = linear_light_blend(curved, gradient, 0.15f);
+    const auto contrasted = catmull_rom_5_rgb(0.f, 0.22f, 0.5f, 0.78f, 1.f, rgb);
+    const auto gradient = gradient_2d(float3(0.98f, 0.72f, 0.82f),
+                                      float3(0.92f, 0.56f, 0.98f),
+                                      float3(1.0f, 0.52f, 0.2f),
+                                      float3(1.0f, 0.46f, 0.6f),
+                                      uv);
+    const auto blended = linear_light_blend(contrasted, gradient, 0.15f);
     return blended;
 }
 

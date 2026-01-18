@@ -125,7 +125,7 @@ extension StoriesViewController {
             let height = round(width * CGFloat(sceneInput.canvasAspectRatio))
             cgImage = try offscreenRenderer.renderImageToOffscreenTexture(
                 size: .init(width: width, height: height),
-                colorSpace: CGColorSpaceCreateDeviceRGB(),
+                colorSpace: CGColorSpace(name: CGColorSpace.displayP3)!,
             )
         } catch {
             isSavingEnabled = true
