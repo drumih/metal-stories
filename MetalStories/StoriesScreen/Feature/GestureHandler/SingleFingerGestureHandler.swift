@@ -91,9 +91,9 @@ final class SingleFingerGestureHandler {
     private var snapshot: Snapshot?
 }
 
-private extension SingleFingerGestureHandler {
+extension SingleFingerGestureHandler {
 
-    static func calculateAnimationTarget(
+    private static func calculateAnimationTarget(
         currentPosition: Float,
         velocity: Float,
     ) -> Float {
