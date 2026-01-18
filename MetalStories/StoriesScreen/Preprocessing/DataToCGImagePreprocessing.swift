@@ -5,11 +5,11 @@ import ImageIO
 // MARK: - DataToCGImagePreprocessing
 
 enum DataToCGImagePreprocessing {
-    
+
     enum DataToCGImagePreprocessingError: LocalizedError {
         case failedToCreateImage
     }
-    
+
     static func loadCGImage(
         from data: Data
     ) throws -> (CGImage, CGImagePropertyOrientation) {
@@ -35,8 +35,6 @@ enum DataToCGImagePreprocessing {
         return (cgImage, orientation)
     }
 }
-
-// MARK: - ImagePreprocessingError
 
 enum DataToCGImagePreprocessingError: LocalizedError {
     case failedToCreateImage

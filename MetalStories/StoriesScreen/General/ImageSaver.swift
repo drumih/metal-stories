@@ -3,6 +3,8 @@ import Foundation
 import ImageIO
 import Photos
 
+// MARK: - ImageSaver
+
 enum ImageSaver {
 
     // MARK: Internal
@@ -160,8 +162,6 @@ enum ImageSaver {
         }
     }
 }
-
-// MARK: - ImageSaver.ImageSaverError
 
 extension ImageSaver.ImageSaverError {
 

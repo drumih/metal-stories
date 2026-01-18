@@ -15,14 +15,14 @@ struct MetalPreparationResult {
 // MARK: - CGImageToMetalTexturePreprocessing
 
 enum CGImageToMetalTexturePreprocessing {
-    
+
+    // MARK: Internal
+
     enum PreprocessingError: LocalizedError {
         case imageTooSmall
         case failedToCreateBuffer
         case failedToCreateCommandBuffer
     }
-
-    // MARK: Internal
 
     static func prepareCGImage(
         cgImage: CGImage,
@@ -156,8 +156,6 @@ enum CGImageToMetalTexturePreprocessing {
         )
     }
 }
-
-// MARK: - PreprocessingError
 
 extension CGImageToMetalTexturePreprocessing.PreprocessingError {
 

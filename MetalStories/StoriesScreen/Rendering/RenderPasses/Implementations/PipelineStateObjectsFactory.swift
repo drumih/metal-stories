@@ -3,12 +3,12 @@ import Metal
 // MARK: - PipelineStateObjectsFactory
 
 enum PipelineStateObjectsFactory {
-    
+
+    // MARK: Internal
+
     enum PipelineStateObjectsFactoryError: LocalizedError {
         case failedToCreateFunction
     }
-
-    // MARK: Internal
 
     static func imageBasePipeline(
         library: MTLLibrary,
@@ -212,8 +212,6 @@ enum PipelineStateObjectsFactory {
         }
     }
 }
-
-// MARK: - PipelineStateObjectsFactoryError + errorDescription
 
 extension PipelineStateObjectsFactory.PipelineStateObjectsFactoryError {
 

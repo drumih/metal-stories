@@ -4,10 +4,6 @@ import simd
 // MARK: - RenderPassDirectWithDepth
 
 final class RenderPassDirectWithDepth {
-    
-    enum RenderPassDirectWithDepthError: LocalizedError {
-        case failedToCreateStencilState
-    }
 
     // MARK: Lifecycle
 
@@ -44,6 +40,12 @@ final class RenderPassDirectWithDepth {
         postProcessingDepthStencilState = try Self.makePostProcessingDepthStencilState(device: device)
 
         self.depthTexturePixelFormat = depthTexturePixelFormat
+    }
+
+    // MARK: Internal
+
+    enum RenderPassDirectWithDepthError: LocalizedError {
+        case failedToCreateStencilState
     }
 
     // MARK: Private
@@ -179,8 +181,6 @@ extension RenderPassDirectWithDepth {
         )
     }
 }
-
-// MARK: - RenderPassDirectWithDepthError
 
 extension RenderPassDirectWithDepth.RenderPassDirectWithDepthError {
 

@@ -2,17 +2,16 @@ import CoreGraphics
 import Foundation
 import Metal
 
-
-// MARK: - CGImageFromMetalTexture
+// MARK: - MetalTextureToCGImage
 
 enum MetalTextureToCGImage {
-    
+
     enum MetalTextureToCGImageError: LocalizedError {
         case unsupportedPixelFormat
         case failedToCreateDataProvider
         case failedToCreateImage
     }
-    
+
     static func getCGImage(
         from metalTexture: MTLTexture,
         colorSpace: CGColorSpace,

@@ -3,13 +3,8 @@ import simd
 
 // MARK: - ImageTransformTool
 
-
 // TODO: use fragment_image and vertex_general. just render it to offscreen texture instead of kernel shader
 final class ImageTransformTool {
-    
-    enum ImageTransformToolError: LocalizedError {
-        case failedToCreateFunction
-    }
 
     // MARK: Lifecycle
 
@@ -26,6 +21,10 @@ final class ImageTransformTool {
     }
 
     // MARK: Internal
+
+    enum ImageTransformToolError: LocalizedError {
+        case failedToCreateFunction
+    }
 
     func encode(
         commandBuffer: MTLCommandBuffer,
@@ -77,8 +76,6 @@ final class ImageTransformTool {
         )
     }
 }
-
-// MARK: - ImageTransformToolError
 
 extension ImageTransformTool.ImageTransformToolError {
 

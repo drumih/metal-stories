@@ -1,14 +1,9 @@
 import Metal
 import MetalPerformanceShaders
 
-
 // MARK: - ColorExtractionTool
 
 final class ColorExtractionTool {
-    
-    enum ColorExtractionToolError: LocalizedError {
-        case failedToCreateBuffer
-    }
 
     // MARK: Lifecycle
 
@@ -24,6 +19,10 @@ final class ColorExtractionTool {
     }
 
     // MARK: Internal
+
+    enum ColorExtractionToolError: LocalizedError {
+        case failedToCreateBuffer
+    }
 
     static let histogramBins = 128
 
@@ -172,8 +171,6 @@ final class ColorExtractionTool {
     }
 
 }
-
-// MARK: - ColorExtractionToolError
 
 extension ColorExtractionTool.ColorExtractionToolError {
 

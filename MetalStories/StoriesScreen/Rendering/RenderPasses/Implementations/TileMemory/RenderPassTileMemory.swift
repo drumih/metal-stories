@@ -1,14 +1,9 @@
 import Metal
 import simd
 
-
 // MARK: - RenderPassTileMemory
 
 final class RenderPassTileMemory {
-    
-    enum RenderPassTileMemoryError: LocalizedError {
-        case failedToCreateStencilState
-    }
 
     // MARK: Lifecycle
 
@@ -42,6 +37,12 @@ final class RenderPassTileMemory {
         )
 
         self.memorylessTexturePixelFormat = memorylessTexturePixelFormat
+    }
+
+    // MARK: Internal
+
+    enum RenderPassTileMemoryError: LocalizedError {
+        case failedToCreateStencilState
     }
 
     // MARK: Private
@@ -145,8 +146,6 @@ extension RenderPassTileMemory {
         )
     }
 }
-
-// MARK: - RenderPassTileMemoryError + errorDescription
 
 extension RenderPassTileMemory.RenderPassTileMemoryError {
 

@@ -12,10 +12,6 @@ protocol OffscreenRenderer: AnyObject {
 // MARK: - Renderer
 
 final class Renderer {
-    
-    enum RendererError: LocalizedError {
-        case failedToRenderOffscreenImage
-    }
 
     // MARK: Lifecycle
 
@@ -28,6 +24,12 @@ final class Renderer {
         self.scene = scene
         self.renderPassFactory = renderPassFactory
         renderPass = try renderPassFactory.createNewRenderPass()
+    }
+
+    // MARK: Internal
+
+    enum RendererError: LocalizedError {
+        case failedToRenderOffscreenImage
     }
 
     // MARK: Private
@@ -142,8 +144,6 @@ extension Renderer: OffscreenRenderer {
         return renderPassDescriptor
     }
 }
-
-// MARK: - RendererError + errorDescription
 
 extension Renderer.RendererError {
 
