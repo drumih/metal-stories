@@ -1,12 +1,7 @@
 #include "Common.h"
 
-// TODO list
-
 // fix teal and orange
-// fix bleach bypass
 // better cross process
-// better cross process
-// tweak fire and ice
 // write meaningful comments and MARKs
 // arrange code in the better order
 
@@ -25,6 +20,12 @@ METAL_FUNC
 float luminance(float3 rgb) {
     const auto kRec709Coeff = float3(0.2126f, 0.7152f, 0.0722f);
     return dot(kRec709Coeff, rgb);
+}
+
+/// Convenience wrapper for Rec. 709 luma.
+METAL_FUNC
+float luma709(float3 rgb) {
+    return luminance(rgb);
 }
 
 // TODO: write comment
@@ -113,6 +114,12 @@ float catmull_rom_5_single(float p000,
                    (-p0_res + 3.f * p1_res - 3.f * p2_res + p3_res) * t3);
 }
 
+/// Mild contrast curve for luma values.
+METAL_FUNC
+float toneCurveCatmullRom(float value) {
+    return catmull_rom_5_single(0.f, 0.2f, 0.5f, 0.8f, 1.f, value);
+}
+
 /// Applies the 5-point Catmull-Rom spline to each RGB channel.
 METAL_FUNC
 float3 catmull_rom_5_rgb(float p000,
@@ -157,6 +164,7 @@ METAL_FUNC
 float3 noir_chrome(float3 rgb) {
     const auto luma = luminance(rgb);
     const auto bw = catmull_rom_5_single(0.1f, 0.2f, 0.7f, 0.8f, 0.9f, luma);
+    // TODO: get better split tone?
     const auto toned = apply_split_tone(float3(bw),
                                         float3(0.9f, 0.95f, 1.1f),
                                         float3(1.02f, 1.0f, 0.98f));
@@ -196,7 +204,7 @@ float3 teal_orange_cinema(float3 rgb) {
 METAL_FUNC
 float3 cross_process(float3 rgb) {
     // TODO: do better and more clear!
-    const auto contrastRGB = catmull_rom_5_rgb(0.f, 0.2f, 0.5f, 0.8f, 1.f, rgb);
+    const auto contrastedRGB = catmull_rom_5_rgb(0.f, 0.2f, 0.5f, 0.8f, 1.f, rgb);
     
     const float3 rowR = float3(1.1f, 0.05f, -0.08f);
     const float3 rowG = float3(-0.03f, 1.08f, 0.1f);
@@ -205,23 +213,42 @@ float3 cross_process(float3 rgb) {
                                                  float3(rowR.y, rowG.y, rowB.y),
                                                  float3(rowR.z, rowG.z, rowB.z));
     
-    const auto mixed = apply_channel_matrix(contrastRGB, crossProcessMatrix);
+    const auto mixed = apply_channel_matrix(contrastedRGB, crossProcessMatrix);
     
     return mixed;
 }
 
-/// Bleach bypass: // TODO: write description
+static inline float referenceNeutralCurve(float x)
+{
+    x = saturate(x);
 
-// TODO: redo
+    // Same transition mask as your reference (0 at 0.45, 1 at 0.55)
+    float m = saturate(10.0f * (x - 0.45f));
+
+    // For neutral rgb=x:
+    // result1 = 2*x*x
+    // result2 = -1 + 4*x - 2*x*x
+    float a = 2.0f * x * x;
+    float b = -1.0f + 4.0f * x - 2.0f * x * x;
+
+    float newColor = mix(a, b, m);
+
+    // Final mix strength 0.8 like your reference: out = mix(x, newColor, 0.8)
+    float outY = mix(x, newColor, 0.8f);
+    return saturate(outY);
+}
+
+/// Bleach bypass: desaturated and high contrast. Based on NVIDIA implementation
+/// https://developer.download.nvidia.com/shaderlibrary/webpages/screenshots/cgfx/post_bleach_bypass.html
 METAL_FUNC
 float3 bleach_bypass(float3 rgb) {
     
-    const float lum = luminance(rgb);
+    const auto lum = luminance(rgb);
     const auto blend = float3(lum);
-    const auto mask = saturate(10.0f * (lum - 0.45f));
+    const auto mask = saturate(10.f * (lum - 0.45f));
     
-    const auto result1 = 2.0f * rgb * blend;
-    const auto result2 = 1.0f - 2.0f * (1.0f - blend) * (1.0f - rgb);
+    const auto result1 = 2.f * rgb * blend;
+    const auto result2 = 1.f - 2.f * (1.f - blend) * (1.f - rgb);
     const auto newColor = mix(result1, result2, mask);
     
     return mix(rgb, newColor, 0.8f);
@@ -267,14 +294,14 @@ float3 process_rgb(float3 rgb, float2 uv, float offset) {
     float3 targetColor;
     switch (targetMode) {
         case 0: targetColor = rgb; break;
-        case 1: targetColor = very_simple(rgb); break;
-        case 2: targetColor = sepia(rgb); break;
-        case 3: targetColor = noir_chrome(rgb); break;
-        case 4: targetColor = fire_and_ice(rgb); break;
-        case 5: targetColor = teal_orange_cinema(rgb); break;
-        case 6: targetColor = cross_process(rgb); break;
-        case 7: targetColor = bleach_bypass(rgb); break;
-        case 8: targetColor = orange_sunset(rgb, uv); break;
+        case 1: targetColor = very_simple(rgb); break; // done
+        case 2: targetColor = sepia(rgb); break; // done
+        case 3: targetColor = noir_chrome(rgb); break; // todo
+        case 4: targetColor = fire_and_ice(rgb); break; // done
+        case 5: targetColor = teal_orange_cinema(rgb); break; // todo
+        case 6: targetColor = cross_process(rgb); break; // todo
+        case 7: targetColor = bleach_bypass(rgb); break; // done
+        case 8: targetColor = orange_sunset(rgb, uv); break; // done
         default: targetColor = rgb; break;
     }
     
