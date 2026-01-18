@@ -36,6 +36,8 @@ enum DataToCGImagePreprocessing {
     }
 }
 
+// MARK: - DataToCGImagePreprocessingError
+
 enum DataToCGImagePreprocessingError: LocalizedError {
     case failedToCreateImage
 }

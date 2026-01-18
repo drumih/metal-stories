@@ -144,8 +144,8 @@ final class TwoFingerGestureHandler {
 
 }
 
-extension TwoFingerGestureHandler.TwoPoints {
-    fileprivate var normalizedAnchor: SIMD2<Float> {
+fileprivate extension TwoFingerGestureHandler.TwoPoints {
+    var normalizedAnchor: SIMD2<Float> {
         let midPoint = CGPoint(
             x: (firstPoint.x + secondPoint.x) / 2.0,
             y: (firstPoint.y + secondPoint.y) / 2.0,
@@ -156,14 +156,14 @@ extension TwoFingerGestureHandler.TwoPoints {
         )
     }
 
-    fileprivate var distance: CGFloat {
+    var distance: CGFloat {
         hypot(
             secondPoint.x - firstPoint.x,
             secondPoint.y - firstPoint.y,
         )
     }
 
-    fileprivate var angle: CGFloat {
+    var angle: CGFloat {
         atan2(
             secondPoint.y - firstPoint.y,
             secondPoint.x - firstPoint.x,
