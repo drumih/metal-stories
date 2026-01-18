@@ -12,31 +12,15 @@ struct MetalPreparationResult {
     let bottomColor: SIMD4<Float>
 }
 
-// MARK: - PreprocessingError
-
-enum PreprocessingError: LocalizedError {
-    case imageTooSmall
-    case failedToCreateTexture
-    case failedToCreateBuffer
-    case failedToCreateCommandBuffer
-
-    var errorDescription: String? {
-        switch self {
-        case .imageTooSmall:
-            "Image too small"
-        case .failedToCreateTexture:
-            "Failed to create Metal texture"
-        case .failedToCreateBuffer:
-            "Failed to create Metal buffer"
-        case .failedToCreateCommandBuffer:
-            "Failed to create command buffer"
-        }
-    }
-}
-
 // MARK: - CGImageToMetalTexturePreprocessing
 
 enum CGImageToMetalTexturePreprocessing {
+    
+    enum PreprocessingError: LocalizedError {
+        case imageTooSmall
+        case failedToCreateBuffer
+        case failedToCreateCommandBuffer
+    }
 
     // MARK: Internal
 
@@ -170,5 +154,21 @@ enum CGImageToMetalTexturePreprocessing {
                 .origin: MTKTextureLoader.Origin.flippedVertically.rawValue as NSString,
             ],
         )
+    }
+}
+
+// MARK: - PreprocessingError
+
+extension CGImageToMetalTexturePreprocessing.PreprocessingError {
+
+    var errorDescription: String? {
+        switch self {
+        case .imageTooSmall:
+            "Image too small"
+        case .failedToCreateBuffer:
+            "Failed to create Metal buffer"
+        case .failedToCreateCommandBuffer:
+            "Failed to create command buffer"
+        }
     }
 }

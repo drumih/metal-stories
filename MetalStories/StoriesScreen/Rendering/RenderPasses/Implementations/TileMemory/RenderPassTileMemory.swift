@@ -1,25 +1,14 @@
 import Metal
 import simd
 
-// MARK: - RenderPassTileMemoryError
-
-enum RenderPassTileMemoryError: LocalizedError {
-    case failedToCreateTexture
-    case failedToCreateStencilState
-
-    var errorDescription: String? {
-        switch self {
-        case .failedToCreateTexture:
-            "Unable to create texture."
-        case .failedToCreateStencilState:
-            "Unable to create stencil state."
-        }
-    }
-}
 
 // MARK: - RenderPassTileMemory
 
 final class RenderPassTileMemory {
+    
+    enum RenderPassTileMemoryError: LocalizedError {
+        case failedToCreateStencilState
+    }
 
     // MARK: Lifecycle
 
@@ -154,5 +143,17 @@ extension RenderPassTileMemory {
             storageMode: .memoryless,
             usage: [.renderTarget],
         )
+    }
+}
+
+// MARK: - RenderPassTileMemoryError + errorDescription
+
+extension RenderPassTileMemory.RenderPassTileMemoryError {
+
+    var errorDescription: String? {
+        switch self {
+        case .failedToCreateStencilState:
+            "Unable to create stencil state."
+        }
     }
 }

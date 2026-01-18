@@ -1,22 +1,15 @@
 import Metal
 import simd
 
-// MARK: - ImageTransformToolError
-
-enum ImageTransformToolError: LocalizedError {
-    case failedToCreateFunction
-
-    var errorDescription: String? {
-        switch self {
-        case .failedToCreateFunction:
-            "Unable to create GPU shader function 'imageTransform'."
-        }
-    }
-}
-
 // MARK: - ImageTransformTool
 
+
+// TODO: use fragment_image and vertex_general. just render it to offscreen texture instead of kernel shader
 final class ImageTransformTool {
+    
+    enum ImageTransformToolError: LocalizedError {
+        case failedToCreateFunction
+    }
 
     // MARK: Lifecycle
 
@@ -82,5 +75,17 @@ final class ImageTransformTool {
             height: threadGroupHeight,
             depth: 1,
         )
+    }
+}
+
+// MARK: - ImageTransformToolError
+
+extension ImageTransformTool.ImageTransformToolError {
+
+    var errorDescription: String? {
+        switch self {
+        case .failedToCreateFunction:
+            "Unable to create GPU shader function 'imageTransform'."
+        }
     }
 }

@@ -1,18 +1,5 @@
 import MetalKit
 
-// MARK: - RendererError
-
-enum RendererError: LocalizedError {
-    case failedToRenderOffscreenImage
-
-    var errorDescription: String? {
-        switch self {
-        case .failedToRenderOffscreenImage:
-            "Failed to render offscreen image"
-        }
-    }
-}
-
 // MARK: - OffscreenRenderer
 
 protocol OffscreenRenderer: AnyObject {
@@ -25,6 +12,10 @@ protocol OffscreenRenderer: AnyObject {
 // MARK: - Renderer
 
 final class Renderer {
+    
+    enum RendererError: LocalizedError {
+        case failedToRenderOffscreenImage
+    }
 
     // MARK: Lifecycle
 
@@ -117,7 +108,7 @@ extension Renderer: OffscreenRenderer {
         commandBuffer.commit()
         commandBuffer.waitUntilCompleted()
 
-        return try CGImageFromMetalTexture.getCGImage(
+        return try MetalTextureToCGImage.getCGImage(
             from: offscreenTexture,
             colorSpace: colorSpace,
         )
@@ -149,5 +140,17 @@ extension Renderer: OffscreenRenderer {
         renderPassDescriptor.colorAttachments[0].loadAction = .dontCare
         renderPassDescriptor.colorAttachments[0].storeAction = .store
         return renderPassDescriptor
+    }
+}
+
+// MARK: - RendererError + errorDescription
+
+extension Renderer.RendererError {
+
+    var errorDescription: String? {
+        switch self {
+        case .failedToRenderOffscreenImage:
+            "Failed to render offscreen image"
+        }
     }
 }

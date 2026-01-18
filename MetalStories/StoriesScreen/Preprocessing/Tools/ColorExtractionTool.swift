@@ -1,22 +1,14 @@
 import Metal
 import MetalPerformanceShaders
 
-// MARK: - ColorExtractionToolError
-
-enum ColorExtractionToolError: LocalizedError {
-    case failedToCreateBuffer
-
-    var errorDescription: String? {
-        switch self {
-        case .failedToCreateBuffer:
-            "Failed to create histogram buffer."
-        }
-    }
-}
 
 // MARK: - ColorExtractionTool
 
 final class ColorExtractionTool {
+    
+    enum ColorExtractionToolError: LocalizedError {
+        case failedToCreateBuffer
+    }
 
     // MARK: Lifecycle
 
@@ -179,4 +171,16 @@ final class ColorExtractionTool {
         )
     }
 
+}
+
+// MARK: - ColorExtractionToolError
+
+extension ColorExtractionTool.ColorExtractionToolError {
+
+    var errorDescription: String? {
+        switch self {
+        case .failedToCreateBuffer:
+            "Failed to create histogram buffer."
+        }
+    }
 }

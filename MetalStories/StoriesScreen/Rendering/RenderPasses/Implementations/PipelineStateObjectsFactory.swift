@@ -1,21 +1,12 @@
 import Metal
 
-// MARK: - PipelineStateObjectsFactoryError
-
-enum PipelineStateObjectsFactoryError: LocalizedError {
-    case failedToCreateFunction(name: String)
-
-    var errorDescription: String? {
-        switch self {
-        case .failedToCreateFunction(let name):
-            "Unable to create GPU shader function '\(name)'. The app may need to be reinstalled."
-        }
-    }
-}
-
 // MARK: - PipelineStateObjectsFactory
 
 enum PipelineStateObjectsFactory {
+    
+    enum PipelineStateObjectsFactoryError: LocalizedError {
+        case failedToCreateFunction
+    }
 
     // MARK: Internal
 
@@ -216,8 +207,20 @@ enum PipelineStateObjectsFactory {
             if let function = library.makeFunction(name: name) {
                 return function
             } else {
-                throw PipelineStateObjectsFactoryError.failedToCreateFunction(name: name)
+                throw PipelineStateObjectsFactoryError.failedToCreateFunction
             }
+        }
+    }
+}
+
+// MARK: - PipelineStateObjectsFactoryError + errorDescription
+
+extension PipelineStateObjectsFactory.PipelineStateObjectsFactoryError {
+
+    var errorDescription: String? {
+        switch self {
+        case .failedToCreateFunction:
+            "Unable to create GPU shader function. The app may need to be reinstalled."
         }
     }
 }

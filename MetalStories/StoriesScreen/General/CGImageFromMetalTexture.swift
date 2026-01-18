@@ -2,23 +2,23 @@ import CoreGraphics
 import Foundation
 import Metal
 
-// MARK: - CGImageFromMetalTextureError
-
-enum CGImageFromMetalTextureError: LocalizedError {
-    case unsupportedPixelFormat
-    case failedToCreateDataProvider
-    case failedToCreateImage
-}
 
 // MARK: - CGImageFromMetalTexture
 
-enum CGImageFromMetalTexture {
+enum MetalTextureToCGImage {
+    
+    enum MetalTextureToCGImageError: LocalizedError {
+        case unsupportedPixelFormat
+        case failedToCreateDataProvider
+        case failedToCreateImage
+    }
+    
     static func getCGImage(
         from metalTexture: MTLTexture,
         colorSpace: CGColorSpace,
     ) throws -> CGImage {
         guard metalTexture.pixelFormat == .bgra8Unorm else {
-            throw CGImageFromMetalTextureError.unsupportedPixelFormat
+            throw MetalTextureToCGImageError.unsupportedPixelFormat
         }
 
         let width = metalTexture.width
@@ -40,7 +40,7 @@ enum CGImageFromMetalTexture {
         }
 
         guard let dataProvider = CGDataProvider(data: pixelData as CFData) else {
-            throw CGImageFromMetalTextureError.failedToCreateDataProvider
+            throw MetalTextureToCGImageError.failedToCreateDataProvider
         }
 
         let bitmapInfo = CGBitmapInfo.byteOrder32Little.union(
@@ -62,14 +62,14 @@ enum CGImageFromMetalTexture {
                 intent: .defaultIntent,
             )
         else {
-            throw CGImageFromMetalTextureError.failedToCreateImage
+            throw MetalTextureToCGImageError.failedToCreateImage
         }
 
         return cgImage
     }
 }
 
-extension CGImageFromMetalTextureError {
+extension MetalTextureToCGImage.MetalTextureToCGImageError {
     var errorDescription: String? {
         switch self {
         case .unsupportedPixelFormat:

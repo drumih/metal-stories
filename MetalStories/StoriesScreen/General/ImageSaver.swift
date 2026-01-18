@@ -12,19 +12,6 @@ enum ImageSaver {
         case failedToFinalizeImageDestination
         case failedToSaveImage
         case photoLibraryAccessDenied
-
-        var errorDescription: String? {
-            switch self {
-            case .failedToCreateImageDestination:
-                "Unable to prepare the image for saving."
-            case .failedToFinalizeImageDestination:
-                "Unable to encode the image. Please try again."
-            case .failedToSaveImage:
-                "Unable to save the image to your photo library."
-            case .photoLibraryAccessDenied:
-                "Photo library access is required. Please enable it in Settings."
-            }
-        }
     }
 
     static func saveImage(
@@ -170,6 +157,24 @@ enum ImageSaver {
             } else {
                 completion(.failure(error ?? ImageSaverError.failedToSaveImage))
             }
+        }
+    }
+}
+
+// MARK: - ImageSaver.ImageSaverError
+
+extension ImageSaver.ImageSaverError {
+
+    var errorDescription: String? {
+        switch self {
+        case .failedToCreateImageDestination:
+            "Unable to prepare the image for saving."
+        case .failedToFinalizeImageDestination:
+            "Unable to encode the image. Please try again."
+        case .failedToSaveImage:
+            "Unable to save the image to your photo library."
+        case .photoLibraryAccessDenied:
+            "Photo library access is required. Please enable it in Settings."
         }
     }
 }

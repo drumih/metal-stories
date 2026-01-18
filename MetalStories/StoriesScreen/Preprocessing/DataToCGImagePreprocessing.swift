@@ -5,25 +5,31 @@ import ImageIO
 // MARK: - DataToCGImagePreprocessing
 
 enum DataToCGImagePreprocessing {
+    
+    enum DataToCGImagePreprocessingError: LocalizedError {
+        case failedToCreateImage
+    }
+    
     static func loadCGImage(
         from data: Data
     ) throws -> (CGImage, CGImagePropertyOrientation) {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
-            throw ImagePreprocessingError.failedToCreateImage
+            throw DataToCGImagePreprocessingError.failedToCreateImage
         }
 
         let orientation: CGImagePropertyOrientation =
             if
                 let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-                let orientationValue = properties[kCGImagePropertyOrientation] as? UInt32
+                let orientationValue = properties[kCGImagePropertyOrientation] as? UInt32,
+                let targetOrientation = CGImagePropertyOrientation(rawValue: orientationValue)
             {
-                CGImagePropertyOrientation(rawValue: orientationValue) ?? .up
+                targetOrientation
             } else {
                 .up
             }
 
         guard let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-            throw ImagePreprocessingError.failedToCreateImage
+            throw DataToCGImagePreprocessingError.failedToCreateImage
         }
 
         return (cgImage, orientation)
@@ -32,11 +38,11 @@ enum DataToCGImagePreprocessing {
 
 // MARK: - ImagePreprocessingError
 
-enum ImagePreprocessingError: LocalizedError {
+enum DataToCGImagePreprocessingError: LocalizedError {
     case failedToCreateImage
 }
 
-extension ImagePreprocessingError {
+extension DataToCGImagePreprocessingError {
 
     var errorDescription: String? {
         switch self {

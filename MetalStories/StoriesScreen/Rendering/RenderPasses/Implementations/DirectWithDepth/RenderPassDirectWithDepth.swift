@@ -1,25 +1,13 @@
 import Metal
 import simd
 
-// MARK: - RenderPassDirectWithDepthError
-
-enum RenderPassDirectWithDepthError: LocalizedError {
-    case failedToCreateTexture
-    case failedToCreateStencilState
-
-    var errorDescription: String? {
-        switch self {
-        case .failedToCreateTexture:
-            "Unable to create texture."
-        case .failedToCreateStencilState:
-            "Unable to create stencil state."
-        }
-    }
-}
-
 // MARK: - RenderPassDirectWithDepth
 
 final class RenderPassDirectWithDepth {
+    
+    enum RenderPassDirectWithDepthError: LocalizedError {
+        case failedToCreateStencilState
+    }
 
     // MARK: Lifecycle
 
@@ -189,5 +177,17 @@ extension RenderPassDirectWithDepth {
             storageMode: .memoryless,
             usage: [.renderTarget],
         )
+    }
+}
+
+// MARK: - RenderPassDirectWithDepthError
+
+extension RenderPassDirectWithDepth.RenderPassDirectWithDepthError {
+
+    var errorDescription: String? {
+        switch self {
+        case .failedToCreateStencilState:
+            "Unable to create stencil state."
+        }
     }
 }
