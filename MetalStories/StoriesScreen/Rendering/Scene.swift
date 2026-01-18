@@ -200,7 +200,6 @@ extension Scene: SceneOutput {
             anchorToImageOffset: anchorToImageOffset,
             rotation: rotation,
             scale: userScale,
-            mirroredX: false,
             aspectMode: resolvedAspectMode,
         )
     }

@@ -21,23 +21,20 @@ enum TransformCalculator {
     static func getUVTransform(
         rotationRadians: Float,
         isMirrored: Bool,
+        isFlipped: Bool = false,
     ) -> float4x4 {
-        let translation = SIMD2<Float>(0.5, 0.5)
-        let mirrorScale = SIMD2<Float>(isMirrored ? -1 : 1, 1)
+        let mirrorAndFlipScale = SIMD2<Float>(
+            isMirrored ? -1 : 1,
+            isFlipped ? -1 : 1,
+        )
 
-        let toCenterMatrix = getTranslationMatrix(.init(-translation, 0))
-        let fromCenterMatrix = getTranslationMatrix(.init(translation, 0))
-
-        let rotationMatrix = getRotationMatrixZ(-rotationRadians)
-        let mirrorMatrix = getScaleMatrix(mirrorScale)
+        let rotationMatrix = getRotationMatrixZ(rotationRadians)
+        let mirrorAndFlipMatrix = getScaleMatrix(mirrorAndFlipScale)
 
         let transformMatrices = [
-            toCenterMatrix,
-            mirrorMatrix,
             rotationMatrix,
-            fromCenterMatrix,
+            mirrorAndFlipMatrix,
         ]
-
         return combineMatrices(transformMatrices)
     }
 
@@ -48,7 +45,6 @@ enum TransformCalculator {
         anchorToImageOffset: SIMD2<Float>,
         rotation: Float,
         scale: Float,
-        mirroredX: Bool,
         aspectMode: ImageAspectMode,
     ) -> float4x4 {
         let modelTransform = Self.getModelTransform(
@@ -58,7 +54,6 @@ enum TransformCalculator {
             anchorToImageOffset: anchorToImageOffset,
             rotation: rotation,
             scale: scale,
-            mirroredX: mirroredX,
             aspectMode: aspectMode,
         )
         let viewTransform = getViewTransform()
@@ -118,7 +113,6 @@ enum TransformCalculator {
 }
 
 extension TransformCalculator {
-
     private static func getModelTransform(
         textureSize: SIMD2<Float>,
         canvasSize: SIMD2<Float>,
@@ -126,7 +120,6 @@ extension TransformCalculator {
         anchorToImageOffset: SIMD2<Float>,
         rotation: Float,
         scale: Float,
-        mirroredX: Bool,
         aspectMode: ImageAspectMode,
     ) -> float4x4 {
         let aspectScale = getAspectScale(
@@ -139,7 +132,6 @@ extension TransformCalculator {
         let targetPosition = (anchorPoint + anchorToImageOffset - 0.5) * canvasSize
         let anchorOffset = anchorToImageOffset * canvasSize
 
-        let mirroredMatrix = getScaleMatrix(.init(mirroredX ? -1 : 1, 1))
         let userScaleMatrix = getScaleMatrix(.init(scale, scale))
         let baseScaleMatrix = getScaleMatrix(scaledTextureSize / 2.0)
         let rotationMatrix = getRotationMatrixZ(rotation)
@@ -149,7 +141,6 @@ extension TransformCalculator {
         let toTargetMatrix = getTranslationMatrix(.init(targetPosition, 0))
 
         let transformMatrices = [
-            mirroredMatrix,
             baseScaleMatrix,
             fromAnchorMatrix,
             userScaleMatrix,

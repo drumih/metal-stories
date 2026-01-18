@@ -1,9 +1,9 @@
 import Metal
 import MetalPerformanceShaders
 
-// MARK: - ColorExtractionTool
+// MARK: - ColorExtraction
 
-final class ColorExtractionTool {
+final class ColorExtraction {
 
     // MARK: Lifecycle
 
@@ -20,7 +20,7 @@ final class ColorExtractionTool {
 
     // MARK: Internal
 
-    enum ColorExtractionToolError: LocalizedError {
+    enum ColorExtractionError: LocalizedError {
         case failedToCreateBuffer
     }
 
@@ -68,7 +68,7 @@ final class ColorExtractionTool {
     func makeHistogramBuffer(for pixelFormat: MTLPixelFormat) throws -> MTLBuffer {
         let size = histogram.histogramSize(forSourceFormat: pixelFormat)
         guard let buffer = device.makeBuffer(length: size, options: .storageModeShared) else {
-            throw ColorExtractionToolError.failedToCreateBuffer
+            throw ColorExtractionError.failedToCreateBuffer
         }
         return buffer
     }
@@ -172,7 +172,7 @@ final class ColorExtractionTool {
 
 }
 
-extension ColorExtractionTool.ColorExtractionToolError {
+extension ColorExtraction.ColorExtractionError {
 
     var errorDescription: String? {
         switch self {

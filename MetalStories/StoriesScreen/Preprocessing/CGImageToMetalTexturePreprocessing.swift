@@ -37,8 +37,15 @@ enum CGImageToMetalTexturePreprocessing {
 
         let originalTexture = try getOriginalTexture(from: cgImage, device: gpu.device)
 
-        let transformTool = try ImageTransformTool(device: gpu.device)
-        let colorExtractionTool = ColorExtractionTool(device: gpu.device)
+        // tools allocation
+
+        let imageTransform = try ImageTransform(
+            device: gpu.device,
+            pixelFormat: originalTexture.pixelFormat,
+        )
+        let colorExtraction = ColorExtraction(device: gpu.device)
+
+        // transform calculation
 
         let transformParams = orientation.imageTransformParams()
 
@@ -49,40 +56,45 @@ enum CGImageToMetalTexturePreprocessing {
             targetDimension: targetDimension,
         )
 
+        let positionTransform = TransformCalculator.getUVTransform(
+            rotationRadians: transformParams.rotationRadians,
+            isMirrored: transformParams.isMirrored,
+            isFlipped: true,
+        )
+
+        // resources allocation
+
         let destinationTexture = try TextureHelper.getTexture(
             device: gpu.device,
             pixelFormat: originalTexture.pixelFormat,
             width: targetSize.width,
             height: targetSize.height,
             storageMode: .private,
-            usage: [.shaderRead, .shaderWrite],
+            usage: [.shaderRead, .renderTarget],
         )
 
-        let topHistogramBuffer = try colorExtractionTool.makeHistogramBuffer(
+        let topHistogramBuffer = try colorExtraction.makeHistogramBuffer(
             for: destinationTexture.pixelFormat
         )
 
-        let bottomHistogramBuffer = try colorExtractionTool.makeHistogramBuffer(
+        let bottomHistogramBuffer = try colorExtraction.makeHistogramBuffer(
             for: destinationTexture.pixelFormat
         )
 
-        let uvTransform = TransformCalculator.getUVTransform(
-            rotationRadians: transformParams.rotationRadians,
-            isMirrored: transformParams.isMirrored,
-        )
+        // GPU encoding
 
         guard let commandBuffer = gpu.processingCommandQueue.makeCommandBuffer() else {
             throw PreprocessingError.failedToCreateCommandBuffer
         }
 
-        transformTool.encode(
+        try imageTransform.encode(
             commandBuffer: commandBuffer,
             sourceTexture: originalTexture,
             destinationTexture: destinationTexture,
-            uvTransform: uvTransform,
+            positionTransform: positionTransform,
         )
 
-        try colorExtractionTool.encode(
+        try colorExtraction.encode(
             commandBuffer: commandBuffer,
             sourceTexture: destinationTexture,
             topHistogramBuffer: topHistogramBuffer,
@@ -92,8 +104,10 @@ enum CGImageToMetalTexturePreprocessing {
         commandBuffer.commit()
         commandBuffer.waitUntilCompleted()
 
-        let topColor = ColorExtractionTool.medianColor(from: topHistogramBuffer)
-        let bottomColor = ColorExtractionTool.medianColor(from: bottomHistogramBuffer)
+        // postprocessing
+
+        let topColor = ColorExtraction.medianColor(from: topHistogramBuffer)
+        let bottomColor = ColorExtraction.medianColor(from: bottomHistogramBuffer)
 
         let textureSize = SIMD2<Float>(
             Float(destinationTexture.width),
