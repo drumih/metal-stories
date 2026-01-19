@@ -44,12 +44,6 @@ float luminance(float3 rgb) {
     return dot(kRec709Coeff, rgb);
 }
 
-/// Convenience wrapper for Rec. 709 luma.
-METAL_FUNC
-float luma709(float3 rgb) {
-    return luminance(rgb);
-}
-
 // TODO: write comment
 METAL_FUNC
 float3 brightness(float3 rgb, float amount) {
@@ -100,16 +94,12 @@ float catmull_rom_5_single(float p000,
     const auto segment = min(short(t), short(3));
     const auto t_res = t - float(segment);
     
-    float p0_res; float p1_res; float p2_res; float p3_res;
-    
-    // TODO: avoid switch here. use constexpr array or something like that
-    switch (segment) {
-        case 0: p0_res = p_pre; p1_res = p000; p2_res = p025; p3_res = p050; break;
-        case 1: p0_res = p000; p1_res = p025; p2_res = p050; p3_res = p075; break;
-        case 2: p0_res = p025; p1_res = p050; p2_res = p075; p3_res = p100; break;
-        case 3: p0_res = p050; p1_res = p075; p2_res = p100; p3_res = p_post; break;
-        default: return p100;
-    }
+    const float p[7] = { p_pre, p000, p025, p050, p075, p100, p_post };
+    const auto idx = ushort(segment);
+    const auto p0_res = p[idx];
+    const auto p1_res = p[idx + 1];
+    const auto p2_res = p[idx + 2];
+    const auto p3_res = p[idx + 3];
     
     const auto t2 = t_res * t_res;
     const auto t3 = t2 * t_res;
@@ -220,24 +210,29 @@ float3 fire_and_ice(float3 rgb) {
     return float3(filteredR, filteredG, filteredB);
 }
 
-//// TODO: write comment
-//METAL_FUNC
+/// Perceptual vibrance: boosts low-chroma colors more than saturated ones.
+METAL_FUNC
 float3 chroma_vibrance(float3 rgb) {
-    return rgb;
+    const auto lab = rgb_to_oklab(rgb);
+    const auto chroma = length(lab.yz);
+    const auto kChromaPivot = 0.45f;
+    const auto kBaseBoost = 0.1f;
+    const auto kExtraBoost = 0.45f;
+    const auto boost = 1.f + kBaseBoost + kExtraBoost * (1.0f - saturate(chroma / kChromaPivot));
+    const auto ab = lab.yz * boost;
+    return oklab_to_rgb(float3(lab.x, ab));
 }
 
 /// Cross-processed film look: contrast curve, channel mixing, and warmth.
 METAL_FUNC
 float3 cross_process(float3 rgb) {
-    // TODO: do better and more clear! use some esoteric colors
+    // Film-ish cross-process: mild warm shift and gentle teal in blues.
     const auto contrastedRGB = catmull_rom_5_rgb(0.f, 0.2f, 0.5f, 0.8f, 1.f, rgb);
     
-    const float3 rowR = float3(1.1f, 0.05f, -0.08f);
-    const float3 rowG = float3(-0.03f, 1.08f, 0.1f);
-    const float3 rowB = float3(0.05f, -0.05f, 1.08f);
-    const float3x3 crossProcessMatrix = float3x3(float3(rowR.x, rowG.x, rowB.x),
-                                                 float3(rowR.y, rowG.y, rowB.y),
-                                                 float3(rowR.z, rowG.z, rowB.z));
+    // Columns are contributions from source R/G/B to output RGB.
+    const auto crossProcessMatrix = float3x3(float3(1.04f, 0.01f, -0.01f),
+                                             float3(0.03f, 1.02f, 0.02f),
+                                             float3(-0.01f, 0.05f, 0.95f));
     
     const auto mixed = apply_channel_matrix(contrastedRGB, crossProcessMatrix);
     
