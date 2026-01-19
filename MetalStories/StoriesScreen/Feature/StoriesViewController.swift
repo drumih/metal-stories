@@ -56,17 +56,16 @@ final class StoriesViewController: UIViewController {
     private static let minImageDimension = 128
     private static let maxExportImageWidth: CGFloat = 1080
 
-    // TODO: update order
     private static let filterNames: [String] = [
         "Original",
         "Very Simple",
         "Sepia",
         "Noir Chrome",
         "Fire and Ice",
-        "Teal Orange Cinema",
-        "Cross Process",
         "Bleach Bypass",
         "Orange Sunset",
+        "Chroma Vibrance",
+        "Cross Process",
     ]
 
     private let gpu: GPU

@@ -1,6 +1,5 @@
 #include "Common.h"
 
-// fix teal and orange
 // better cross process
 // write meaningful comments and MARKs
 // arrange code in the better order
@@ -12,6 +11,29 @@ constant short kAvailableFiltersCount [[function_constant(0)]];
 
 /// Total number of filters available
 constant short kTotalFiltersCount = 9;
+
+// MARK: - Color Space Matrices
+
+constant float3x3 kLinearRgbToLms = float3x3(
+    float3(0.4122214708f, 0.2119034982f, 0.0883024619f),
+    float3(0.5363325363f, 0.6806995451f, 0.2817188376f),
+    float3(0.0514459929f, 0.1073969566f, 0.6299787005f)
+);
+constant float3x3 kLmsToOklab = float3x3(
+    float3(0.2104542553f, 1.9779984951f, 0.0259040371f),
+    float3(0.7936177850f, -2.4285922050f, 0.7827717662f),
+    float3(-0.0040720468f, 0.4505937099f, -0.8086757660f)
+);
+constant float3x3 kOklabToLms = float3x3(
+    float3(1.0f, 1.0f, 1.0f),
+    float3(0.3963377774f, -0.1055613458f, -0.0894841775f),
+    float3(0.2158037573f, -0.0638541728f, -1.2914855480f)
+);
+constant float3x3 kLmsToLinearRgb = float3x3(
+    float3(4.0767416621f, -1.2684380046f, -0.0041960863f),
+    float3(-3.3077115913f, 2.6097574011f, -0.7034186147f),
+    float3(0.2309699292f, -0.3413193965f, 1.7076147010f)
+);
 
 // MARK: - Utilities
 
@@ -47,23 +69,6 @@ float3 apply_channel_matrix(float3 rgb, float3x3 matrix) {
     return matrix * rgb;
 }
 
-/// Applies split toning with separate tints for shadows and highlights.
-/// `shadowTint` and `highlightTint` are multiplicative (1 = no change).
-METAL_FUNC
-float3 apply_split_tone(float3 rgb,
-                        float3 shadowTint,
-                        float3 highlightTint
-                        ) {
-    // TODO: update it
-    const auto luma = luminance(rgb);
-    const auto shadowW = 1.0f - smoothstep(0.2f, 0.4f, luma);
-    const auto highlightW = smoothstep(0.6f, 0.8f, luma);
-    
-    float3 graded = mix(rgb, rgb * shadowTint, shadowW);
-    graded = mix(graded, graded * highlightTint, highlightW);
-    return graded;
-}
-
 /// Bilinear interpolation of 4 corner colors based on UV coordinates.
 /// Returns a smoothly blended color across the 2D surface.
 METAL_FUNC
@@ -97,6 +102,7 @@ float catmull_rom_5_single(float p000,
     
     float p0_res; float p1_res; float p2_res; float p3_res;
     
+    // TODO: avoid switch here. use constexpr array or something like that
     switch (segment) {
         case 0: p0_res = p_pre; p1_res = p000; p2_res = p025; p3_res = p050; break;
         case 1: p0_res = p000; p1_res = p025; p2_res = p050; p3_res = p075; break;
@@ -141,6 +147,23 @@ float3 linear_light_blend(float3 source, float3 overlay, float a) {
     return mix(source, saturate(linearLight), a);
 }
 
+// MARK: - Color Spaces
+
+METAL_FUNC
+float3 rgb_to_oklab(float3 rgb) {
+    const auto lms = kLinearRgbToLms * rgb;
+    const float kOneThird = 1.0f / 3.0f;
+    const auto lms_cube_root = sign(lms) * pow(abs(lms), kOneThird);
+    return kLmsToOklab * lms_cube_root;
+}
+
+METAL_FUNC
+float3 oklab_to_rgb(float3 oklab) {
+    const auto lms_cbrt = kOklabToLms * oklab;
+    const auto lms = lms_cbrt * lms_cbrt * lms_cbrt;
+    return kLmsToLinearRgb * lms;
+}
+
 // MARK: - Filters
 
 METAL_FUNC
@@ -171,7 +194,7 @@ float3 noir_chrome(float3 rgb) {
     const auto shadowMask = catmull_rom_5_single(1.0f, 0.9f, 0.4f, 0.1f, 0.0f, contrastedLuma);
     const auto highlightMask = catmull_rom_5_single(0.0f, 0.0f, 0.2f, 0.8f, 1.0f, contrastedLuma);
     const auto sheenMask = catmull_rom_5_single(0.0f, 0.0f, 0.15f, 0.85f, 1.0f, contrastedLuma);
-    const auto midMask = catmull_rom_5_single(0.0f, 0.7f, 1.0f, 0.4f, 0.0f, contrastedLuma);
+    const auto midTonesMask = catmull_rom_5_single(0.0f, 0.7f, 1.0f, 0.4f, 0.0f, contrastedLuma);
 
     const auto shadowTint = float3(0.94f, 0.96f, 1.02f);
     const auto highlightTint = float3(0.98f, 1.01f, 1.06f);
@@ -182,42 +205,31 @@ float3 noir_chrome(float3 rgb) {
     graded = mix(graded, graded * highlightTint, highlightMask);
     graded = graded + sheenTint * sheenMask;
 
-    return mix(graded, mono, midMask * 0.2f);
+    return mix(graded, mono, midTonesMask * 0.2f);
 }
 
-/// Fire and ice: contrast curve with cool/warm channel separation.
+/// Fire and ice: contrast curve with cool/warm channel separation. Inspired by orange and teal color grading
 METAL_FUNC
 float3 fire_and_ice(float3 rgb) {
-    const auto contrastRGB = catmull_rom_5_rgb(0.f, 0.21f, 0.47f, 0.75f, 1.f, rgb);
+    const auto contrastRGB = catmull_rom_5_rgb(0.f, 0.21f, 0.5f, 0.79f, 1.f, rgb);
     
-    const auto filteredR = catmull_rom_5_single(0.f, 0.22f, 0.48f, 0.81f, 1.f, contrastRGB.r);
-    const auto filteredG = catmull_rom_5_single(0.f, 0.21f, 0.5f, 0.77f, 1.f, contrastRGB.g);
-    const auto filteredB = catmull_rom_5_single(0.f, 0.28f, 0.48f, 0.7f, 1.f, contrastRGB.b);
+    const auto filteredR = catmull_rom_5_single(0.f, 0.2f, 0.5f, 0.77f, 1.f, contrastRGB.r);
+    const auto filteredG = catmull_rom_5_single(0.f, 0.26f, 0.5f, 0.74f, 1.f, contrastRGB.g);
+    const auto filteredB = catmull_rom_5_single(0.f, 0.30f, 0.5f, 0.74f, 0.95f, contrastRGB.b);
     
     return float3(filteredR, filteredG, filteredB);
 }
 
-/// Cinematic teal/orange grade.
-METAL_FUNC
-float3 teal_orange_cinema(float3 rgb) {
-    // const auto tealColor
-    // const auto orangeColor
-    
-    // TODO: work with curves. add orange for highlights and midtones. add teal for shadows
-    
-    // TODO: desaturate shadows
-    
-    // TODO: update it as well!
-    const auto curved = catmull_rom_5_rgb(0.f, 0.18f, 0.52f, 0.85f, 1.f, rgb);
-    return apply_split_tone(curved,
-                            float3(0.9f, 0.98f, 1.08f),
-                            float3(1.08f, 1.02f, 0.95f));
+//// TODO: write comment
+//METAL_FUNC
+float3 chroma_vibrance(float3 rgb) {
+    return rgb;
 }
 
 /// Cross-processed film look: contrast curve, channel mixing, and warmth.
 METAL_FUNC
 float3 cross_process(float3 rgb) {
-    // TODO: do better and more clear!
+    // TODO: do better and more clear! use some esoteric colors
     const auto contrastedRGB = catmull_rom_5_rgb(0.f, 0.2f, 0.5f, 0.8f, 1.f, rgb);
     
     const float3 rowR = float3(1.1f, 0.05f, -0.08f);
@@ -292,9 +304,9 @@ float3 process_rgb(float3 rgb, float2 uv, float offset) {
         case 3: targetColor = noir_chrome(rgb); break; // todo
         case 4: targetColor = fire_and_ice(rgb); break; // done
         case 5: targetColor = bleach_bypass(rgb); break; // done
-        case 6: targetColor = teal_orange_cinema(rgb); break; // todo
-        case 7: targetColor = cross_process(rgb); break; // todo
-        case 8: targetColor = orange_sunset(rgb, uv); break; // done
+        case 6: targetColor = orange_sunset(rgb, uv); break;
+        case 7: targetColor = chroma_vibrance(rgb); break; // todo
+        case 8: targetColor = cross_process(rgb); break; // todo
         default: targetColor = rgb; break;
     }
     
