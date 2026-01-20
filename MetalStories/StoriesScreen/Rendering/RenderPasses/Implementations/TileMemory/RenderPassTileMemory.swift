@@ -39,12 +39,6 @@ final class RenderPassTileMemory {
         self.memorylessTexturePixelFormat = memorylessTexturePixelFormat
     }
 
-    // MARK: Internal
-
-    enum RenderPassTileMemoryError: LocalizedError {
-        case failedToCreateStencilState
-    }
-
     // MARK: Private
 
     private let device: MTLDevice
@@ -144,15 +138,5 @@ extension RenderPassTileMemory {
             storageMode: .memoryless,
             usage: [.renderTarget],
         )
-    }
-}
-
-extension RenderPassTileMemory.RenderPassTileMemoryError {
-
-    var errorDescription: String? {
-        switch self {
-        case .failedToCreateStencilState:
-            "Unable to create stencil state."
-        }
     }
 }

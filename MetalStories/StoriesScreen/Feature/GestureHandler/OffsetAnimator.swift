@@ -1,5 +1,21 @@
 import UIKit
 
+// MARK: - DisplayLinkTarget
+
+/// Weak reference wrapper to break retain cycle between CADisplayLink and OffsetAnimator.
+/// CADisplayLink strongly retains its target, so we use this proxy with a weak reference.
+private final class DisplayLinkTarget {
+    weak var animator: OffsetAnimator?
+
+    init(animator: OffsetAnimator) {
+        self.animator = animator
+    }
+
+    @objc func handleDisplayLink(_ displayLink: CADisplayLink) {
+        animator?.handleAnimation()
+    }
+}
+
 // MARK: - OffsetAnimatorDelegate
 
 protocol OffsetAnimatorDelegate: AnyObject {
@@ -96,22 +112,28 @@ final class OffsetAnimator {
 
     private var animation: Animation?
     private var displayLink: CADisplayLink?
+    private var displayLinkTarget: DisplayLinkTarget?
 
     private func stopDisplayLink() {
         displayLink?.invalidate()
         displayLink = nil
+        displayLinkTarget = nil
         animation = nil
     }
 
     private func startDisplayLink() {
         displayLink?.invalidate()
-        let link = CADisplayLink(target: self, selector: #selector(handleAnimation))
+
+        // Use weak reference wrapper to break retain cycle
+        let target = DisplayLinkTarget(animator: self)
+        displayLinkTarget = target
+
+        let link = CADisplayLink(target: target, selector: #selector(DisplayLinkTarget.handleDisplayLink(_:)))
         displayLink = link
         link.add(to: .main, forMode: .common)
     }
 
-    @objc
-    private func handleAnimation() {
+    fileprivate func handleAnimation() {
         guard let animation else {
             cancel()
             return
