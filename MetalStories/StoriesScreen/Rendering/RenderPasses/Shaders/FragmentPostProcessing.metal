@@ -1,6 +1,5 @@
 #include "Common.h"
 
-// better cross process
 // write meaningful comments and MARKs
 // arrange code in the better order
 
@@ -56,10 +55,12 @@ float3 contrast(float3 rgb, float amount, float pivot) {
     return (rgb - pivot) * amount + pivot;
 }
 
-/// Applies a 3x3 channel mixing matrix
-/// Each column defines the contribution of the input R/G/B to the output RGB.
+/// Photoshop-style channel mixer (output channel rows -> input channel columns).
 METAL_FUNC
-float3 apply_channel_matrix(float3 rgb, float3x3 matrix) {
+float3 channel_mixer(float3 rgb, float3 outR, float3 outG, float3 outB) {
+    const auto matrix = float3x3(float3(outR.x, outG.x, outB.x),
+                                 float3(outR.y, outG.y, outB.y),
+                                 float3(outR.z, outG.z, outB.z));
     return matrix * rgb;
 }
 
@@ -218,25 +219,21 @@ float3 chroma_vibrance(float3 rgb) {
     const auto kChromaPivot = 0.45f;
     const auto kBaseBoost = 0.1f;
     const auto kExtraBoost = 0.45f;
-    const auto boost = 1.f + kBaseBoost + kExtraBoost * (1.0f - saturate(chroma / kChromaPivot));
-    const auto ab = lab.yz * boost;
+    const auto boost = kBaseBoost + kExtraBoost * (1.0f - saturate(chroma / kChromaPivot));
+    const auto ab = lab.yz * (1.f + boost);
     return oklab_to_rgb(float3(lab.x, ab));
 }
 
-/// Cross-processed film look: contrast curve, channel mixing, and warmth.
+/// Cross process: RGB matrix mix for highlights with opposite shadows.
 METAL_FUNC
 float3 cross_process(float3 rgb) {
-    // Film-ish cross-process: mild warm shift and gentle teal in blues.
     const auto contrastedRGB = catmull_rom_5_rgb(0.f, 0.2f, 0.5f, 0.8f, 1.f, rgb);
-    
-    // Columns are contributions from source R/G/B to output RGB.
-    const auto crossProcessMatrix = float3x3(float3(1.04f, 0.01f, -0.01f),
-                                             float3(0.03f, 1.02f, 0.02f),
-                                             float3(-0.01f, 0.05f, 0.95f));
-    
-    const auto mixed = apply_channel_matrix(contrastedRGB, crossProcessMatrix);
-    
-    return mixed;
+
+    const auto mixerOutR = float3(1.5f, -0.9f, 0.4f);
+    const auto mixerOutG = float3(0.3f, 0.f, 0.7f);
+    const auto mixerOutB = float3(0.f, 0.2f, 1.f);
+
+    return channel_mixer(contrastedRGB, mixerOutR, mixerOutG, mixerOutB);
 }
 
 /// Bleach bypass: desaturated and high contrast. Based on NVIDIA implementation
@@ -294,14 +291,14 @@ float3 process_rgb(float3 rgb, float2 uv, float offset) {
     float3 targetColor;
     switch (targetMode) {
         case 0: targetColor = rgb; break;
-        case 1: targetColor = very_simple(rgb); break; // done
-        case 2: targetColor = sepia(rgb); break; // done
-        case 3: targetColor = noir_chrome(rgb); break; // todo
-        case 4: targetColor = fire_and_ice(rgb); break; // done
-        case 5: targetColor = bleach_bypass(rgb); break; // done
+        case 1: targetColor = very_simple(rgb); break;
+        case 2: targetColor = sepia(rgb); break; 
+        case 3: targetColor = noir_chrome(rgb); break;
+        case 4: targetColor = fire_and_ice(rgb); break;
+        case 5: targetColor = bleach_bypass(rgb); break; 
         case 6: targetColor = orange_sunset(rgb, uv); break;
-        case 7: targetColor = chroma_vibrance(rgb); break; // todo
-        case 8: targetColor = cross_process(rgb); break; // todo
+        case 7: targetColor = chroma_vibrance(rgb); break;
+        case 8: targetColor = cross_process(rgb); break;
         default: targetColor = rgb; break;
     }
     

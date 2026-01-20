@@ -52,9 +52,14 @@ final class StoriesViewController: UIViewController {
 
     // MARK: Private
 
-    private static let targetImageDimension = 2016
-    private static let minImageDimension = 128
-    private static let maxExportImageWidth: CGFloat = 1080
+    private enum ImageConstants {
+        /// Maximum dimension for loaded textures (balances quality and memory)
+        static let targetDimension = 2016
+        /// Minimum acceptable image size
+        static let minDimension = 128
+        /// Export width for saved images (Instagram story width)
+        static let exportWidth: CGFloat = 1080
+    }
 
     private static let filterNames: [String] = [
         "Original",
@@ -108,8 +113,8 @@ extension StoriesViewController {
         let preparationResult = try CGImageToMetalTexturePreprocessing.prepareCGImage(
             cgImage: cgImage,
             orientation: orientation,
-            targetDimension: Self.targetImageDimension,
-            minPossibleDimension: Self.minImageDimension,
+            targetDimension: ImageConstants.targetDimension,
+            minPossibleDimension: ImageConstants.minDimension,
             gpu: gpu,
         )
         sceneInput.setPreparationResult(preparationResult)
@@ -121,7 +126,7 @@ extension StoriesViewController {
 
         let cgImage: CGImage
         do {
-            let width = Self.maxExportImageWidth
+            let width = ImageConstants.exportWidth
             let height = round(width * CGFloat(sceneInput.canvasAspectRatio))
             cgImage = try offscreenRenderer.renderImageToOffscreenTexture(
                 size: .init(width: width, height: height),
@@ -214,19 +219,33 @@ extension StoriesViewController: StoriesFailureViewDelegate {
 
 extension StoriesViewController: OffsetAnimatorDelegate {
     func offsetAnimatorDidStartAnimation(targetOffset: Float) {
-        let index = Int(round(targetOffset))
-        let filtersCount = Int(availableFiltersCount)
-        let normalizedIndex = filtersCount > 0
-            ? (index % filtersCount + filtersCount) % filtersCount
-            : index
-        let filterName = normalizedIndex >= 0 && normalizedIndex < Self.filterNames.count
-            ? Self.filterNames[normalizedIndex]
-            : "Filter \(normalizedIndex)"
-        contentView.showFilterName(filterName)
+        contentView.showFilterName(filterName(forOffset: targetOffset))
     }
 
     func offsetAnimatorDidEndAnimation(targetOffset _: Float) {
         contentView.hideFilterName()
+    }
+
+    private func filterName(forOffset offset: Float) -> String {
+        let index = Int(round(offset))
+        let wrappedIndex = index.wrapped(within: Int(availableFiltersCount))
+        return Self.filterNames[safe: wrappedIndex] ?? "Filter \(wrappedIndex)"
+    }
+}
+
+// MARK: - Helpers
+
+private extension Int {
+    /// Wraps the integer to always be within [0, count)
+    func wrapped(within count: Int) -> Int {
+        guard count > 0 else { return self }
+        return (self % count + count) % count
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }
 

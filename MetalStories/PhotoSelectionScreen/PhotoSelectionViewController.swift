@@ -14,14 +14,13 @@ final class PhotoSelectionViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        loadSavedImagePreview()
+        loadCachedImagePreview()
     }
 
     // MARK: Private
 
     private enum Constants {
         static let cachedImageFileName = "cached_image.dat"
-        static let previewMaxDimensionSize: CGFloat = 1080
     }
 
     private lazy var contentView: PhotoSelectionView = {
@@ -66,10 +65,10 @@ final class PhotoSelectionViewController: UIViewController {
     }
 
     private func updateViewState() {
-        contentView.updateCachedImage(previewImage)
+        contentView.updateCachedImagePreview(previewImage)
     }
 
-    private func getSavedImageURL() -> URL? {
+    private func getCachedImageURL() -> URL? {
         guard
             let documentsDirectory = FileManager.default.urls(
                 for: .documentDirectory,
@@ -83,9 +82,9 @@ final class PhotoSelectionViewController: UIViewController {
         )
     }
 
-    private func loadSavedImageData() -> Data? {
+    private func loadCachedImageData() -> Data? {
         guard
-            let fileURL = getSavedImageURL(),
+            let fileURL = getCachedImageURL(),
             FileManager.default.fileExists(atPath: fileURL.path)
         else {
             return nil
@@ -93,18 +92,18 @@ final class PhotoSelectionViewController: UIViewController {
         return try? Data(contentsOf: fileURL)
     }
 
-    private func loadSavedImagePreview() {
+    private func loadCachedImagePreview() {
         defer { updateViewState() }
-        guard let imageData = loadSavedImageData() else {
+        guard let imageData = loadCachedImageData() else {
             previewImage = nil
             return
         }
         previewImage = UIImage(data: imageData)
     }
 
-    private func deleteSavedImage() {
+    private func deleteCachedImage() {
         guard
-            let fileURL = getSavedImageURL(),
+            let fileURL = getCachedImageURL(),
             FileManager.default.fileExists(atPath: fileURL.path)
         else {
             return
@@ -115,14 +114,14 @@ final class PhotoSelectionViewController: UIViewController {
             updateViewState()
         } catch {
             showErrorAlert(
-                message: "Failed to delete saved image"
+                message: "Failed to delete cached image"
             )
         }
     }
 
-    private func loadPreviousImage() {
-        guard let imageData = loadSavedImageData() else {
-            showErrorAlert(message: "No saved image found.")
+    private func loadCachedImage() {
+        guard let imageData = loadCachedImageData() else {
+            showErrorAlert(message: "No cached image found.")
             return
         }
         presentStoriesEditor(
@@ -145,7 +144,7 @@ final class PhotoSelectionViewController: UIViewController {
                     return
                 }
 
-                if let fileURL = getSavedImageURL() {
+                if let fileURL = getCachedImageURL() {
                     try? data.write(to: fileURL)
                 }
 
@@ -159,13 +158,13 @@ final class PhotoSelectionViewController: UIViewController {
     }
 }
 
-// MARK: PhotoSelectionView
+// MARK: - Presentation
 
 extension PhotoSelectionViewController {
 
     func presentStoriesEditor(imageData: Data, renderPassType: RenderPassType) {
         do {
-            let storiesViewController = try StoriesViewControllerFactor.getViewController(
+            let storiesViewController = try StoriesViewControllerFactory.getViewController(
                 imageData: imageData,
                 renderPassType: renderPassType,
             )
@@ -200,11 +199,11 @@ extension PhotoSelectionViewController: PhotoSelectionViewDelegate {
     }
 
     func photoSelectionViewDidTapUseCachedImage() {
-        loadPreviousImage()
+        loadCachedImage()
     }
 
     func photoSelectionViewDidTapDeleteCachedImage() {
-        deleteSavedImage()
+        deleteCachedImage()
     }
 }
 

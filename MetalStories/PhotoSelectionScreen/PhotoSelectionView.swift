@@ -32,13 +32,13 @@ final class PhotoSelectionView: UIView {
         renderPassSegmentedControl.selectedSegmentIndex = selectedRenderPassIndex
     }
 
-    func updateCachedImage(_ image: UIImage?) {
+    func updateCachedImagePreview(_ image: UIImage?) {
         if let image {
-            previewImageView.image = image
-            previousImageContainerView.isHidden = false
+            cachedImageView.image = image
+            cachedImageContainerView.isHidden = false
         } else {
-            previewImageView.image = nil
-            previousImageContainerView.isHidden = true
+            cachedImageView.image = nil
+            cachedImageContainerView.isHidden = true
         }
     }
 
@@ -61,7 +61,7 @@ final class PhotoSelectionView: UIView {
         return control
     }()
 
-    private let previousImageContainerView: UIView = {
+    private let cachedImageContainerView: UIView = {
         let view = UIView()
         view.backgroundColor = .systemBackground
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -69,7 +69,7 @@ final class PhotoSelectionView: UIView {
         return view
     }()
 
-    private let previewImageView: UIImageView = {
+    private let cachedImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
         imageView.clipsToBounds = true
@@ -115,18 +115,18 @@ final class PhotoSelectionView: UIView {
         useCachedImageButton.addTarget(self, action: #selector(useCachedImageTapped), for: .touchUpInside)
         deleteCachedImageButton.addTarget(self, action: #selector(deleteCachedImageTapped), for: .touchUpInside)
 
-        previewImageView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
-        previewImageView.setContentHuggingPriority(.defaultLow, for: .vertical)
+        cachedImageView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+        cachedImageView.setContentHuggingPriority(.defaultLow, for: .vertical)
         selectPhotoButton.setContentCompressionResistancePriority(.required, for: .vertical)
         renderPassSegmentedControl.setContentCompressionResistancePriority(.required, for: .vertical)
         useCachedImageButton.setContentCompressionResistancePriority(.required, for: .vertical)
 
-        previousImageContainerView.addSubview(previewImageView)
-        previousImageContainerView.addSubview(useCachedImageButton)
-        previousImageContainerView.addSubview(deleteCachedImageButton)
+        cachedImageContainerView.addSubview(cachedImageView)
+        cachedImageContainerView.addSubview(useCachedImageButton)
+        cachedImageContainerView.addSubview(deleteCachedImageButton)
 
         addSubview(selectPhotoButton)
-        addSubview(previousImageContainerView)
+        addSubview(cachedImageContainerView)
         addSubview(renderPassSegmentedControl)
 
         NSLayoutConstraint.activate([
@@ -142,23 +142,23 @@ final class PhotoSelectionView: UIView {
             selectPhotoButton.bottomAnchor.constraint(equalTo: renderPassSegmentedControl.topAnchor, constant: -16),
             selectPhotoButton.heightAnchor.constraint(equalToConstant: 50),
 
-            previousImageContainerView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            previousImageContainerView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            previousImageContainerView.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 16),
-            previousImageContainerView.bottomAnchor.constraint(equalTo: selectPhotoButton.topAnchor, constant: -16),
+            cachedImageContainerView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            cachedImageContainerView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            cachedImageContainerView.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 16),
+            cachedImageContainerView.bottomAnchor.constraint(equalTo: selectPhotoButton.topAnchor, constant: -16),
 
-            previewImageView.topAnchor.constraint(equalTo: previousImageContainerView.topAnchor),
-            previewImageView.leadingAnchor.constraint(equalTo: previousImageContainerView.leadingAnchor),
-            previewImageView.trailingAnchor.constraint(equalTo: previousImageContainerView.trailingAnchor),
-            previewImageView.bottomAnchor.constraint(equalTo: useCachedImageButton.topAnchor, constant: -12),
+            cachedImageView.topAnchor.constraint(equalTo: cachedImageContainerView.topAnchor),
+            cachedImageView.leadingAnchor.constraint(equalTo: cachedImageContainerView.leadingAnchor),
+            cachedImageView.trailingAnchor.constraint(equalTo: cachedImageContainerView.trailingAnchor),
+            cachedImageView.bottomAnchor.constraint(equalTo: useCachedImageButton.topAnchor, constant: -12),
 
-            useCachedImageButton.leadingAnchor.constraint(equalTo: previousImageContainerView.leadingAnchor),
+            useCachedImageButton.leadingAnchor.constraint(equalTo: cachedImageContainerView.leadingAnchor),
             useCachedImageButton.trailingAnchor.constraint(equalTo: deleteCachedImageButton.leadingAnchor, constant: -12),
-            useCachedImageButton.bottomAnchor.constraint(equalTo: previousImageContainerView.bottomAnchor),
+            useCachedImageButton.bottomAnchor.constraint(equalTo: cachedImageContainerView.bottomAnchor),
             useCachedImageButton.heightAnchor.constraint(equalToConstant: 50),
 
-            deleteCachedImageButton.trailingAnchor.constraint(equalTo: previousImageContainerView.trailingAnchor),
-            deleteCachedImageButton.bottomAnchor.constraint(equalTo: previousImageContainerView.bottomAnchor),
+            deleteCachedImageButton.trailingAnchor.constraint(equalTo: cachedImageContainerView.trailingAnchor),
+            deleteCachedImageButton.bottomAnchor.constraint(equalTo: cachedImageContainerView.bottomAnchor),
             deleteCachedImageButton.widthAnchor.constraint(equalToConstant: 50),
             deleteCachedImageButton.heightAnchor.constraint(equalToConstant: 50),
         ])

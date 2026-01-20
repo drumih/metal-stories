@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-enum StoriesViewControllerFactor {
+enum StoriesViewControllerFactory {
 
     // MARK: Internal
 
@@ -10,6 +10,7 @@ enum StoriesViewControllerFactor {
         renderPassType: RenderPassType,
     ) throws -> UIViewController {
         let gpu = try GPU()
+        /// Total number of filters: 1 "Original" + 8 color grading effects
         let availableFiltersCount: Int16 = 9
 
         let renderingView = RenderingView(device: gpu.device)

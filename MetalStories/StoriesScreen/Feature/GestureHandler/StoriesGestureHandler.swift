@@ -48,6 +48,10 @@ final class StoriesGestureHandler {
 
 // MARK: TouchTrackingViewDelegate
 
+/// Gesture state machine:
+/// - 0 touches: idle state
+/// - 1 touch: single-finger mode (horizontal pan to change filter offset)
+/// - 2 touches: two-finger mode (pinch to scale, rotate to transform)
 extension StoriesGestureHandler: TouchTrackingViewDelegate {
     func touchView(
         _ view: UIView,

@@ -27,10 +27,10 @@ final class StoriesFilterNameView: UIView {
         transform = .identity
 
         UIView.animate(
-            withDuration: 0.2,
+            withDuration: Animation.showDuration,
             delay: 0,
-            usingSpringWithDamping: 0.8,
-            initialSpringVelocity: 0.5,
+            usingSpringWithDamping: Animation.springDamping,
+            initialSpringVelocity: Animation.springVelocity,
             options: [.beginFromCurrentState, .allowUserInteraction],
         ) {
             self.alpha = 1.0
@@ -45,7 +45,7 @@ final class StoriesFilterNameView: UIView {
             guard let self else { return }
 
             UIView.animate(
-                withDuration: 0.25,
+                withDuration: Animation.hideDuration,
                 delay: 0,
                 options: [.beginFromCurrentState, .curveEaseIn],
                 animations: {
@@ -60,10 +60,18 @@ final class StoriesFilterNameView: UIView {
         }
 
         hideWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + Animation.hideDelay, execute: workItem)
     }
 
     // MARK: Private
+
+    private enum Animation {
+        static let showDuration: TimeInterval = 0.2
+        static let hideDuration: TimeInterval = 0.25
+        static let hideDelay: TimeInterval = 0.15
+        static let springDamping: CGFloat = 0.8
+        static let springVelocity: CGFloat = 0.5
+    }
 
     private var hideWorkItem: DispatchWorkItem?
 
