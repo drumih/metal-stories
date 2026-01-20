@@ -1,7 +1,6 @@
 #include "Common.h"
 
-// write meaningful comments and MARKs
-// arrange code in the better order
+// Shader utilities and filters for post-processing.
 
 // MARK: - Constants
 
@@ -34,6 +33,25 @@ constant float3x3 kLmsToLinearRgb = float3x3(
     float3(0.2309699292f, -0.3413193965f, 1.7076147010f)
 );
 
+// MARK: - Color Space Conversions
+
+/// Converts linear RGB to OKLab for perceptual edits.
+METAL_FUNC
+float3 rgb_to_oklab(float3 rgb) {
+    const auto lms = kLinearRgbToLms * rgb;
+    const float kOneThird = 1.0f / 3.0f;
+    const auto lms_cube_root = sign(lms) * pow(abs(lms), kOneThird);
+    return kLmsToOklab * lms_cube_root;
+}
+
+/// Converts OKLab back to linear RGB.
+METAL_FUNC
+float3 oklab_to_rgb(float3 oklab) {
+    const auto lms_cbrt = kOklabToLms * oklab;
+    const auto lms = lms_cbrt * lms_cbrt * lms_cbrt;
+    return kLmsToLinearRgb * lms;
+}
+
 // MARK: - Utilities
 
 /// Computes Rec. 709 luminance for a linear RGB color.
@@ -43,13 +61,13 @@ float luminance(float3 rgb) {
     return dot(kRec709Coeff, rgb);
 }
 
-// TODO: write comment
+/// Adds a linear brightness offset.
 METAL_FUNC
 float3 brightness(float3 rgb, float amount) {
     return rgb + amount;
 }
 
-// TODO: write comment
+/// Adjusts contrast around a pivot.
 METAL_FUNC
 float3 contrast(float3 rgb, float amount, float pivot) {
     return (rgb - pivot) * amount + pivot;
@@ -111,12 +129,6 @@ float catmull_rom_5_single(float p000,
                    (-p0_res + 3.f * p1_res - 3.f * p2_res + p3_res) * t3);
 }
 
-/// Mild contrast curve for luma values.
-METAL_FUNC
-float toneCurveCatmullRom(float value) {
-    return catmull_rom_5_single(0.f, 0.2f, 0.5f, 0.8f, 1.f, value);
-}
-
 /// Applies the 5-point Catmull-Rom spline to each RGB channel.
 METAL_FUNC
 float3 catmull_rom_5_rgb(float p000,
@@ -132,31 +144,16 @@ float3 catmull_rom_5_rgb(float p000,
 
 // MARK: - Blend Modes
 
+/// Linear Light blend mode mixed with the source by `a`.
 METAL_FUNC
 float3 linear_light_blend(float3 source, float3 overlay, float a) {
     const auto linearLight = fma(overlay, 2.f, source - 1.f);
     return mix(source, saturate(linearLight), a);
 }
 
-// MARK: - Color Spaces
-
-METAL_FUNC
-float3 rgb_to_oklab(float3 rgb) {
-    const auto lms = kLinearRgbToLms * rgb;
-    const float kOneThird = 1.0f / 3.0f;
-    const auto lms_cube_root = sign(lms) * pow(abs(lms), kOneThird);
-    return kLmsToOklab * lms_cube_root;
-}
-
-METAL_FUNC
-float3 oklab_to_rgb(float3 oklab) {
-    const auto lms_cbrt = kOklabToLms * oklab;
-    const auto lms = lms_cbrt * lms_cbrt * lms_cbrt;
-    return kLmsToLinearRgb * lms;
-}
-
 // MARK: - Filters
 
+/// Basic brightness/contrast preset.
 METAL_FUNC
 float3 very_simple(float3 rgb) {
     const auto brighten = brightness(rgb, -0.1f);
@@ -211,31 +208,6 @@ float3 fire_and_ice(float3 rgb) {
     return float3(filteredR, filteredG, filteredB);
 }
 
-/// Perceptual vibrance: boosts low-chroma colors more than saturated ones.
-METAL_FUNC
-float3 chroma_vibrance(float3 rgb) {
-    const auto lab = rgb_to_oklab(rgb);
-    const auto chroma = length(lab.yz);
-    const auto kChromaPivot = 0.45f;
-    const auto kBaseBoost = 0.1f;
-    const auto kExtraBoost = 0.45f;
-    const auto boost = kBaseBoost + kExtraBoost * (1.0f - saturate(chroma / kChromaPivot));
-    const auto ab = lab.yz * (1.f + boost);
-    return oklab_to_rgb(float3(lab.x, ab));
-}
-
-/// Cross process: RGB matrix mix for highlights with opposite shadows.
-METAL_FUNC
-float3 cross_process(float3 rgb) {
-    const auto contrastedRGB = catmull_rom_5_rgb(0.f, 0.2f, 0.5f, 0.8f, 1.f, rgb);
-
-    const auto mixerOutR = float3(1.5f, -0.9f, 0.4f);
-    const auto mixerOutG = float3(0.3f, 0.f, 0.7f);
-    const auto mixerOutB = float3(0.f, 0.2f, 1.f);
-
-    return channel_mixer(contrastedRGB, mixerOutR, mixerOutG, mixerOutB);
-}
-
 /// Bleach bypass: desaturated and high contrast. Based on NVIDIA implementation
 /// https://developer.download.nvidia.com/shaderlibrary/webpages/screenshots/cgfx/post_bleach_bypass.html
 METAL_FUNC
@@ -262,6 +234,31 @@ float3 orange_sunset(float3 rgb, float2 uv) {
                                       uv);
     const auto blended = linear_light_blend(contrasted, gradient, 0.15f);
     return blended;
+}
+
+/// Perceptual vibrance: boosts low-chroma colors more than saturated ones.
+METAL_FUNC
+float3 chroma_vibrance(float3 rgb) {
+    const auto lab = rgb_to_oklab(rgb);
+    const auto chroma = length(lab.yz);
+    const auto kChromaPivot = 0.45f;
+    const auto kBaseBoost = 0.1f;
+    const auto kExtraBoost = 0.45f;
+    const auto boost = kBaseBoost + kExtraBoost * (1.0f - saturate(chroma / kChromaPivot));
+    const auto ab = lab.yz * (1.f + boost);
+    return oklab_to_rgb(float3(lab.x, ab));
+}
+
+/// Cross process: RGB matrix mix for highlights with opposite shadows.
+METAL_FUNC
+float3 cross_process(float3 rgb) {
+    const auto contrastedRGB = catmull_rom_5_rgb(0.f, 0.2f, 0.5f, 0.8f, 1.f, rgb);
+
+    const auto mixerOutR = float3(1.5f, -0.9f, 0.4f);
+    const auto mixerOutG = float3(0.3f, 0.f, 0.7f);
+    const auto mixerOutB = float3(0.f, 0.2f, 1.f);
+
+    return channel_mixer(contrastedRGB, mixerOutR, mixerOutG, mixerOutB);
 }
 
 // MARK: - Filter Selection
@@ -315,7 +312,7 @@ float4 fragment_post_processing(VertexOut in [[ stage_in ]],
                                 constant float& offset [[ buffer(0) ]]
                                 ) {
     constexpr sampler textureSampler(filter::linear,
-                                     address::repeat);
+                                     address::clamp_to_edge);
     const auto color = texture.sample(textureSampler, in.uv);
     const auto processedRGB = process_rgb(color.rgb, in.uv, offset);
     return float4(processedRGB, color.a);
