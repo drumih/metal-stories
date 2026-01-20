@@ -145,6 +145,7 @@ final class TwoFingerGestureHandler {
 }
 
 extension TwoFingerGestureHandler.TwoPoints {
+    /// Midpoint between the two touches, normalized to [0,1] range
     fileprivate var normalizedAnchor: SIMD2<Float> {
         let midPoint = CGPoint(
             x: (firstPoint.x + secondPoint.x) / 2.0,
@@ -156,6 +157,7 @@ extension TwoFingerGestureHandler.TwoPoints {
         )
     }
 
+    /// Euclidean distance between the two touch points
     fileprivate var distance: CGFloat {
         hypot(
             secondPoint.x - firstPoint.x,
@@ -163,6 +165,7 @@ extension TwoFingerGestureHandler.TwoPoints {
         )
     }
 
+    /// Angle (in radians) of the line connecting the two touch points
     fileprivate var angle: CGFloat {
         atan2(
             secondPoint.y - firstPoint.y,

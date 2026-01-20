@@ -12,9 +12,10 @@ final class SingleFingerGestureHandler {
 
     // MARK: Internal
 
-    struct AnimationPositions {
-        let from: Float
-        let to: Float
+    /// Describes the start and end values for a snap animation
+    struct SnapAnimationSpec {
+        let currentOffset: Float
+        let targetOffset: Float
     }
 
     var isGestureActive: Bool {
@@ -62,7 +63,7 @@ final class SingleFingerGestureHandler {
         self.snapshot = snapshot
     }
 
-    func getAnimationSpecIfPossible() -> AnimationPositions? {
+    func getAnimationSpecIfPossible() -> SnapAnimationSpec? {
         guard let snapshot else { return nil }
         let currentOffset = sceneInput.filterOffset
         let velocity = snapshot.lastVelocity
@@ -70,7 +71,7 @@ final class SingleFingerGestureHandler {
             currentPosition: currentOffset,
             velocity: velocity,
         )
-        return .init(from: currentOffset, to: targetOffset)
+        return .init(currentOffset: currentOffset, targetOffset: targetOffset)
     }
 
     func resetTracking() {
@@ -91,29 +92,49 @@ final class SingleFingerGestureHandler {
     private var snapshot: Snapshot?
 }
 
+// MARK: - Snap Animation Target Calculation
+
 extension SingleFingerGestureHandler {
+
+    private enum SnapConstants {
+        /// Minimum velocity (in screen widths/second) to trigger momentum-based snapping
+        static let velocityThreshold: Float = 0.3
+
+        /// If already within this distance of target, snap there despite momentum
+        static let proximityOverride: Float = 0.15
+    }
 
     private static func calculateAnimationTarget(
         currentPosition: Float,
         velocity: Float,
     ) -> Float {
-        let lowerBound = floor(currentPosition)
-        let upperBound = ceil(currentPosition)
+        // Find the two nearest snap points (integers)
+        let lowerSnapPoint = floor(currentPosition)
+        let upperSnapPoint = ceil(currentPosition)
 
-        guard lowerBound != upperBound else { return lowerBound }
+        // Already at a snap point
+        guard lowerSnapPoint != upperSnapPoint else {
+            return lowerSnapPoint
+        }
 
-        let distanceToLower = currentPosition - lowerBound
-        let distanceToUpper = upperBound - currentPosition
+        // Calculate distances to each snap point
+        let distanceToLower = currentPosition - lowerSnapPoint
+        let distanceToUpper = upperSnapPoint - currentPosition
 
-        let velocityThreshold: Float = 0.3
-        if abs(velocity) < velocityThreshold {
-            return distanceToLower < distanceToUpper ? lowerBound : upperBound
+        // Low velocity: snap to nearest
+        if abs(velocity) < SnapConstants.velocityThreshold {
+            return distanceToLower < distanceToUpper ? lowerSnapPoint : upperSnapPoint
+        }
+
+        // High velocity: follow momentum, unless very close to opposite edge
+        if velocity > 0 {
+            // Swiping right (toward higher values)
+            let tooCloseToLower = distanceToLower < SnapConstants.proximityOverride
+            return tooCloseToLower ? lowerSnapPoint : upperSnapPoint
         } else {
-            if velocity > 0 {
-                return (distanceToLower < 0.15) ? lowerBound : upperBound
-            } else {
-                return (distanceToUpper < 0.15) ? upperBound : lowerBound
-            }
+            // Swiping left (toward lower values)
+            let tooCloseToUpper = distanceToUpper < SnapConstants.proximityOverride
+            return tooCloseToUpper ? upperSnapPoint : lowerSnapPoint
         }
     }
 }

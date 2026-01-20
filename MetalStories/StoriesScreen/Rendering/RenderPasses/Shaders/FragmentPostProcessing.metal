@@ -181,17 +181,17 @@ float3 noir_chrome(float3 rgb) {
     const auto contrastedLuma = catmull_rom_5_single(0.06f, 0.2f, 0.6f, 0.88f, 0.99f, luma);
     const auto mono = float3(contrastedLuma);
 
-    // TODO: rebuild using another functions for masks
-    const auto shadowMask = catmull_rom_5_single(1.0f, 0.9f, 0.4f, 0.1f, 0.0f, contrastedLuma);
-    const auto highlightMask = catmull_rom_5_single(0.0f, 0.0f, 0.2f, 0.8f, 1.0f, contrastedLuma);
-    const auto sheenMask = catmull_rom_5_single(0.0f, 0.0f, 0.15f, 0.85f, 1.0f, contrastedLuma);
-    const auto midTonesMask = catmull_rom_5_single(0.0f, 0.7f, 1.0f, 0.4f, 0.0f, contrastedLuma);
+    const auto shadowMask = 1.0f - smoothstep(0.12f, 0.55f, contrastedLuma);
+    const auto highlightMask = smoothstep(0.45f, 0.85f, contrastedLuma);
+    const auto sheenMask = smoothstep(0.60f, 0.95f, contrastedLuma);
+    const auto midTonesMask = saturate(smoothstep(0.18f, 0.48f, contrastedLuma) -
+                                       smoothstep(0.55f, 0.88f, contrastedLuma));
 
     const auto shadowTint = float3(0.94f, 0.96f, 1.02f);
     const auto highlightTint = float3(0.98f, 1.01f, 1.06f);
     const auto sheenTint = float3(0.01f, 0.015f, 0.03f);
 
-    auto graded = mono;
+    auto graded = float3(contrastedLuma);
     graded = mix(graded, graded * shadowTint, shadowMask);
     graded = mix(graded, graded * highlightTint, highlightMask);
     graded = graded + sheenTint * sheenMask;

@@ -9,6 +9,8 @@ protocol OffsetAnimatorDelegate: AnyObject {
 
 // MARK: - OffsetAnimator
 
+/// Animates the filter offset to snap to integer values using ease-out cubic easing.
+/// Uses CADisplayLink for frame-synchronized updates.
 final class OffsetAnimator {
 
     // MARK: Lifecycle
@@ -32,19 +34,16 @@ final class OffsetAnimator {
     func animate(from startOffset: Float, to targetOffset: Float) {
         let distance = abs(targetOffset - startOffset)
 
-        let minimumDistance: Float = 0.001
-        guard distance > minimumDistance else {
+        guard distance > AnimationTiming.minimumDistance else {
             sceneInput.filterOffset = targetOffset
             cancel()
             return
         }
 
-        // Duration scales with distance for a consistent snap feel.
-
         let clampedDuration = clamp(
-            value: Double(distance) * 0.45,
-            min: 0.28,
-            max: 0.7,
+            value: Double(distance) * AnimationTiming.durationPerUnit,
+            min: AnimationTiming.minimumDuration,
+            max: AnimationTiming.maximumDuration,
         )
 
         animation = Animation(
@@ -58,6 +57,7 @@ final class OffsetAnimator {
         delegate?.offsetAnimatorDidStartAnimation(targetOffset: targetOffset)
     }
 
+    /// Stops the animation and notifies the delegate.
     func cancel() {
         let wasAnimating = animation != nil
         let targetValue = animation?.targetValue
@@ -70,6 +70,20 @@ final class OffsetAnimator {
     }
 
     // MARK: Private
+
+    private enum AnimationTiming {
+        /// Distance threshold below which we skip animation and snap immediately
+        static let minimumDistance: Float = 0.001
+
+        /// Duration multiplier per unit of distance
+        static let durationPerUnit: Double = 0.45
+
+        /// Minimum animation duration for snappy feel
+        static let minimumDuration: Double = 0.28
+
+        /// Maximum duration to prevent sluggish animations
+        static let maximumDuration: Double = 0.70
+    }
 
     private struct Animation {
         let startValue: Float
@@ -106,7 +120,7 @@ final class OffsetAnimator {
         let elapsed = now - animation.startTime
         let progress = min(1.0, elapsed / animation.duration)
 
-        // Ease-out cubic for a smooth finish.
+        // Ease-out cubic for a smooth animation finish
         let eased = 1.0 - pow(1.0 - progress, 3.0)
         let newOffset = animation.startValue + Float(eased) * (animation.targetValue - animation.startValue)
 

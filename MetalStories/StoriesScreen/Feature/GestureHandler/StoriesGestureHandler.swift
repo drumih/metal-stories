@@ -2,6 +2,15 @@ import QuartzCore
 import simd
 import UIKit
 
+// MARK: - TouchTrackingViewDelegate
+
+private protocol TouchTrackingViewDelegate: AnyObject {
+    func touchView(_ view: UIView, touchesBegan touches: Set<UITouch>, with event: UIEvent?)
+    func touchView(_ view: UIView, touchesMoved touches: Set<UITouch>, with event: UIEvent?)
+    func touchView(_ view: UIView, touchesEnded touches: Set<UITouch>, with event: UIEvent?)
+    func touchView(_ view: UIView, touchesCancelled touches: Set<UITouch>, with event: UIEvent?)
+}
+
 // MARK: - StoriesGestureHandler
 
 final class StoriesGestureHandler {
@@ -48,10 +57,6 @@ final class StoriesGestureHandler {
 
 // MARK: TouchTrackingViewDelegate
 
-/// Gesture state machine:
-/// - 0 touches: idle state
-/// - 1 touch: single-finger mode (horizontal pan to change filter offset)
-/// - 2 touches: two-finger mode (pinch to scale, rotate to transform)
 extension StoriesGestureHandler: TouchTrackingViewDelegate {
     func touchView(
         _ view: UIView,
@@ -72,7 +77,7 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
 
         case 2:
             if singleFingerHandler.isGestureActive, let animationSpec = singleFingerHandler.getAnimationSpecIfPossible() {
-                offsetAnimator.animate(from: animationSpec.from, to: animationSpec.to)
+                offsetAnimator.animate(from: animationSpec.currentOffset, to: animationSpec.targetOffset)
             }
             singleFingerHandler.resetTracking()
             twoFingerHandler.startGesture(with: trackedTouches, in: view)
@@ -114,19 +119,17 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
 
         let remainingTouches = trackedTouches.count
         if wasSingleFingerGesture, remainingTouches == 0, let animationSpec = singleFingerHandler.getAnimationSpecIfPossible() {
-            offsetAnimator.animate(from: animationSpec.from, to: animationSpec.to)
+            offsetAnimator.animate(from: animationSpec.currentOffset, to: animationSpec.targetOffset)
         }
 
         switch remainingTouches {
-        case 0:
-            twoFingerHandler.resetTracking()
-            singleFingerHandler.resetTracking()
-
-        case 1:
+        case 0, 1:
+            // All touches lifted or only one remains - reset both handlers
             twoFingerHandler.resetTracking()
             singleFingerHandler.resetTracking()
 
         case 2:
+            // Dropped back to two fingers from three+ (edge case)
             singleFingerHandler.resetTracking()
 
         default:
@@ -141,15 +144,6 @@ extension StoriesGestureHandler: TouchTrackingViewDelegate {
     ) {
         touchView(view, touchesEnded: touches, with: event)
     }
-}
-
-// MARK: - TouchTrackingViewDelegate
-
-private protocol TouchTrackingViewDelegate: AnyObject {
-    func touchView(_ view: UIView, touchesBegan touches: Set<UITouch>, with event: UIEvent?)
-    func touchView(_ view: UIView, touchesMoved touches: Set<UITouch>, with event: UIEvent?)
-    func touchView(_ view: UIView, touchesEnded touches: Set<UITouch>, with event: UIEvent?)
-    func touchView(_ view: UIView, touchesCancelled touches: Set<UITouch>, with event: UIEvent?)
 }
 
 // MARK: - TouchTrackingView
