@@ -10,28 +10,32 @@ constant short kAvailableFiltersCount [[function_constant(0)]];
 /// Total number of filters available
 constant short kTotalFiltersCount = 9;
 
+// MARK: - Rec. 709 luminance Coeff
+
+constant auto kRec709Coeff = float3(0.2126f, 0.7152f, 0.0722f);
+
 // MARK: - Color Space Matrices
 
 constant float3x3 kLinearRgbToLms = float3x3(
-    float3(0.4122214708f, 0.2119034982f, 0.0883024619f),
-    float3(0.5363325363f, 0.6806995451f, 0.2817188376f),
-    float3(0.0514459929f, 0.1073969566f, 0.6299787005f)
-);
+                                             float3(0.4122214708f, 0.2119034982f, 0.0883024619f),
+                                             float3(0.5363325363f, 0.6806995451f, 0.2817188376f),
+                                             float3(0.0514459929f, 0.1073969566f, 0.6299787005f)
+                                             );
 constant float3x3 kLmsToOklab = float3x3(
-    float3(0.2104542553f, 1.9779984951f, 0.0259040371f),
-    float3(0.7936177850f, -2.4285922050f, 0.7827717662f),
-    float3(-0.0040720468f, 0.4505937099f, -0.8086757660f)
-);
+                                         float3(0.2104542553f, 1.9779984951f, 0.0259040371f),
+                                         float3(0.7936177850f, -2.4285922050f, 0.7827717662f),
+                                         float3(-0.0040720468f, 0.4505937099f, -0.8086757660f)
+                                         );
 constant float3x3 kOklabToLms = float3x3(
-    float3(1.0f, 1.0f, 1.0f),
-    float3(0.3963377774f, -0.1055613458f, -0.0894841775f),
-    float3(0.2158037573f, -0.0638541728f, -1.2914855480f)
-);
+                                         float3(1.0f, 1.0f, 1.0f),
+                                         float3(0.3963377774f, -0.1055613458f, -0.0894841775f),
+                                         float3(0.2158037573f, -0.0638541728f, -1.2914855480f)
+                                         );
 constant float3x3 kLmsToLinearRgb = float3x3(
-    float3(4.0767416621f, -1.2684380046f, -0.0041960863f),
-    float3(-3.3077115913f, 2.6097574011f, -0.7034186147f),
-    float3(0.2309699292f, -0.3413193965f, 1.7076147010f)
-);
+                                             float3(4.0767416621f, -1.2684380046f, -0.0041960863f),
+                                             float3(-3.3077115913f, 2.6097574011f, -0.7034186147f),
+                                             float3(0.2309699292f, -0.3413193965f, 1.7076147010f)
+                                             );
 
 // MARK: - Color Space Conversions
 
@@ -57,7 +61,6 @@ float3 oklab_to_rgb(float3 oklab) {
 /// Computes Rec. 709 luminance for a linear RGB color.
 METAL_FUNC
 float luminance(float3 rgb) {
-    const auto kRec709Coeff = float3(0.2126f, 0.7152f, 0.0722f);
     return dot(kRec709Coeff, rgb);
 }
 
@@ -174,25 +177,25 @@ float3 sepia(float3 rgb) {
 METAL_FUNC
 float3 noir_chrome(float3 rgb) {
     const auto luma = luminance(rgb);
-
+    
     const auto contrastedLuma = catmull_rom_5_single(0.06f, 0.2f, 0.6f, 0.88f, 0.99f, luma);
     const auto mono = float3(contrastedLuma);
-
+    
     const auto shadowMask = 1.0f - smoothstep(0.12f, 0.55f, contrastedLuma);
     const auto highlightMask = smoothstep(0.45f, 0.85f, contrastedLuma);
     const auto sheenMask = smoothstep(0.60f, 0.95f, contrastedLuma);
     const auto midTonesMask = saturate(smoothstep(0.18f, 0.48f, contrastedLuma) -
                                        smoothstep(0.55f, 0.88f, contrastedLuma));
-
+    
     const auto shadowTint = float3(0.94f, 0.96f, 1.02f);
     const auto highlightTint = float3(0.98f, 1.01f, 1.06f);
     const auto sheenTint = float3(0.01f, 0.015f, 0.03f);
-
+    
     auto graded = float3(contrastedLuma);
     graded = mix(graded, graded * shadowTint, shadowMask);
     graded = mix(graded, graded * highlightTint, highlightMask);
     graded = graded + sheenTint * sheenMask;
-
+    
     return mix(graded, mono, midTonesMask * 0.2f);
 }
 
@@ -253,11 +256,11 @@ float3 chroma_vibrance(float3 rgb) {
 METAL_FUNC
 float3 cross_process(float3 rgb) {
     const auto contrastedRGB = catmull_rom_5_rgb(0.f, 0.2f, 0.5f, 0.8f, 1.f, rgb);
-
+    
     const auto mixerOutR = float3(1.5f, -0.9f, 0.4f);
     const auto mixerOutG = float3(0.3f, 0.f, 0.7f);
     const auto mixerOutB = float3(0.f, 0.2f, 1.f);
-
+    
     return channel_mixer(contrastedRGB, mixerOutR, mixerOutG, mixerOutB);
 }
 
@@ -289,10 +292,10 @@ float3 process_rgb(float3 rgb, float2 uv, float offset) {
     switch (targetMode) {
         case 0: targetColor = rgb; break;
         case 1: targetColor = very_simple(rgb); break;
-        case 2: targetColor = sepia(rgb); break; 
+        case 2: targetColor = sepia(rgb); break;
         case 3: targetColor = noir_chrome(rgb); break;
         case 4: targetColor = fire_and_ice(rgb); break;
-        case 5: targetColor = bleach_bypass(rgb); break; 
+        case 5: targetColor = bleach_bypass(rgb); break;
         case 6: targetColor = orange_sunset(rgb, uv); break;
         case 7: targetColor = chroma_vibrance(rgb); break;
         case 8: targetColor = cross_process(rgb); break;
