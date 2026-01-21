@@ -44,6 +44,7 @@ final class PhotoSelectionViewController: UIViewController {
             contentView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             contentView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+
     }
 
     private func selectPhoto() {
@@ -131,6 +132,7 @@ final class PhotoSelectionViewController: UIViewController {
     }
 
     private func didSelectImage(_ result: PHPickerResult) {
+        showLoadingOverlay()
         result.itemProvider
             .loadDataRepresentation(
                 forTypeIdentifier: UTType.image.identifier
@@ -139,6 +141,7 @@ final class PhotoSelectionViewController: UIViewController {
 
                 guard let data, error == nil else {
                     DispatchQueue.main.async {
+                        self.hideLoadingOverlay()
                         self.showErrorAlert(message: "Failed to load image. Please try again.")
                     }
                     return
@@ -149,12 +152,21 @@ final class PhotoSelectionViewController: UIViewController {
                 }
 
                 DispatchQueue.main.async {
+                    self.hideLoadingOverlay()
                     self.presentStoriesEditor(
                         imageData: data,
                         renderPassType: self.selectedRenderPassType,
                     )
                 }
             }
+    }
+
+    private func showLoadingOverlay() {
+        contentView.showLoadingOverlay()
+    }
+
+    private func hideLoadingOverlay() {
+        contentView.hideLoadingOverlay()
     }
 }
 

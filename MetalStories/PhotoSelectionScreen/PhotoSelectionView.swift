@@ -42,6 +42,16 @@ final class PhotoSelectionView: UIView {
         }
     }
 
+    func showLoadingOverlay() {
+        loadingOverlay.isHidden = false
+        loadingOverlay.startAnimating()
+    }
+
+    func hideLoadingOverlay() {
+        loadingOverlay.stopAnimating()
+        loadingOverlay.isHidden = true
+    }
+
     // MARK: Private
 
     private let selectPhotoButton: UIButton = {
@@ -103,6 +113,13 @@ final class PhotoSelectionView: UIView {
         return button
     }()
 
+    private lazy var loadingOverlay: LoadingOverlayView = {
+        let overlay = LoadingOverlayView()
+        overlay.isHidden = true
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+        return overlay
+    }()
+
     private func setupView() {
         backgroundColor = .systemBackground
 
@@ -128,6 +145,7 @@ final class PhotoSelectionView: UIView {
         addSubview(selectPhotoButton)
         addSubview(cachedImageContainerView)
         addSubview(renderPassSegmentedControl)
+        addSubview(loadingOverlay)
 
         NSLayoutConstraint.activate([
             renderPassSegmentedControl.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
@@ -161,6 +179,11 @@ final class PhotoSelectionView: UIView {
             deleteCachedImageButton.bottomAnchor.constraint(equalTo: cachedImageContainerView.bottomAnchor),
             deleteCachedImageButton.widthAnchor.constraint(equalToConstant: 50),
             deleteCachedImageButton.heightAnchor.constraint(equalToConstant: 50),
+
+            loadingOverlay.topAnchor.constraint(equalTo: topAnchor),
+            loadingOverlay.leadingAnchor.constraint(equalTo: leadingAnchor),
+            loadingOverlay.trailingAnchor.constraint(equalTo: trailingAnchor),
+            loadingOverlay.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
     }
 
