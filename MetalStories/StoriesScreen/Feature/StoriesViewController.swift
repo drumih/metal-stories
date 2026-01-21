@@ -238,22 +238,6 @@ extension StoriesViewController: OffsetAnimatorDelegate {
     }
 }
 
-// MARK: - Helpers
-
-extension Int {
-    /// Wraps the integer to always be within [0, count)
-    private func wrapped(within count: Int) -> Int {
-        guard count > 0 else { return self }
-        return (self % count + count) % count
-    }
-}
-
-extension Array {
-    private subscript(safe index: Int) -> Element? {
-        indices.contains(index) ? self[index] : nil
-    }
-}
-
 // MARK: - StoriesViewController + StoriesContentViewDelegate
 
 extension StoriesViewController: StoriesContentViewDelegate {
@@ -276,5 +260,15 @@ extension StoriesViewController: StoriesContentViewDelegate {
 
     func storiesContentViewDidReleaseShowOriginal(_: StoriesContentView) {
         sceneInput.showOriginal = false
+    }
+}
+
+// MARK: - Helpers
+
+extension Int {
+    /// Wraps the integer to always be within [0, count)
+    fileprivate func wrapped(within count: Int) -> Int {
+        guard count > 0 else { return self }
+        return (self % count + count) % count
     }
 }

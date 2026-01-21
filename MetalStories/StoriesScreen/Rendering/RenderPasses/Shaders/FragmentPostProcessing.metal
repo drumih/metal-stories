@@ -243,13 +243,22 @@ float3 orange_sunset(float3 rgb, float2 uv) {
 METAL_FUNC
 float3 chroma_vibrance(float3 rgb) {
     const auto lab = rgb_to_oklab(rgb);
-    const auto chroma = length(lab.yz);
-    const auto kChromaPivot = 0.45f;
-    const auto kBaseBoost = 0.1f;
+
+    const auto l = lab.x;
+    const auto ab = lab.yz;
+
+    const auto c = length(ab);
+
+    const auto kPivot = 0.45f;
+    const auto kBaseBoost = 0.10f;
     const auto kExtraBoost = 0.45f;
-    const auto boost = kBaseBoost + kExtraBoost * (1.0f - saturate(chroma / kChromaPivot));
-    const auto ab = lab.yz * (1.f + boost);
-    return oklab_to_rgb(float3(lab.x, ab));
+
+    const auto t = 1.f - saturate(c / kPivot);
+    const auto w = t * t;
+    const auto scale = 1.0f + (kBaseBoost + kExtraBoost * w);
+    const auto newAB = ab * scale;
+
+    return oklab_to_rgb(float3(l, newAB));
 }
 
 /// Cross process: RGB matrix mix for highlights with opposite shadows.
