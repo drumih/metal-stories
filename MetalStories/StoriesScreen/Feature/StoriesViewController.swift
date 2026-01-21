@@ -218,6 +218,9 @@ extension StoriesViewController: StoriesFailureViewDelegate {
 // MARK: OffsetAnimatorDelegate
 
 extension StoriesViewController: OffsetAnimatorDelegate {
+
+    // MARK: Internal
+
     func offsetAnimatorDidStartAnimation(targetOffset: Float) {
         contentView.showFilterName(filterName(forOffset: targetOffset))
     }
@@ -225,6 +228,8 @@ extension StoriesViewController: OffsetAnimatorDelegate {
     func offsetAnimatorDidEndAnimation(targetOffset _: Float) {
         contentView.hideFilterName()
     }
+
+    // MARK: Private
 
     private func filterName(forOffset offset: Float) -> String {
         let index = Int(round(offset))
@@ -235,21 +240,21 @@ extension StoriesViewController: OffsetAnimatorDelegate {
 
 // MARK: - Helpers
 
-private extension Int {
+extension Int {
     /// Wraps the integer to always be within [0, count)
-    func wrapped(within count: Int) -> Int {
+    private func wrapped(within count: Int) -> Int {
         guard count > 0 else { return self }
         return (self % count + count) % count
     }
 }
 
-private extension Array {
-    subscript(safe index: Int) -> Element? {
+extension Array {
+    private subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
     }
 }
 
-// MARK: StoriesContentViewDelegate
+// MARK: - StoriesViewController + StoriesContentViewDelegate
 
 extension StoriesViewController: StoriesContentViewDelegate {
     func storiesContentViewDidTapClose(_: StoriesContentView) {

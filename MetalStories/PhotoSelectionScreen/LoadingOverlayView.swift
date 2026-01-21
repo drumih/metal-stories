@@ -2,7 +2,7 @@ import UIKit
 
 final class LoadingOverlayView: UIView {
 
-    private let activityIndicator = UIActivityIndicatorView(style: .large)
+    // MARK: Lifecycle
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -18,9 +18,11 @@ final class LoadingOverlayView: UIView {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) {
+    required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+
+    // MARK: Internal
 
     func startAnimating() {
         activityIndicator.startAnimating()
@@ -29,4 +31,9 @@ final class LoadingOverlayView: UIView {
     func stopAnimating() {
         activityIndicator.stopAnimating()
     }
+
+    // MARK: Private
+
+    private let activityIndicator = UIActivityIndicatorView(style: .large)
+
 }

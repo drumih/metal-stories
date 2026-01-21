@@ -5,13 +5,19 @@ import UIKit
 /// Weak reference wrapper to break retain cycle between CADisplayLink and OffsetAnimator.
 /// CADisplayLink strongly retains its target, so we use this proxy with a weak reference.
 private final class DisplayLinkTarget {
-    weak var animator: OffsetAnimator?
+
+    // MARK: Lifecycle
 
     init(animator: OffsetAnimator) {
         self.animator = animator
     }
 
-    @objc func handleDisplayLink(_ displayLink: CADisplayLink) {
+    // MARK: Internal
+
+    weak var animator: OffsetAnimator?
+
+    @objc
+    func handleDisplayLink(_: CADisplayLink) {
         animator?.handleAnimation()
     }
 }
@@ -85,6 +91,34 @@ final class OffsetAnimator {
         }
     }
 
+    // MARK: Fileprivate
+
+    fileprivate func handleAnimation() {
+        guard let animation else {
+            cancel()
+            return
+        }
+        let now = CACurrentMediaTime()
+        let elapsed = now - animation.startTime
+        let progress = min(1.0, elapsed / animation.duration)
+
+        // Ease-out cubic for a smooth animation finish
+        let eased = 1.0 - pow(1.0 - progress, 3.0)
+        let newOffset = animation.startValue + Float(eased) * (animation.targetValue - animation.startValue)
+
+        sceneInput.filterOffset = newOffset
+
+        if progress >= 1.0 {
+            let targetValue = animation.targetValue
+            sceneInput.filterOffset = targetValue
+
+            stopDisplayLink()
+
+            delegate?.offsetAnimatorDidEndAnimation(targetOffset: targetValue)
+            return
+        }
+    }
+
     // MARK: Private
 
     private enum AnimationTiming {
@@ -92,13 +126,13 @@ final class OffsetAnimator {
         static let minimumDistance: Float = 0.001
 
         /// Duration multiplier per unit of distance
-        static let durationPerUnit: Double = 0.45
+        static let durationPerUnit = 0.45
 
         /// Minimum animation duration for snappy feel
-        static let minimumDuration: Double = 0.28
+        static let minimumDuration = 0.28
 
         /// Maximum duration to prevent sluggish animations
-        static let maximumDuration: Double = 0.70
+        static let maximumDuration = 0.70
     }
 
     private struct Animation {
@@ -133,29 +167,4 @@ final class OffsetAnimator {
         link.add(to: .main, forMode: .common)
     }
 
-    fileprivate func handleAnimation() {
-        guard let animation else {
-            cancel()
-            return
-        }
-        let now = CACurrentMediaTime()
-        let elapsed = now - animation.startTime
-        let progress = min(1.0, elapsed / animation.duration)
-
-        // Ease-out cubic for a smooth animation finish
-        let eased = 1.0 - pow(1.0 - progress, 3.0)
-        let newOffset = animation.startValue + Float(eased) * (animation.targetValue - animation.startValue)
-
-        sceneInput.filterOffset = newOffset
-
-        if progress >= 1.0 {
-            let targetValue = animation.targetValue
-            sceneInput.filterOffset = targetValue
-
-            stopDisplayLink()
-
-            delegate?.offsetAnimatorDidEndAnimation(targetOffset: targetValue)
-            return
-        }
-    }
 }

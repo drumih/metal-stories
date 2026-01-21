@@ -44,7 +44,6 @@ final class PhotoSelectionViewController: UIViewController {
             contentView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             contentView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
-
     }
 
     private func selectPhoto() {
