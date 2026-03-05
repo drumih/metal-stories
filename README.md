@@ -36,4 +36,4 @@ This repo helps you learn the basics of Metal rendering and color processing.
 ## Run the App
 1. Clone the repository and open `MetalStories/MetalStories.xcodeproj` in Xcode.
 2. In Xcode, select your Development Team in the target Signing & Capabilities settings.
-3. Launch the project on an iOS simulator or a physical device.
+3. Launch the project on a physical iOS device.
