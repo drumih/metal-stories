@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+		192549E62F597A5A00F3F320 /* SampleCode.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = SampleCode.xcconfig; path = Configuration/SampleCode.xcconfig; sourceTree = "<group>"; };
 		199629792F02882300DCBA2A /* MetalStories.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MetalStories.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -42,9 +43,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		192549E72F597A5A00F3F320 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				192549E62F597A5A00F3F320 /* SampleCode.xcconfig */,
+			);
+			name = Configuration;
+			sourceTree = "<group>";
+		};
 		199629702F02882300DCBA2A = {
 			isa = PBXGroup;
 			children = (
+				192549E72F597A5A00F3F320 /* Configuration */,
 				1996297B2F02882300DCBA2A /* MetalStories */,
 				1996297A2F02882300DCBA2A /* Products */,
 			);
@@ -140,12 +150,13 @@
 /* Begin XCBuildConfiguration section */
 		1996298D2F02882400DCBA2A /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 192549E62F597A5A00F3F320 /* SampleCode.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = B29C25KW38;
+				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MetalStories/Info.plist;
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Save Photos";
@@ -159,7 +170,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = andreymikhaylov.MetalStories;
+				PRODUCT_BUNDLE_IDENTIFIER = "andreymikhaylov.MetalStories${SAMPLE_CODE_DISAMBIGUATOR}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -173,12 +184,13 @@
 		};
 		1996298E2F02882400DCBA2A /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 192549E62F597A5A00F3F320 /* SampleCode.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = B29C25KW38;
+				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MetalStories/Info.plist;
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Save Photos";
@@ -192,7 +204,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = andreymikhaylov.MetalStories;
+				PRODUCT_BUNDLE_IDENTIFIER = "andreymikhaylov.MetalStories${SAMPLE_CODE_DISAMBIGUATOR}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -206,6 +218,7 @@
 		};
 		1996298F2F02882400DCBA2A /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 192549E62F597A5A00F3F320 /* SampleCode.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -270,6 +283,7 @@
 		};
 		199629902F02882400DCBA2A /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 192549E62F597A5A00F3F320 /* SampleCode.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
