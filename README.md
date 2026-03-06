@@ -1,5 +1,5 @@
 # MetalStories
-[Video demo](https://github.com/user-attachments/assets/be99652b-1a9e-44a5-bd38-2b0d16d2db26)
+[Video demo](https://github.com/user-attachments/assets/7ad11e42-19c1-4698-96b7-c74016a41ef7)
 
 
 
