@@ -1,8 +1,6 @@
 # MetalStories
 [Video demo](https://github.com/user-attachments/assets/be99652b-1a9e-44a5-bd38-2b0d16d2db26)
 
-<img src="MetalStories/Media/photo-demo.jpg" alt="photo-demo" width="320" />
-
 ## Project Description
 MetalStories is an example implementation of a Stories-style editor built with Metal. The app includes 8 filter effects and shows how to combine preprocessing, rendering passes, gestures, and photo export in an iOS workflow.
 
