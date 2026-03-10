@@ -169,19 +169,6 @@ extension TransformCalculator {
         )
     }
 
-    private static func targetAspectMode(
-        for aspectModeType: ImageAspectModeType,
-        textureSize: SIMD2<Float>,
-    ) -> ImageAspectMode {
-        let textureAspect = textureSize.x / textureSize.y
-        switch aspectModeType {
-        case .automatic(let threshold):
-            return textureAspect < threshold ? .scaleAspectFill : .scaleAspectFit
-        case .specific(let aspectMode):
-            return aspectMode
-        }
-    }
-
     private static func combineMatrices(_ matrices: [float4x4]) -> float4x4 {
         var resultMatrix = matrix_identity_float4x4
         for transformMatrix in matrices.reversed() {

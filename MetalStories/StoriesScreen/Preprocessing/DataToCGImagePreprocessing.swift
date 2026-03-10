@@ -2,12 +2,6 @@ import CoreGraphics
 import Foundation
 import ImageIO
 
-// MARK: - DataToCGImagePreprocessingError
-
-enum DataToCGImagePreprocessingError: LocalizedError {
-    case failedToCreateImage
-}
-
 // MARK: - DataToCGImagePreprocessing
 
 enum DataToCGImagePreprocessing {
@@ -42,7 +36,7 @@ enum DataToCGImagePreprocessing {
     }
 }
 
-extension DataToCGImagePreprocessingError {
+extension DataToCGImagePreprocessing.DataToCGImagePreprocessingError {
 
     var errorDescription: String? {
         switch self {
